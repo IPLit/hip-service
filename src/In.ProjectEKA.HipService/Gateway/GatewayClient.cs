@@ -45,11 +45,13 @@ namespace In.ProjectEKA.HipService.Gateway
                         NamingStrategy = new CamelCaseNamingStrategy()
                     }
                 });
-                string sessionUrl = $"{configuration.SessionUrl}";
-                sessionUrl = string.IsNullOrEmpty(sessionUrl) ? $"{configuration.Url}" : sessionUrl;
+                string sessionUrl = string.IsNullOrEmpty($"{configuration.SessionUrl}") ?
+                $"{configuration.Url}" : $"{configuration.SessionUrl}";
+                sessionUrl = sessionUrl + $"/{Constants.PATH_SESSIONS}";
+                Log.Error("sessionUrl: " + sessionUrl);
                 var message = new HttpRequestMessage
                 {
-                    RequestUri = new Uri($"{sessionUrl}/{Constants.PATH_SESSIONS}"),
+                    RequestUri = new Uri(sessionUrl),
                     Method = HttpMethod.Post,
                     Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json)
                 };
