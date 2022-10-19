@@ -91,5 +91,5 @@ jobs:
           git config user.email ${{ secrets.BAHMNI_EMAIL}}
           git add .
           git commit -m "Release of hip-${{ env.ARTIFACT_VERSION }}"
-          git push 'https://${{github.actor}}:${{secrets.BAHMNI_PAT}}@github.com/iplit/helm-charts.git' gh-pages
+          git push 'https://${{secrets.BAHMNI_EMAIL}}:${{secrets.BAHMNI_PAT}}@github.com/iplit/helm-charts.git' gh-pages
 
