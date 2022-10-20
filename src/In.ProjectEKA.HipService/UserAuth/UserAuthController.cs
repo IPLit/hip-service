@@ -21,6 +21,7 @@ namespace In.ProjectEKA.HipService.UserAuth
     using static Constants;
 
     [ApiController]
+    [AllowAnonymous]
     public class UserAuthController : Controller
     {
         private readonly IGatewayClient gatewayClient;
