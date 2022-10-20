@@ -127,7 +127,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                 new ErrorRepresentation(new Error(ErrorCode.GatewayTimedOut, "Gateway timed out")));
         }
 
-        // [Authorize]
+        [Authorize]
         [HttpPost(PATH_ON_FETCH_AUTH_MODES)]
         public AcceptedResult SetAuthModes(OnFetchAuthModeRequest request)
         {
@@ -236,7 +236,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                 new ErrorRepresentation(new Error(ErrorCode.GatewayTimedOut, "Gateway timed out")));
         }
 
-        // [Authorize]
+        [Authorize]
         [HttpPost(PATH_ON_AUTH_INIT)]
         public AcceptedResult SetTransactionId(AuthOnInitRequest request)
         {
@@ -338,7 +338,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                 new ErrorRepresentation(new Error(ErrorCode.GatewayTimedOut, "Gateway timed out")));
         }
 
-        // [Authorize]
+        [Authorize]
         [HttpPost(PATH_ON_AUTH_CONFIRM)]
         public async Task<ActionResult> SetAccessToken(OnAuthConfirmRequest request)
         {
