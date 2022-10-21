@@ -88,7 +88,8 @@ namespace In.ProjectEKA.HipService
                     options.AddPolicy(name: "_myAllowSpecificOrigins",
                         builder =>
                         {
-                            builder.WithOrigins(CorsConfiguration.AllowedOrigins).AllowAnyMethod().AllowAnyHeader();
+                            // builder.WithOrigins(CorsConfiguration.AllowedOrigins).AllowAnyMethod().AllowAnyHeader();
+                            builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
                         });
                 })
                 .AddDbContext<AuthContext>(options =>
