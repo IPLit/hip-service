@@ -89,7 +89,7 @@ namespace In.ProjectEKA.HipService
                         builder =>
                         {
                             // builder.WithOrigins(CorsConfiguration.AllowedOrigins).AllowAnyMethod().AllowAnyHeader();
-                            builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                            builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().AllowCredentials();
                         });
                 })
                 .AddDbContext<AuthContext>(options =>
