@@ -88,7 +88,7 @@ namespace In.ProjectEKA.HipService
                     options.AddPolicy(name: "_myAllowSpecificOrigins",
                         builder =>
                         {
-                            builder.WithOrigins("https://nha-suma-azb7fa3pfa-el.a.run.app").AllowAnyMethod().AllowAnyHeader().AllowCredentials();
+                            builder.WithOrigins("https://localhost", "https://nha-suma-azb7fa3pfa-el.a.run.app").AllowAnyMethod().AllowAnyHeader().AllowCredentials();
                             //builder.WithOrigins(CorsConfiguration.AllowedOrigins).AllowAnyMethod().AllowAnyHeader().AllowCredentials();
                             //builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().AllowCredentials();
                         });
