@@ -48,7 +48,7 @@ namespace In.ProjectEKA.HipService.Gateway
                 string sessionUrl = string.IsNullOrEmpty($"{configuration.SessionUrl}") ?
                 $"{configuration.Url}" : $"{configuration.SessionUrl}";
                 sessionUrl = sessionUrl + $"/{Constants.PATH_SESSIONS}";
-                Log.Error("sessionUrl: " + sessionUrl);
+                //Log.Error("sessionUrl: " + sessionUrl);
                 var message = new HttpRequestMessage
                 {
                     RequestUri = new Uri(sessionUrl),
