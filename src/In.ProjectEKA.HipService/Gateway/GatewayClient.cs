@@ -88,6 +88,7 @@ namespace In.ProjectEKA.HipService.Gateway
         {
             try
             {
+                Log.Information("PostTo gatewayUrl: " + gatewayUrl);
                 var token = await Authenticate(correlationId).ConfigureAwait(false);
                 token.MatchSome(async accessToken =>
                 {

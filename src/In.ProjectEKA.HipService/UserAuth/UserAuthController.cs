@@ -106,7 +106,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                     if (RequestIdToAuthModes.ContainsKey(requestId))
                     {
                         logger.LogInformation(LogEvents.UserAuth,
-                            "Response about to be send for requestId: {RequestId} with authModes: {AuthModes}",
+                            "Response for fetch-modes about to be send for requestId: {RequestId} with authModes: {AuthModes}",
                             requestId, RequestIdToAuthModes[requestId]
                         );
                         List<Mode> authModes = RequestIdToAuthModes[requestId];
@@ -119,7 +119,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             }
             catch (Exception exception)
             {
-                logger.LogError(LogEvents.UserAuth, exception, "Error happened for requestId: {RequestId} for" +
+                logger.LogError(LogEvents.UserAuth, exception, "Error happened for fetch-modes requestId: {RequestId} for" +
                                                                " fetch-mode request", requestId);
             }
 
@@ -140,7 +140,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 RequestIdToErrorMessage.Add(Guid.Parse(request.Resp.RequestId), request.Error);
                 logger.Log(LogLevel.Information,
-                    LogEvents.UserAuth, $" Error Code:{request.Error.Code}," +
+                    LogEvents.UserAuth, $" On fetch mode request, Error Code:{request.Error.Code}," +
                                         $" Error Message:{request.Error.Message}.");
             }
             else if (request.Auth != null)
@@ -207,7 +207,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                     if (RequestIdToTransactionIdMap.ContainsKey(requestId))
                     {
                         logger.LogInformation(LogEvents.UserAuth,
-                            "Response about to be send for requestId: {RequestId} with transactionId: {TransactionId}",
+                            "Response for auth-init about to be send for requestId: {RequestId} with transactionId: {TransactionId}",
                             requestId, RequestIdToTransactionIdMap[requestId]
                         );
                         if (HealthIdToTransactionId.ContainsKey(authInitRequest.healthId))
@@ -228,7 +228,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             }
             catch (Exception exception)
             {
-                logger.LogError(LogEvents.UserAuth, exception, "Error happened for requestId: {RequestId} for" +
+                logger.LogError(LogEvents.UserAuth, exception, "Error happened for auth-init requestId: {RequestId} for" +
                                                                " auth-init request", requestId);
             }
 
@@ -248,7 +248,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 RequestIdToErrorMessage.Add(Guid.Parse(request.Resp.RequestId), request.Error);
                 logger.Log(LogLevel.Information,
-                    LogEvents.UserAuth, $" Error Code:{request.Error.Code}," +
+                    LogEvents.UserAuth, $" Auth on init, Error Code:{request.Error.Code}," +
                                         $" Error Message:{request.Error.Message}.");
             }
             else if (request.Auth != null)
@@ -258,7 +258,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             }
 
             logger.Log(LogLevel.Information,
-                LogEvents.UserAuth, $"Response RequestId:{request.Resp.RequestId}");
+                LogEvents.UserAuth, $"Auth on init Response RequestId:{request.Resp.RequestId}");
             return Accepted();
         }
 
@@ -320,7 +320,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                         RequestIdToPatientDetails.ContainsKey(requestId))
                     {
                         logger.LogInformation(LogEvents.UserAuth,
-                            "Response about to be send for requestId: {RequestId} with accessToken: {AccessToken}",
+                            "Response for auth-confirm about to be send for requestId: {RequestId} with accessToken: {AccessToken}",
                             requestId, RequestIdToAccessToken[requestId]
                         );
                         return Accepted(new AuthConfirmResponse(RequestIdToPatientDetails[requestId]));
@@ -331,7 +331,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             }
             catch (Exception exception)
             {
-                logger.LogError(LogEvents.UserAuth, exception, "Error happened for requestId: {RequestId}", requestId);
+                logger.LogError(LogEvents.UserAuth, exception, "Error happened for for auth-confirm requestId: {RequestId}", requestId);
             }
 
             return StatusCode(StatusCodes.Status504GatewayTimeout,
@@ -351,7 +351,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 RequestIdToErrorMessage.Add(Guid.Parse(request.resp.RequestId), request.error);
                 logger.Log(LogLevel.Information,
-                    LogEvents.UserAuth, $" Error Code:{request.error.Code}," +
+                    LogEvents.UserAuth, $" Auth on confirm Error Code:{request.error.Code}," +
                                         $" Error Message:{request.error.Message}.");
             }
             else if (request.auth != null)
