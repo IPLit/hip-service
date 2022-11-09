@@ -16,6 +16,7 @@ namespace In.ProjectEKA.HipService.Patient
         private readonly GatewayConfiguration _gatewayConfiguration;
         private readonly IPatientProfileService _patientProfileService;
 
+
         public PatientController(GatewayClient gatewayClient, IPatientNotificationService patientNotificationService,
             GatewayConfiguration gatewayConfiguration, IPatientProfileService patientProfileService)
         {
@@ -56,18 +57,26 @@ namespace In.ProjectEKA.HipService.Patient
                 error = new Error(ErrorCode.BadRequest, "Invalid Request Format");
             }
 
-            if(error == null) await _patientProfileService.SavePatient(shareProfileRequest);
+            int token = 0;
+            if(error == null)
+            {
+                token = await _patientProfileService.SavePatient(shareProfileRequest);
+            }
+
             var gatewayResponse = new ProfileShareConfirmation(
                 Guid.NewGuid().ToString(),
                 DateTime.Now.ToUniversalTime(),
-                new ProfileShareAcknowledgement(status.ToString(),shareProfileRequest.Profile.PatientDemographics.HealthId), error,
+                new ProfileShareAcknowledgement(status.ToString(),shareProfileRequest.Profile.PatientDemographics.HealthId,token.ToString()), error,
                 new Resp(shareProfileRequest.RequestId));
-            await _gatewayClient.SendDataToGateway(PATH_PATIENT_PROFILE_ON_SHARE,
+            await _gatewayClient.SendDataToGateway(PATH_PROFILE_ON_SHARE,
                 gatewayResponse,
                 cmSuffix,
                 correlationId);
-            if(error == null)
-               return Accepted(); 
+            if (error == null)
+            {
+                await _patientProfileService.linkToken(shareProfileRequest.Profile.PatientDemographics);
+                return Accepted();
+            }
             return BadRequest();
         }
         

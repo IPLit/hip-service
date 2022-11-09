@@ -2,30 +2,40 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
+using Hl7.Fhir.Model;
 using In.ProjectEKA.HipLibrary.Patient.Model;
+using In.ProjectEKA.HipService.Common;
 using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.OpenMrs;
 using In.ProjectEKA.HipService.Patient.Database;
 using In.ProjectEKA.HipService.Patient.Model;
+using In.ProjectEKA.HipService.UserAuth.Model;
+using Newtonsoft.Json;
 using Optional;
+using Optional.Unsafe;
 using Task = System.Threading.Tasks.Task;
 
 namespace In.ProjectEKA.HipService.Patient
 {
-
+    using static Common.Constants;
     public class PatientProfileService : IPatientProfileService
     {
         private readonly OpenMrsConfiguration _openMrsConfiguration;
         private readonly PatientContext patientContext;
+        private readonly HttpClient httpClient;
+        private readonly HipUrlHelper helper;
 
-        public PatientProfileService(OpenMrsConfiguration openMrsConfiguration, PatientContext patientContext)
+        public PatientProfileService(OpenMrsConfiguration openMrsConfiguration, PatientContext patientContext, HttpClient httpClient, HipUrlHelper helper)
         {
             this._openMrsConfiguration = openMrsConfiguration;
             this.patientContext = patientContext;
+            this.httpClient = httpClient;
+            this.helper = helper;
         }
 
-        public async Task SavePatient(ShareProfileRequest shareProfileRequest)
+        public async Task<int> SavePatient(ShareProfileRequest shareProfileRequest)
         {
             var requesId = shareProfileRequest.RequestId;
             var timeStamp = shareProfileRequest.Timestamp.ToString();
@@ -34,20 +44,21 @@ namespace In.ProjectEKA.HipService.Patient
             var response = await Save(new PatientQueue(requesId, timeStamp, patient, hipCode));
             if(response.HasValue)
                 Log.Information("Patient saved to queue");
+            return response.ValueOrDefault();
         }
 
-        private async Task<Option<PatientQueue>> Save(PatientQueue patientQueue)
+        private async Task<Option<int>> Save(PatientQueue patientQueue)
         {
             try
             {
                 await patientContext.PatientQueue.AddAsync(patientQueue).ConfigureAwait(false);
                 await patientContext.SaveChangesAsync();
-                return Option.Some(patientQueue);
+                return Option.Some(patientQueue.TokenNumber);
             }
             catch (Exception exception)
             {
                 Log.Fatal(exception, exception.StackTrace);
-                return Option.None<PatientQueue>();
+                return Option.Some(patientQueue.TokenNumber);
             }
         }
         public bool IsValidRequest(ShareProfileRequest shareProfileRequest)
@@ -61,8 +72,9 @@ namespace In.ProjectEKA.HipService.Patient
             try
             {
                 var patientQueueRequest = patientContext.PatientQueue.ToList().FindAll(
-                    patient => DateTime.Compare(DateTime.Now.AddHours(-1),DateTime.Parse(patient.DateTimeStamp)) < _openMrsConfiguration.PatientQueueTimeLimit
+                    patient => DateTime.Now.Subtract (DateTime.Parse(patient.DateTimeStamp)).TotalMinutes < _openMrsConfiguration.PatientQueueTimeLimit
                 );
+
                 return patientQueueRequest;
             }
             catch (Exception exception)
@@ -70,6 +82,19 @@ namespace In.ProjectEKA.HipService.Patient
                 Log.Fatal(exception, exception.StackTrace);
                 return new List<PatientQueue>();
             }
+        }
+
+        public async Task linkToken(PatientDemographics patientDemographics)
+        {
+            var dob = new Date(patientDemographics.YearOfBirth, patientDemographics.MonthOfBirth ?? 1,
+                patientDemographics.DayOfBirth ?? 1).ToString();
+            var ndhmDemograhics = new NdhmDemographics(patientDemographics.HealthId, patientDemographics.Name,
+                patientDemographics.Gender,
+                dob, patientDemographics.Identifiers[0].Value);
+            var request = new HttpRequestMessage(HttpMethod.Post, helper.getHipUrl() + PATH_DEMOGRAPHICS);
+            request.Content = new StringContent(JsonConvert.SerializeObject(ndhmDemograhics), Encoding.UTF8,
+                "application/json");
+            await httpClient.SendAsync(request).ConfigureAwait(false);
         }
 
   

@@ -20,24 +20,24 @@ services:
       "ConnectionStcrings:DefaultConnection": "Host=postgres;Port=5432;Username=postgres;Password=password;Database=otpservice;"
     ports:
       - "5000:80"
-  # gateway:
-  #   build: gatewayStubConfigurations/.
-  #   ports:
-  #     - "2525:2525"
-  #     - "8000:8000"
-  # oidc-server-mock:
-  #   image: soluto/oidc-server-mock
-  #   ports:
-  #     - "8080:80"
-  #   container_name: oidc-server-mock
-  #   environment:
-  #     API_SCOPES_INLINE: |
-  #       [
-  #         { "Name": "some-app-scope-1" }
-  #       ]
-  #     CLIENTS_CONFIGURATION_PATH: /gatewayStubConfigurations/oicdConfigs/clients-config.json
-  #   volumes:
-  #     - ./gatewayStubConfigurations/oicdConfigs/clients-config.json:/gatewayStubConfigurations/oicdConfigs/clients-config.json
+  gateway:
+    build: gatewayStubConfigurations/.
+    ports:
+      - "2525:2525"
+      - "8000:8000"
+  oidc-server-mock:
+    image: soluto/oidc-server-mock
+    ports:
+      - "8080:80"
+    container_name: oidc-server-mock
+    environment:
+      API_SCOPES_INLINE: |
+        [
+          { "Name": "some-app-scope-1" }
+        ]
+      CLIENTS_CONFIGURATION_PATH: /gatewayStubConfigurations/oicdConfigs/clients-config.json
+    volumes:
+      - ./gatewayStubConfigurations/oicdConfigs/clients-config.json:/gatewayStubConfigurations/oicdConfigs/clients-config.json
   db:
     image: "postgres:latest"
     environment:

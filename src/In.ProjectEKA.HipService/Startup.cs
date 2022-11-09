@@ -88,9 +88,7 @@ namespace In.ProjectEKA.HipService
                     options.AddPolicy(name: "_myAllowSpecificOrigins",
                         builder =>
                         {
-                            //builder.WithOrigins("https://localhost", "https://nha-suma-azb7fa3pfa-el.a.run.app").AllowAnyMethod().AllowAnyHeader().AllowCredentials();
-                            //builder.WithOrigins(CorsConfiguration.AllowedOrigins).AllowAnyMethod().AllowAnyHeader().AllowCredentials();
-                            builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                            builder.WithOrigins(CorsConfiguration.AllowedOrigins).AllowAnyMethod().AllowAnyHeader();
                         });
                 })
                 .AddDbContext<AuthContext>(options =>
@@ -152,6 +150,7 @@ namespace In.ProjectEKA.HipService
                 .AddHostedService<MessagingQueueListener>()
                 .AddScoped<IDataFlowRepository, DataFlowRepository>()
                 .AddScoped<IHealthInformationRepository, HealthInformationRepository>()
+                .AddSingleton(Configuration.GetSection("Hip-Service").Get<HipServiceConfiguration>())
                 .AddSingleton(Configuration.GetSection("Gateway").Get<GatewayConfiguration>())
                 .AddSingleton(Configuration.GetSection("Bahmni").Get<BahmniConfiguration>())
                 .AddSingleton(Configuration.GetSection("Cors").Get<CorsConfiguration>())
@@ -169,6 +168,8 @@ namespace In.ProjectEKA.HipService
                 .AddScoped<IPhoneNumberRepository, OpenMrsPhoneNumberRepository>()
                 .AddTransient<IDataFlow, DataFlow.DataFlow>()
                 .AddRouting(options => options.LowercaseUrls = true)
+                .AddHttpContextAccessor()
+                .AddSingleton<HipUrlHelper>()
                 .AddSwaggerGen(c =>
                 {
                     c.SwaggerDoc("v1", new OpenApiInfo
@@ -289,7 +290,7 @@ namespace In.ProjectEKA.HipService
 
         private static bool CheckRoleInAccessToken(JwtSecurityToken accessToken)
         {
-            if (!(accessToken.Payload["realm_access"] is JObject resourceAccess))
+            if (!(JsonConvert.DeserializeObject(accessToken.Payload["realm_access"].ToString()) is JObject resourceAccess))
                 return false;
             var token = new Token(resourceAccess["roles"]?.ToObject<List<string>>() ?? new List<string>());
             return token.Roles.Contains("gateway", StringComparer.OrdinalIgnoreCase);
