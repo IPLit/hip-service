@@ -220,7 +220,9 @@ namespace In.ProjectEKA.HipService.UserAuth
                                 RequestIdToTransactionIdMap[requestId]);
                         }
 
-                        return new AcceptedResult();
+                        var result = new AcceptedResult();
+                        result.StatusCode = StatusCodes.Status202Accepted;
+                        return result;
                         //return Accepted();
                     }
 
@@ -261,7 +263,9 @@ namespace In.ProjectEKA.HipService.UserAuth
             logger.Log(LogLevel.Information,
                 LogEvents.UserAuth, $"Auth on init Response RequestId:{request.Resp.RequestId}");
             //return Accepted();
-            return new AcceptedResult();
+            var result = new AcceptedResult();
+            result.StatusCode = StatusCodes.Status202Accepted;
+            return result;
         }
 
         [Route(PATH_HIP_AUTH_CONFIRM)]
@@ -325,7 +329,9 @@ namespace In.ProjectEKA.HipService.UserAuth
                             "Response for auth-confirm about to be send for requestId: {RequestId} with accessToken: {AccessToken}",
                             requestId, RequestIdToAccessToken[requestId]
                         );
-                        return new AcceptedResult("", new AuthConfirmResponse(RequestIdToPatientDetails[requestId]));
+                        var result = new AcceptedResult("", new AuthConfirmResponse(RequestIdToPatientDetails[requestId]));
+                        result.StatusCode = StatusCodes.Status202Accepted;
+                        return result;
                     }
 
                     i++;
@@ -366,7 +372,9 @@ namespace In.ProjectEKA.HipService.UserAuth
             logger.Log(LogLevel.Information,
                 LogEvents.UserAuth, $"Response RequestId:{request.resp.RequestId}");
             //return Accepted();
-            return new AcceptedResult();
+            var result = new AcceptedResult();
+            result.StatusCode = StatusCodes.Status202Accepted;
+            return result;
         }
 
         [NonAction]
