@@ -220,7 +220,8 @@ namespace In.ProjectEKA.HipService.UserAuth
                                 RequestIdToTransactionIdMap[requestId]);
                         }
 
-                        return Accepted();
+                        return new AcceptedResult();
+                        //return Accepted();
                     }
 
                     i++;
@@ -259,7 +260,8 @@ namespace In.ProjectEKA.HipService.UserAuth
 
             logger.Log(LogLevel.Information,
                 LogEvents.UserAuth, $"Auth on init Response RequestId:{request.Resp.RequestId}");
-            return Accepted();
+            //return Accepted();
+            return new AcceptedResult();
         }
 
         [Route(PATH_HIP_AUTH_CONFIRM)]
@@ -323,7 +325,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                             "Response for auth-confirm about to be send for requestId: {RequestId} with accessToken: {AccessToken}",
                             requestId, RequestIdToAccessToken[requestId]
                         );
-                        return Accepted(new AuthConfirmResponse(RequestIdToPatientDetails[requestId]));
+                        return new AcceptedResult("", new AuthConfirmResponse(RequestIdToPatientDetails[requestId]));
                     }
 
                     i++;
@@ -363,7 +365,8 @@ namespace In.ProjectEKA.HipService.UserAuth
 
             logger.Log(LogLevel.Information,
                 LogEvents.UserAuth, $"Response RequestId:{request.resp.RequestId}");
-            return Accepted();
+            //return Accepted();
+            return new AcceptedResult();
         }
 
         [NonAction]
