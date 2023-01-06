@@ -52,6 +52,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             try
             {
                 // TODO: Need to handle non 2xx response also
+                httpClient.DefaultRequestHeaders.Remove("Authorization");
                 await httpClient.SendAsync(CreateHttpRequest(dataPushUrl, dataResponse, correlationId)).ConfigureAwait(false);
             }
             catch (Exception exception)
