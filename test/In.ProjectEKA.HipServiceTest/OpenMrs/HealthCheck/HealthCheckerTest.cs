@@ -43,7 +43,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
 
             healthCheckClient = new Mock<IHealthCheckClient>();
             healthCheckClient.Setup(x => x.CheckHealth(3
-                .Returns(Task.FromResult(new Dictionary<string, string>() { { "service", "Unhealthy" } }));
+                .Returns(Task.FromResult(new Dictionary<string, string>()) { { "service", "Unhealthy" } }));
             healthCheckStatus = new Mock<IHealthCheckStatus>();
             healthChecker = new HealthChecker(healthCheckClient.Object, healthCheckStatus.Object);
 
