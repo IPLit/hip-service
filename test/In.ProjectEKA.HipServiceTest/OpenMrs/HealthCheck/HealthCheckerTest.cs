@@ -42,7 +42,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
             Environment.SetEnvironmentVariable("HEALTH_CHECK_DURATION", "5000");
 
             healthCheckClient = new Mock<IHealthCheckClient>();
-            healthCheckClient.Setup(x => x.CheckHealth())
+            healthCheckClient.Setup(x => x.CheckHealth(3
                 .Returns(Task.FromResult(new Dictionary<string, string>() { { "service", "Unhealthy" } }));
             healthCheckStatus = new Mock<IHealthCheckStatus>();
             healthChecker = new HealthChecker(healthCheckClient.Object, healthCheckStatus.Object);
@@ -55,7 +55,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
         [Fact]
         private void ShouldUpdateHealthCheckStatusMoreThanOnce()
         {
-            Environment.SetEnvironmentVariable("HEALTH_CHECK_DURATION", "10");
+            Environment.SetEnvironmentVariable("HEALTH_CHECK_DURATION", "3");
 
             healthCheckClient = new Mock<IHealthCheckClient>();
             healthCheckClient.Setup(x => x.CheckHealth())
