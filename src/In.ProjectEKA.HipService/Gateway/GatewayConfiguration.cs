@@ -13,5 +13,7 @@ namespace In.ProjectEKA.HipService.Gateway
         public string ClientSecret { get; set; }
 
         public string CmSuffix { get; set; }
+        
+        public string AbhaNumberServiceUrl { get; set; }
     }
 }

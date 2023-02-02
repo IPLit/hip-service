@@ -1,8 +1,6 @@
 using In.ProjectEKA.HipService.Common.Model;
-using In.ProjectEKA.HipService.Link.Model;
 using In.ProjectEKA.HipService.Patient;
 using In.ProjectEKA.HipService.Patient.Database;
-using In.ProjectEKA.HipService.Patient.Model;
 using In.ProjectEKA.HipService.SmsNotification;
 using In.ProjectEKA.HipService.UserAuth;
 using In.ProjectEKA.HipService.UserAuth.Database;

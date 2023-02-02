@@ -12,11 +12,13 @@ namespace In.ProjectEKA.HipService.Common
     public static class HttpRequestHelper
     {
         public static HttpRequestMessage CreateHttpRequest<T>(
+            HttpMethod method,
             string url,
             T content,
             string token,
             string cmSuffix,
-            string correlationId)
+            string correlationId,
+            string xtoken = null)
         {
             var json = JsonConvert.SerializeObject(content, new JsonSerializerSettings
             {
@@ -26,13 +28,16 @@ namespace In.ProjectEKA.HipService.Common
                     NamingStrategy = new CamelCaseNamingStrategy()
                 }
             });
-
-            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, new Uri($"{url}"))
+            
+            var httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"))
             {
                 Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json)
             };
+
             if (token != null)
                 httpRequestMessage.Headers.Add(HeaderNames.Authorization, token);
+            if(xtoken != null)
+                httpRequestMessage.Headers.Add("X-Token", xtoken);
             if (cmSuffix != null)
                 httpRequestMessage.Headers.Add("X-CM-ID", cmSuffix);
             if (correlationId != null)
@@ -40,10 +45,10 @@ namespace In.ProjectEKA.HipService.Common
             return httpRequestMessage;
         }
 
-        public static HttpRequestMessage CreateHttpRequest<T>(string url, T content, String correlationId)
+        public static HttpRequestMessage CreateHttpRequest<T>(HttpMethod method,string url, T content, String correlationId)
         {
             // ReSharper disable once IntroduceOptionalParameters.Global
-            return CreateHttpRequest(url, content, null, null, correlationId);
+            return CreateHttpRequest(method,url, content, null, null, correlationId);
         }
     }
 }

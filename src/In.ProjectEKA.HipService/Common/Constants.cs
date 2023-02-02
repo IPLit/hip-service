@@ -4,6 +4,8 @@ namespace In.ProjectEKA.HipService.Common
     {
         public const string CURRENT_VERSION = "v0.5";
         public const string UPDATED_VERSION = "v1.0";
+        public const string VERSION_V1 = "v1";
+        public const string VERSION_V2 = "v2";
         public const string PATH_SESSIONS = CURRENT_VERSION + "/sessions";
         public const string PATH_CARE_CONTEXTS_DISCOVER = CURRENT_VERSION + "/care-contexts/discover";
         public const string PATH_CONSENTS_HIP = CURRENT_VERSION + "/consents/hip/notify";
@@ -32,8 +34,8 @@ namespace In.ProjectEKA.HipService.Common
 
         public static readonly string PATH_AUTH_CONFIRM = "/" + CURRENT_VERSION + "/users/auth/confirm";
 
-        public static readonly string PATH_OPENMRS_FHIR = "ws/fhir2/R4/Patient";
-        public static readonly string PATH_OPENMRS_REST = "ws/rest/v1/visit";
+        public static readonly string PATH_OPENMRS_FHIR = "ws/fhir2/R4/metadata";
+        public static readonly string PATH_OPENMRS_REST = "images/openmrs-favicon.ico";
         public static readonly string PATH_OPENMRS_HITYPE = "ws/rest/v1/hip/";
         public static readonly string CONFIG_KEY = "OpenMrs";
 
@@ -71,5 +73,14 @@ namespace In.ProjectEKA.HipService.Common
         public const string PATH_PROFILE_SHARE = "/" + UPDATED_VERSION + "/patients/profile/share";
         public const string PATH_PROFILE_ON_SHARE = "/" + UPDATED_VERSION + "/patients/profile/on-share";
         public const string PATH_PROFILE_FETCH = "/" + CURRENT_VERSION + "/patients/profile/fetch";
+
+        public const string CERT = "/" + VERSION_V2 +"/auth/cert";
+        public const string AADHAAR_GENERATE_OTP = "/" + VERSION_V2 +"/registration/aadhaar/generateOtp";
+        public const string AADHAAR_VERIFY_OTP = "/" + VERSION_V2 + "/registration/aadhaar/verifyOTP";  
+        public const string CHECK_GENERATE_MOBILE_OTP = "/" + VERSION_V2 + "/registration/aadhaar/checkAndGenerateMobileOTP";
+        public const string VERIFY_MOBILE_OTP = "/" + VERSION_V2 + "/registration/aadhaar/verifyMobileOTP";
+        public const string CREATE_ABHA_ID = "/" + VERSION_V1 +"/registration/aadhaar/createHealthIdWithPreVerified";
+        public const string GET_ABHA_CARD =  "/" + VERSION_V2 + "/account/getPngCard";
+
     }
 }
