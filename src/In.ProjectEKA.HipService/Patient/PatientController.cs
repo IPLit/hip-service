@@ -68,9 +68,9 @@ namespace In.ProjectEKA.HipService.Patient
                 DateTime.Now.ToUniversalTime(),
                 new ProfileShareAcknowledgement(status.ToString(),shareProfileRequest.Profile.PatientDemographics.HealthId,token.ToString()), error,
                 new Resp(shareProfileRequest.RequestId));
-            await Task.Run(async () =>
+            Task mainTask = Task.Run(async () =>
             {
-                // await Task.Delay(500);
+                await Task.Delay(500);
                 await _gatewayClient.SendDataToGateway(PATH_PROFILE_ON_SHARE,
                     gatewayResponse,
                     cmSuffix,
@@ -78,6 +78,7 @@ namespace In.ProjectEKA.HipService.Patient
                 if(error == null)
                     await _patientProfileService.linkToken(shareProfileRequest.Profile.PatientDemographics);
             });
+            await mainTask.ConfigureAwait(false);
             if (error == null)
             {
                 return Accepted();
