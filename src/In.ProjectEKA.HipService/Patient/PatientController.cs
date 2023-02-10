@@ -74,9 +74,9 @@ namespace In.ProjectEKA.HipService.Patient
                 await _gatewayClient.SendDataToGateway(PATH_PROFILE_ON_SHARE,
                     gatewayResponse,
                     cmSuffix,
-                    correlationId).ConfigureAwait(false);
+                    correlationId);
                 if(error == null)
-                    await _patientProfileService.linkToken(shareProfileRequest.Profile.PatientDemographics).ConfigureAwait(false);
+                    await _patientProfileService.linkToken(shareProfileRequest.Profile.PatientDemographics);
             });
             if (error == null)
             {
