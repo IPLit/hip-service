@@ -70,7 +70,7 @@ namespace In.ProjectEKA.HipService.Patient
                 new Resp(shareProfileRequest.RequestId));
             await Task.Run(async () =>
             {
-                // await Task.Delay(500);
+                await Task.Delay(500);
                 await _gatewayClient.SendDataToGateway(PATH_PROFILE_ON_SHARE,
                     gatewayResponse,
                     cmSuffix,
