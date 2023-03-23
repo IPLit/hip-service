@@ -68,7 +68,7 @@ namespace In.ProjectEKA.HipService.Patient
                 DateTime.Now.ToUniversalTime(),
                 new ProfileShareAcknowledgement(status.ToString(),shareProfileRequest.Profile.PatientDemographics.HealthId,token.ToString()), error,
                 new Resp(shareProfileRequest.RequestId));
-            await Task.Run(async () =>
+            Task.Run(async () =>
             {
                 await Task.Delay(500);
                 await _gatewayClient.SendDataToGateway(PATH_PROFILE_ON_SHARE,
