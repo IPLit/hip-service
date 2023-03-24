@@ -203,6 +203,8 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 string transactionId = request.Auth.TransactionId;
                 RequestIdToTransactionIdMap.Add(Guid.Parse(request.Resp.RequestId), transactionId);
+                logger.Log(LogLevel.Information,
+                LogEvents.UserAuth, $"Auth on init transactionId:{transactionId}");
             }
 
             logger.Log(LogLevel.Information,
