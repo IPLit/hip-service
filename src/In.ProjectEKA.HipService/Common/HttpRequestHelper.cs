@@ -43,7 +43,7 @@ namespace In.ProjectEKA.HipService.Common
             if (correlationId != null)
                 httpRequestMessage.Headers.Add(CORRELATION_ID, correlationId);*/
 
-            var contents = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
+            HttpContent contents = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
             if (token != null)
                 contents.Headers.Add(HeaderNames.Authorization, token);
             if(xtoken != null)
