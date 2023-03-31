@@ -29,7 +29,7 @@ namespace In.ProjectEKA.HipService.Common
                 }
             });
             
-            /*var httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"))
+            var httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"))
             {
                 Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json)
             };
@@ -41,22 +41,7 @@ namespace In.ProjectEKA.HipService.Common
             if (cmSuffix != null)
                 httpRequestMessage.Headers.Add("X-CM-ID", cmSuffix);
             if (correlationId != null)
-                httpRequestMessage.Headers.Add(CORRELATION_ID, correlationId);*/
-
-            HttpContent contents = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
-            if (token != null)
-                contents.Headers.Add(HeaderNames.Authorization, token);
-            if(xtoken != null)
-                contents.Headers.Add("X-Token", xtoken);
-            if (cmSuffix != null)
-                contents.Headers.Add("X-CM-ID", cmSuffix);
-            if (correlationId != null)
-                contents.Headers.Add(CORRELATION_ID, correlationId);
-
-            var httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"))
-            {
-                Content = contents
-            };
+                httpRequestMessage.Headers.Add(CORRELATION_ID, correlationId);
             return httpRequestMessage;
         }
 
