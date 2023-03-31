@@ -120,7 +120,7 @@ namespace In.ProjectEKA.HipService.Gateway
                     try
                     {
                         await httpClient
-                            .SendAsync(CreateHttpRequest(HttpMethod.Post,gatewayUrl, representation, accessToken,
+                            .PostAsync(CreateHttpRequest(HttpMethod.Post,gatewayUrl, representation, accessToken,
                                 cmSuffix, correlationId))
                             .ConfigureAwait(false);
                     }
