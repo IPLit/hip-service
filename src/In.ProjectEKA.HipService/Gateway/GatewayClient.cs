@@ -119,10 +119,18 @@ namespace In.ProjectEKA.HipService.Gateway
                 {
                     try
                     {
-                        await httpClient
+                        /*await httpClient
                             .PostAsync(CreateHttpRequest(HttpMethod.Post,gatewayUrl, representation, accessToken,
                                 cmSuffix, correlationId))
-                            .ConfigureAwait(false);
+                            .ConfigureAwait(false);*/
+                       
+                       var req = CreateHttpRequest(HttpMethod.Post, gatewayUrl, representation, accessToken,
+                        cmSuffix, correlationId);
+                       await httpClient
+                        .PostAsync(req.RequestUri, req.Content)
+                        .ConfigureAwait(false);
+
+                       Log.Information("request postto content: " + req.RequestUri + ", " + req.Content);
                     }
                     catch (Exception exception)
                     {
