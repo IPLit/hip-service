@@ -126,11 +126,12 @@ namespace In.ProjectEKA.HipService.Gateway
                        
                        var req = CreateHttpRequest(HttpMethod.Post, gatewayUrl, representation, accessToken,
                         cmSuffix, correlationId);
+                       req.Method = HttpMethod.Post;
                        await httpClient
-                        .PostAsync(req.RequestUri, req.Content)
+                        .SendAsync(req)
                         .ConfigureAwait(false);
 
-                       var msg = String.Format("requestUri: {0}, Content: {1}", req.RequestUri, JsonConvert.SerializeObject(req.Headers));
+                       var msg = String.Format("requestMethod: {0}, requestUri: {1}, Content: {2}", req.Method, req.RequestUri, JsonConvert.SerializeObject(req.Headers));
                        Log.Information($"Request Post content= " + msg);
                     }
                     catch (Exception exception)
