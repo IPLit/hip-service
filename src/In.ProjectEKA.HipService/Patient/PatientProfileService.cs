@@ -93,6 +93,7 @@ namespace In.ProjectEKA.HipService.Patient
                 patientDemographics.Gender,
                 dob, patientDemographics.Identifiers[0].value);
             var request = new HttpRequestMessage(HttpMethod.Post, hipConfiguration.Value.Url + PATH_DEMOGRAPHICS);
+            request.Method = HttpMethod.Post;
             request.Content = new StringContent(JsonConvert.SerializeObject(ndhmDemograhics), Encoding.UTF8,
                 "application/json");
             await httpClient.SendAsync(request).ConfigureAwait(false);
