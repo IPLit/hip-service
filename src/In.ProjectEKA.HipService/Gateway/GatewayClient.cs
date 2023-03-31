@@ -130,7 +130,7 @@ namespace In.ProjectEKA.HipService.Gateway
                         .PostAsync(req.RequestUri, req.Content)
                         .ConfigureAwait(false);
 
-                       var msg = String.Format("requestUri: {0}, Content: {1}", req.RequestUri, JsonConvert.SerializeObject(req.Content));
+                       var msg = String.Format("requestUri: {0}, Content: {1}", req.RequestUri, JsonConvert.SerializeObject(req.Headers));
                        Log.Information($"Request Post content= " + msg);
                     }
                     catch (Exception exception)
