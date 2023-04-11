@@ -42,14 +42,12 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Docker Build and push
         uses: docker/build-push-action@v3
-        env:
-          dockerusername: ${{ secrets.DOCKER_USERNAME }}
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           file: package/docker/Dockerfile
           push: true
-          tags:  $dockerusername/hip:${{env.ARTIFACT_VERSION}},$dockerusername/hip:latest
+          tags:  infoiplitin/hip:${{env.ARTIFACT_VERSION}},infoiplitin/hip:latest
       - name: Helm - Update Version and Image Tag
         run: |
           yq --inplace '.image.tag = "${{ env.ARTIFACT_VERSION }}"' $HELM_CHART_PATH/values.yaml
