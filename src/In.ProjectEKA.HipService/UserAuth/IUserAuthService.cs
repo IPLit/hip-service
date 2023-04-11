@@ -15,12 +15,17 @@ namespace In.ProjectEKA.HipService.UserAuth
         public Task<ErrorRepresentation> AuthInit(AuthInitRequest authInitRequest, string correlationId,
             BahmniConfiguration bahmniConfiguration, GatewayConfiguration gatewayConfiguration);
 
+        public Tuple<AuthConfirmPatient, ErrorRepresentation> GetPatientDetailsForDirectAuth(
+            string healthId, GatewayConfiguration gatewayConfiguration);
+
         public Task<Tuple<AuthConfirmResponse, ErrorRepresentation>> AuthConfirm(AuthConfirmRequest authConfirmRequest,
             string correlationId, GatewayConfiguration gatewayConfiguration);
 
         
         public Task<Tuple<AuthConfirm, ErrorRepresentation>> OnAuthConfirmResponse(
             OnAuthConfirmRequest onAuthConfirmRequest);
+
+        public Task<ErrorRepresentation> AuthNotify(AuthNotifyRequest request);
 
         public Task Dump(NdhmDemographics ndhmDemographics);
 

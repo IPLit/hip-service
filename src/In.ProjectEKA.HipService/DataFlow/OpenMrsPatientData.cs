@@ -7,7 +7,7 @@ using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using In.ProjectEKA.HipService.Common.Model;
+using In.ProjectEKA.HipLibrary.Patient.Model;
 
 namespace In.ProjectEKA.HipService.DataFlow
 {
@@ -18,7 +18,9 @@ namespace In.ProjectEKA.HipService.DataFlow
             {HiType.Prescription.ToString().ToLower(), "prescriptions"},
             {HiType.DiagnosticReport.ToString().ToLower(), "diagnosticReports"},
             {HiType.OPConsultation.ToString().ToLower(), "opConsults"},
-            {HiType.DischargeSummary.ToString().ToLower(), "dischargeSummary"}
+            {HiType.DischargeSummary.ToString().ToLower(), "dischargeSummary"},
+            {HiType.ImmunizationRecord.ToString().ToLower(), "immunizationRecord"},
+            {HiType.HealthDocumentRecord.ToString().ToLower(), "healthDocumentRecord"}
         };
 
         private readonly IOpenMrsClient openMrsClient;
@@ -64,11 +66,10 @@ namespace In.ProjectEKA.HipService.DataFlow
                 !string.IsNullOrEmpty(fromDate)
             )
             {
-                var careContexName = grantedContext.Split(" / ");
+                var careContexReference = grantedContext.Split(":");
                 query["patientId"] = consentId;
-                query["visitType"] = careContexName[0];
-                query["visitStartDate"] = careContexName[1];
-                query["fromDate"] = fromDate;
+                query["visitUuid"] = careContexReference[1];
+                query["fromDate"] = DateTime.Parse(fromDate).ToString("yyyy-MM-dd");
                 query["toDate"] = DateTime.Parse(toDate).AddDays(1).ToString("yyyy-MM-dd");
             }
 

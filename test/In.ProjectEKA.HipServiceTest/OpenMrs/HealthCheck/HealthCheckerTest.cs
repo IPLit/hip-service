@@ -55,7 +55,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
         [Fact]
         private void ShouldUpdateHealthCheckStatusMoreThanOnce()
         {
-            Environment.SetEnvironmentVariable("HEALTH_CHECK_DURATION", "3");
+            Environment.SetEnvironmentVariable("HEALTH_CHECK_DURATION", "10");
 
             healthCheckClient = new Mock<IHealthCheckClient>();
             healthCheckClient.Setup(x => x.CheckHealth())

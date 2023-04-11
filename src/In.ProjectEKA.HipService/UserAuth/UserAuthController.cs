@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Hangfire;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Common;
 using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.Gateway;
+using In.ProjectEKA.HipService.Gateway.Model;
 using In.ProjectEKA.HipService.Link.Model;
 using In.ProjectEKA.HipService.OpenMrs;
 using In.ProjectEKA.HipService.UserAuth.Model;
@@ -96,8 +98,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                 var i = 0;
                 do
                 {
-                    //Thread.Sleep(gatewayConfiguration.TimeOut);
-                    Thread.Sleep(8000);
+                    Thread.Sleep(gatewayConfiguration.TimeOut);
                     if (RequestIdToErrorMessage.ContainsKey(requestId))
                     {
                         var gatewayError = RequestIdToErrorMessage[requestId];
@@ -113,6 +114,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                             requestId, RequestIdToAuthModes[requestId]
                         );
                         List<Mode> authModes = RequestIdToAuthModes[requestId];
+                        authModes.Add(Mode.DIRECT);
                         FetchModeResponse fetchModeResponse = new FetchModeResponse(authModes);
                         return Json(fetchModeResponse);
                     }
@@ -143,7 +145,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 RequestIdToErrorMessage.Add(Guid.Parse(request.Resp.RequestId), request.Error);
                 logger.Log(LogLevel.Information,
-                    LogEvents.UserAuth, $" On fetch mode request, Error Code:{request.Error.Code}," +
+                    LogEvents.UserAuth, $" On fetch mode, Error Code:{request.Error.Code}," +
                                         $" Error Message:{request.Error.Message}.");
             }
             else if (request.Auth != null)
@@ -181,7 +183,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             if (error == null) return Accepted();
             Log.Information($" Error Code:{error.Error.Code}," +
                             $" Error Message:{error.Error.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, error);
+            return StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(error.Error.Code, StatusCodes.Status400BadRequest), error);
         }
 
         [Authorize]
@@ -242,7 +244,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             if (error == null) return Accepted(authConfirm);
             Log.Information($" Error Code:{error.Error.Code}," +
                             $" Error Message:{error.Error.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError,error);
+            return StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(error.Error.Code, StatusCodes.Status400BadRequest), error);
         }
 
         [Authorize]
@@ -307,7 +309,7 @@ namespace In.ProjectEKA.HipService.UserAuth
         [Route(PATH_DEMOGRAPHICS)]
         public async Task<ActionResult> DemographicAuth([FromBody] NdhmDemographics ndhmDemographics)
         {
-            var authInitRequest = new AuthInitRequest(ndhmDemographics.HealthId, "DEMOGRAPHICS", "KYC_AND_LINK");
+            var authInitRequest = new AuthInitRequest(ndhmDemographics.HealthId, "DEMOGRAPHICS", "LINK");
             
             var initError = await userAuthService.AuthInit(authInitRequest, null, bahmniConfiguration,gatewayConfiguration);
             if (initError != null)
@@ -319,7 +321,61 @@ namespace In.ProjectEKA.HipService.UserAuth
             var authConfirmRequest = new AuthConfirmRequest(null, ndhmDemographics.HealthId, demographics);
             
             var (authConfirm, confirmError) = await userAuthService.AuthConfirm(authConfirmRequest, null ,gatewayConfiguration);
-            return confirmError != null ? StatusCode(StatusCodes.Status500InternalServerError,confirmError) : Accepted(authConfirm);
+            return confirmError != null ? StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(confirmError.Error.Code,StatusCodes.Status400BadRequest),confirmError) : Accepted(authConfirm);
+        }
+
+        [Authorize]
+        [HttpPost(PATH_AUTH_NOTIFY)]
+        public async Task<ActionResult> AuthNotify([FromHeader(Name = CORRELATION_ID)] string correlationId, 
+            [FromBody] AuthNotifyRequest request)
+        {
+            logger.Log(LogLevel.Information,
+                LogEvents.UserAuth, "Auth notify request received." +
+                                    $" RequestId:{request.requestId}, " +
+                                    $" Timestamp:{request.timestamp}");
+
+            var error = await userAuthService.AuthNotify(request);
+            var cmSuffix = gatewayConfiguration.CmSuffix;
+            var gatewayAuthOnNotifyResponseRepresentation = new AuthOnNotifyResponse(
+                Guid.NewGuid(),
+                DateTime.Now.ToUniversalTime(),
+                new AuthOnNotifyAcknowledgement(AuthOnNotifyStatus.OK),
+                error?.Error,
+                new Resp(request.requestId.ToString())
+            );
+            await gatewayClient.SendDataToGateway(PATH_AUTH_ON_NOTIFY, gatewayAuthOnNotifyResponseRepresentation, cmSuffix, correlationId);
+            
+            return Accepted();
+        }
+        
+        [Route(PATH_HIP_DIRECT_AUTH)]
+        public async Task<ActionResult> GetPatientDetails([FromParameter("healthId")] string healthId)
+        {
+            if (Request != null)
+            {
+                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
+                {
+                    string sessionId = Request.Cookies[REPORTING_SESSION];
+            
+                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
+                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
+                    {
+                        return statusCodeResult.Result;
+                    }
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status401Unauthorized);
+                }
+            }
+            
+            var (authConfirmPatient, error) = userAuthService.GetPatientDetailsForDirectAuth(healthId, gatewayConfiguration);
+            if (error == null) 
+                return Accepted(authConfirmPatient);
+            
+            Log.Information($" Error Code:{error.Error.Code}," +
+                            $" Error Message:{error.Error.Message}");
+            return StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(error.Error.Code,StatusCodes.Status400BadRequest), error);
         }
     }
 }

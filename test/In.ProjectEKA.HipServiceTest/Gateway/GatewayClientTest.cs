@@ -25,7 +25,7 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
     [Collection("Gateway Client Tests")]
     public class GatewayClientTest
     {
-        // [Fact]
+        [Fact]
         private void ShouldReturnDataToGateway()
         {
             var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
