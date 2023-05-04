@@ -10,6 +10,7 @@ namespace In.ProjectEKA.HipService.Link.Model
         AADHAAR_OTP,
         PASSWORD,
         DEMOGRAPHICS,
-        DIRECT
+        DIRECT,
+        EMAIL_OTP
     }
 }
