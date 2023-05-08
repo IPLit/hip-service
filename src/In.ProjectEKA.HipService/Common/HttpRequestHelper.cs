@@ -30,8 +30,8 @@ namespace In.ProjectEKA.HipService.Common
                 }
             });
 
-            var jsonStr = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
-            Log.Information($"{method.ToString()} method request for url {url} with content {jsonStr.ToString()}");
+            //var jsonStr = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
+            Log.Information($"{method.ToString()} method request for url {url} with content {json}");
 
             var httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"))
             {
