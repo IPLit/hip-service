@@ -8,6 +8,7 @@ namespace In.ProjectEKA.HipService.Common
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
     using static Constants;
+    using Logger;
 
     public static class HttpRequestHelper
     {
@@ -28,7 +29,10 @@ namespace In.ProjectEKA.HipService.Common
                     NamingStrategy = new CamelCaseNamingStrategy()
                 }
             });
-            
+
+            var jsonStr = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
+            Log.Information($"{method.ToString()} method request for url {url} with content {jsonStr.ToString()}");
+
             var httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"))
             {
                 Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json)
