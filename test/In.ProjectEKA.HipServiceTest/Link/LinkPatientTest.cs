@@ -61,7 +61,7 @@ namespace In.ProjectEKA.HipServiceTest.Link
         private async void ShouldReturnLinkReferenceResponse()
         {
             const string linkReferenceNumber = "linkreference";
-            const string authType = "MEDIATED";
+            const string authType = "DIRECT";
             const string programRefNo = "129";
             const string medium = "MOBILE";
 
