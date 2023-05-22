@@ -12,6 +12,10 @@ namespace In.ProjectEKA.HipService.Consent
     using Microsoft.AspNetCore.Mvc;
     using Model;
     using static Common.Constants;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
+    using Logger;
+
 
     [ApiController]
     public class ConsentNotificationController : ControllerBase
@@ -43,6 +47,16 @@ namespace In.ProjectEKA.HipService.Consent
         public async Task StoreConsent(ConsentArtefactRepresentation consentArtefact, String correlationId)
         {
             var notification = consentArtefact.Notification;
+
+            var jsonNotification = JsonConvert.SerializeObject(notification, new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy()
+                }
+            });
+            Log.Information($"{notification.Status} consent request with content {jsonNotification}");
 
             if (notification.Status == ConsentStatus.GRANTED)
             {
