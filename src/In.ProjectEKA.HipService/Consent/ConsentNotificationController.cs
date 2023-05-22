@@ -64,7 +64,8 @@ namespace In.ProjectEKA.HipService.Consent
             else
             {
                 await consentRepository.UpdateAsync(notification.ConsentId, notification.Status);
-                if (notification.Status == ConsentStatus.REVOKED)
+                // IPLit need to check
+                // if (notification.Status == ConsentStatus.REVOKED)
                 {
                     var consent = await consentRepository.GetFor(notification.ConsentId);
                     var cmSuffix = consent.ConsentArtefact.ConsentManager.Id;
