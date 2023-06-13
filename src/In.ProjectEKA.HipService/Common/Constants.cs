@@ -85,6 +85,13 @@ namespace In.ProjectEKA.HipService.Common
         public const string GET_ABHA_CARD =  "/" + VERSION_V2 + "/account/getPngCard";
         public const string ABHA_PATIENT_PROFILE = "/" + VERSION_V2 + "/account/profile";
         public const string CREATE_PHR = "/" + VERSION_V2 + "/account/phr-linked";
+        public const string SEARCH_HEALTHID = "/" + VERSION_V2 + "/search/searchHealthIdToLogin";
+        public const string AUTH_INIT_VERIFY = "/" + VERSION_V2 + "/auth/init";
+        public const string CONFIRM_OTP_VERIFY = "/" + VERSION_V2 + "/hip/confirmOTP";
+        public const string CONFIRM_WITH_MOBILE_OTP = "/" + VERSION_V2 + "/auth/confirmWithMobileOTP";
+        public const string CONFIRM_WITH_AADHAAR_OTP = "/" + VERSION_V2 + "/auth/confirmWithAadhaarOTP";
+        public const string CREATE_DEFAULT_PHR_ADDRESS = "/" + VERSION_V1 + "/account/update/phr-address";
+        public const string CREATE_PHR_ADDRESS = "/" + VERSION_V2 + "/hip/profile/updatePhrAddress";
 
         public const string PUBLIC_CERT = "/" + VERSION_V1 + "/phr/public/certificate";
         public const string MOBILE_EMAIL_INIT = "/" + VERSION_V1 + "/phr/login/mobileEmail/init";
