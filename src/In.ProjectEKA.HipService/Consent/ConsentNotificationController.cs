@@ -48,7 +48,7 @@ namespace In.ProjectEKA.HipService.Consent
         {
             var notification = consentArtefact.Notification;
 
-            var jsonNotification = JsonConvert.SerializeObject(notification, new JsonSerializerSettings
+            /*var jsonNotification = JsonConvert.SerializeObject(notification, new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore,
                 ContractResolver = new DefaultContractResolver
@@ -56,7 +56,7 @@ namespace In.ProjectEKA.HipService.Consent
                     NamingStrategy = new CamelCaseNamingStrategy()
                 }
             });
-            Log.Information($"{notification.Status} consent request with content {jsonNotification}");
+            Log.Information($"{notification.Status} consent request with content {jsonNotification}");*/
 
             if (notification.Status == ConsentStatus.GRANTED)
             {

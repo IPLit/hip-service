@@ -47,13 +47,9 @@ namespace In.ProjectEKA.HipService.Gateway
                         NamingStrategy = new CamelCaseNamingStrategy()
                     }
                 });
-                string sessionUrl = string.IsNullOrEmpty($"{configuration.SessionUrl}") ?
-                $"{configuration.Url}" : $"{configuration.SessionUrl}";
-                sessionUrl = sessionUrl + $"/{Constants.PATH_SESSIONS}";
-                //Log.Error("sessionUrl: " + sessionUrl);
                 var message = new HttpRequestMessage
                 {
-                    RequestUri = new Uri(sessionUrl),
+                    RequestUri = new Uri($"{configuration.Url}/{Constants.PATH_SESSIONS}"),
                     Method = HttpMethod.Post,
                     Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json)
                 };
@@ -113,26 +109,15 @@ namespace In.ProjectEKA.HipService.Gateway
         {
             try
             {
-                Log.Information("PostTo gatewayUrl: " + gatewayUrl);
                 var token = await Authenticate(correlationId).ConfigureAwait(false);
                 token.MatchSome(async accessToken =>
                 {
                     try
                     {
-                        /*await httpClient
-                            .PostAsync(CreateHttpRequest(HttpMethod.Post,gatewayUrl, representation, accessToken,
+                        await httpClient
+                            .SendAsync(CreateHttpRequest(HttpMethod.Post,gatewayUrl, representation, accessToken,
                                 cmSuffix, correlationId))
-                            .ConfigureAwait(false);*/
-                       
-                       var req = CreateHttpRequest(HttpMethod.Post, gatewayUrl, representation, accessToken,
-                        cmSuffix, correlationId);
-                       req.Method = HttpMethod.Post;
-                       await httpClient
-                        .SendAsync(req)
-                        .ConfigureAwait(false);
-
-                       // var msg = String.Format("requestMethod: {0}, requestUri: {1}, Content: {2}", req.Method, req.RequestUri, JsonConvert.SerializeObject(req.Headers));
-                       // Log.Information($"Request Post content= " + msg);
+                            .ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {

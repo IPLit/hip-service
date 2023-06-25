@@ -209,7 +209,7 @@ namespace In.ProjectEKA.HipService
                 .AddJwtBearer(options =>
                 {
                     // Need to validate Audience and Issuer properly
-                    options.Authority = $"{Configuration.GetValue<string>("Gateway:sessionUrl")}/{Constants.CURRENT_VERSION}";
+                    options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}";
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,

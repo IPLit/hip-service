@@ -7,7 +7,6 @@ namespace In.ProjectEKA.HipService.DataFlow
     using System.Threading.Tasks;
     using Gateway;
     using HipLibrary.Patient.Model;
-    //using HipService.Common.Model;
     using Logger;
     using Model;
     using static Common.HttpRequestHelper;
