@@ -24,7 +24,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             var patientUuid = "12";
             var careContextReference = "VISIT:1234";
             var fromDate = "2020-01-01";
-            var toDate = "2020-12-12";
+            var toDate = "2020-12-13";
             var hiType = "prescription";
             var pathForPrescription =
                 "ws/rest/v1/hip/prescriptions/visit/?patientId=12&visitUuid=1234&fromDate=2020-01-01&toDate=2020-12-13";
@@ -48,11 +48,11 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             var patientUuid = "12";
             var grantedContext = "HIV Program(ID Number:45)";
             var fromDate = "2020-01-01";
-            var toDate = "2020-12-12";
+            var toDate = "2020-12-13";
             var hiType = "prescription";
             var pathForPrescription =
                 "ws/rest/v1/hip/prescriptions/program/?patientId=12&programName=HIV+Program&" +
-                "programEnrollmentId=45&fromDate=2020-01-01&toDate=2020-12-12";
+                "programEnrollmentId=45&fromDate=2020-01-01&toDate=2020-12-13";
 
             OpenMrsClientMock
                 .Setup(x => x.GetAsync(pathForPrescription))
@@ -73,7 +73,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             var patientUuid = "12";
             var careContextReference = "VISIT:1234";
             var fromDate = "2020-01-01";
-            var toDate = "2020-12-12";
+            var toDate = "2020-12-13";
             var hiType = "diagnosticreport";
             var pathForPrescription =
                 "ws/rest/v1/hip/diagnosticReports/visit/?patientId=12&visitUuid=1234&fromDate=2020-01-01&toDate=2020-12-13";
@@ -97,11 +97,11 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             var patientUuid = "12";
             var grantedContext = "HIV Program(ID Number:45)";
             var fromDate = "2020-01-01";
-            var toDate = "2020-12-12";
+            var toDate = "2020-12-13";
             var hiType = "diagnosticreport";
             var pathForPrescription =
                 "ws/rest/v1/hip/diagnosticReports/program/?patientId=12&programName=HIV+Program&" +
-                "programEnrollmentId=45&fromDate=2020-01-01&toDate=2020-12-12";
+                "programEnrollmentId=45&fromDate=2020-01-01&toDate=2020-12-13";
 
             OpenMrsClientMock
                 .Setup(x => x.GetAsync(pathForPrescription))
