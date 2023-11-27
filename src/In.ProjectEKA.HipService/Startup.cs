@@ -260,8 +260,8 @@ namespace In.ProjectEKA.HipService
                 return next(context);
             });
 
-            app.UseSwagger();
-            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "HIP Service"); });
+            // app.UseSwagger(); // IPLit
+            // app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "HIP Service"); });
 
             app.UseStaticFilesWithYaml()
                 .UseRouting()
