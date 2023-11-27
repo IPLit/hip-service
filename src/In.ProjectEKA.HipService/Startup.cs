@@ -208,8 +208,8 @@ namespace In.ProjectEKA.HipService
                 });
             services.AddAuthentication(options =>
                 {
-                    options.DefaultAuthenticateScheme = Constants.BAHMNI_AUTH;
-                    options.DefaultChallengeScheme = Constants.BAHMNI_AUTH;
+                    options.DefaultAuthenticateScheme = Constants.GATEWAY_AUTH;
+                    options.DefaultChallengeScheme = Constants.GATEWAY_AUTH;
                 })
                 .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
