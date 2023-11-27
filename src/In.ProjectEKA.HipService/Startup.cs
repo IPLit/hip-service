@@ -72,11 +72,8 @@ namespace In.ProjectEKA.HipService
             // Create new connection everytime
             HttpClient.DefaultRequestHeaders.Add("Connection", "close");
             IdentityModelEventSource.ShowPII = true;
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls
-                    | SecurityProtocolType.Tls11
-                    | SecurityProtocolType.Tls12
-                    | SecurityProtocolType.Ssl3;
-
+            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls11
+                    | SecurityProtocolType.Tls12;
         }
 
         private IConfiguration Configuration { get; }
