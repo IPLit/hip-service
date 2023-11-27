@@ -241,19 +241,25 @@ namespace In.ProjectEKA.HipService
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            app.Use(async (context, next) =>
+            // app.Use(async (context, next) =>
+            // {
+            //     Stopwatch timer = new Stopwatch();
+            //     timer.Start();
+            //     var traceId = Guid.NewGuid();
+            //     Log.Information($"Request {traceId} received.");
+
+            //     //await next.Invoke(); // IPLit
+            //     await next(context);
+
+            //     timer.Stop();
+            //     Log.Information($"Request {traceId} served in {timer.ElapsedMilliseconds}ms.");
+            // });
+
+            app.Use((context, next) =>
             {
-                Stopwatch timer = new Stopwatch();
-                timer.Start();
-                var traceId = Guid.NewGuid();
-                Log.Information($"Request {traceId} received.");
-
-                //await next.Invoke(); // IPLit
-                await next(context);
-
-                timer.Stop();
-                Log.Information($"Request {traceId} served in {timer.ElapsedMilliseconds}ms.");
+                return next(context);
             });
+
             app.UseSwagger();
             app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "HIP Service"); });
 
