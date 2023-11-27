@@ -208,8 +208,8 @@ namespace In.ProjectEKA.HipService
                 });
             services.AddAuthentication(options =>
                 {
-                    options.DefaultAuthenticateScheme = Constants.GATEWAY_AUTH;
-                    options.DefaultChallengeScheme = Constants.GATEWAY_AUTH;
+                    options.DefaultAuthenticateScheme = Constants.BAHMNI_AUTH;
+                    options.DefaultChallengeScheme = Constants.BAHMNI_AUTH;
                 })
                 .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -241,6 +241,7 @@ namespace In.ProjectEKA.HipService
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            // IPLit
             // app.Use(async (context, next) =>
             // {
             //     Stopwatch timer = new Stopwatch();
@@ -257,11 +258,11 @@ namespace In.ProjectEKA.HipService
 
             app.Use((context, next) =>
             {
-                return next(context);
+               return next(context);
             });
 
-            // app.UseSwagger(); // IPLit
-            // app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "HIP Service"); });
+            app.UseSwagger();
+            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "HIP Service"); });
 
             app.UseStaticFilesWithYaml()
                 .UseRouting()
