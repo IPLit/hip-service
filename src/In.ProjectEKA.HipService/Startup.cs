@@ -16,6 +16,7 @@ namespace In.ProjectEKA.HipService
     using System.IO;
     using System.Linq;
     using System.Net.Http;
+    using System.Net;
     using System.Reflection;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -71,6 +72,11 @@ namespace In.ProjectEKA.HipService
             // Create new connection everytime
             HttpClient.DefaultRequestHeaders.Add("Connection", "close");
             IdentityModelEventSource.ShowPII = true;
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls
+                    | SecurityProtocolType.Tls11
+                    | SecurityProtocolType.Tls12
+                    | SecurityProtocolType.Ssl3;
+
         }
 
         private IConfiguration Configuration { get; }
