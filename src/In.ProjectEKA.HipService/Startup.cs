@@ -248,7 +248,8 @@ namespace In.ProjectEKA.HipService
                 var traceId = Guid.NewGuid();
                 Log.Information($"Request {traceId} received.");
 
-                await next.Invoke();
+                //await next.Invoke(); // IPLit
+                await next(context);
 
                 timer.Stop();
                 Log.Information($"Request {traceId} served in {timer.ElapsedMilliseconds}ms.");
