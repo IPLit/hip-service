@@ -5,6 +5,7 @@ using In.ProjectEKA.HipService.Patient.Database;
 using In.ProjectEKA.HipService.SmsNotification;
 using In.ProjectEKA.HipService.UserAuth;
 using In.ProjectEKA.HipService.UserAuth.Database;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace In.ProjectEKA.HipService
 {
@@ -159,6 +160,7 @@ namespace In.ProjectEKA.HipService
                 .AddSingleton(Configuration.GetSection("OpenMrs").Get<OpenMrsConfiguration>())
                 .AddSingleton(new OpenMrsClient(HttpClient,
                     Configuration.GetSection("OpenMrs").Get<OpenMrsConfiguration>()))
+                .AddSingleton(Configuration.GetSection("Jwt").Get<JwtConfiguration>())
                 .AddScoped<IOpenMrsClient, OpenMrsClient>()
                 .AddScoped<IOpenMrsPatientData, OpenMrsPatientData>()
                 .AddScoped<IUserAuthRepository, UserAuthRepository>()
@@ -200,13 +202,15 @@ namespace In.ProjectEKA.HipService
                 {
                     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                     options.JsonSerializerOptions.IgnoreNullValues = true;
-                })
-                .Services.AddAuthentication(options =>
+                });
+            services.AddAuthentication(options =>
                 {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = Constants.GATEWAY_AUTH;
+                    options.DefaultChallengeScheme = Constants.GATEWAY_AUTH;
                 })
-                .AddJwtBearer(options =>
+                .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(Constants.GATEWAY_AUTH, options =>
                 {
                     // Need to validate Audience and Issuer properly
                     options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}";
@@ -228,8 +232,8 @@ namespace In.ProjectEKA.HipService
                             return Task.CompletedTask;
                         }
                     };
-                })
-                .Services.AddHealthChecks();
+                });
+            services.AddHealthChecks();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

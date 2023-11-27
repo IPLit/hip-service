@@ -38,6 +38,7 @@ namespace In.ProjectEKA.HipService.Common
         public static readonly string PATH_OPENMRS_REST = "images/openmrs-favicon.ico";
         public static readonly string PATH_OPENMRS_HITYPE = "ws/rest/v1/hip/";
         public static readonly string CONFIG_KEY = "OpenMrs";
+        public static readonly string PATH_OPENMRS_LGD_CODE = "ws/rest/v1/hip/lgdCode";
 
         public const string CORRELATION_ID = "CORRELATION-ID";
         public const string PATH_PATIENT_PROFILE_ON_SHARE = "/" + CURRENT_VERSION + "/patients/profile/on-share";
@@ -66,6 +67,7 @@ namespace In.ProjectEKA.HipService.Common
         public const string REPORTING_SESSION = "reporting_session";
         public const string OPENMRS_SESSION_ID_COOKIE_NAME = "JSESSIONID";
         public const string WHO_AM_I = "/ws/rest/v1/bahmnicore/whoami";
+        public const string SESSION_ID = "session_id";
 
         public const string MOBILE = "MOBILE";
 
@@ -92,6 +94,10 @@ namespace In.ProjectEKA.HipService.Common
         public const string CONFIRM_WITH_AADHAAR_OTP = "/" + VERSION_V2 + "/auth/confirmWithAadhaarOtp";
         public const string CREATE_DEFAULT_PHR_ADDRESS = "/" + VERSION_V1 + "/account/update/phr-address";
         public const string CREATE_PHR_ADDRESS = "/" + VERSION_V2 + "/hip/profile/updatePhrAddress";
+        public const string MOBILE_GENERATE_OTP = "/" + VERSION_V2 + "/registration/mobile/login/generateOtp";
+        public const string MOBILE_VERIFY_OTP = "/" + VERSION_V2 + "/registration/mobile/login/verifyOtp";
+        public const string GET_AUTHORIZED_TOKEN = "/" + VERSION_V2 + "/registration/mobile/login/userAuthorizedToken";
+        public const string CREATE_ABHA_ID_BY_AADHAAR_DEMO = "/" + VERSION_V1 + "/hid/benefit/createHealthId/demo/auth";
 
         public const string PUBLIC_CERT = "/" + VERSION_V1 + "/phr/public/certificate";
         public const string MOBILE_EMAIL_INIT = "/" + VERSION_V1 + "/phr/login/mobileEmail/init";
@@ -103,6 +109,10 @@ namespace In.ProjectEKA.HipService.Common
         public const string ABHA_ADDRESS_PROFILE = "/" + VERSION_V1 + "/phr/profile";
         public const string CHECK_ABHA_ADDRESS = "/" + VERSION_V1 + "/phr/search/isExist";
         public const string X_TOKEN_TYPE = "Bearer";
-        
+        public const string T_TOKEN_TYPE = "Bearer";
+        public const string AUTHORIZATION = "Authorization";
+        public const string BAHMNI_AUTH = "bahmni";
+        public const string GATEWAY_AUTH = "gateway";
+
     }
 }

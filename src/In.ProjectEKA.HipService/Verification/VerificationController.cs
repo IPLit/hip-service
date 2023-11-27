@@ -8,6 +8,7 @@ using In.ProjectEKA.HipService.Creation.Model;
 using In.ProjectEKA.HipService.Gateway;
 using In.ProjectEKA.HipService.OpenMrs;
 using In.ProjectEKA.HipService.Verification.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ namespace In.ProjectEKA.HipService.Verification
     using static Constants;
     
     [ApiController]
+    [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
     public class VerificationController : Controller
     {
         private readonly IGatewayClient gatewayClient;
@@ -46,24 +48,6 @@ namespace In.ProjectEKA.HipService.Verification
         public async Task<ActionResult> SearchHealthId(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] SearchHealthIdRequest searchHealthIdRequest)
         {
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    string sessionId = Request.Cookies[REPORTING_SESSION];
-            
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
-
             try
             {
                 logger.Log(LogLevel.Information,
@@ -100,24 +84,7 @@ namespace In.ProjectEKA.HipService.Verification
         public async Task<ActionResult> AuthInit(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] AuthInitRequest authInitRequest)
         {
-            string sessionId = null;
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    sessionId = Request.Cookies[REPORTING_SESSION];
-            
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
 
             try
             {
@@ -151,7 +118,7 @@ namespace In.ProjectEKA.HipService.Verification
             catch (Exception exception)
             {
                 logger.LogError(LogEvents.Verification, exception, "Error happened for " +
-                                                                   "search healthId request" + exception.StackTrace);
+                                                                   "auth init request" + exception.StackTrace);
             }
             
             return StatusCode(StatusCodes.Status500InternalServerError);
@@ -162,25 +129,8 @@ namespace In.ProjectEKA.HipService.Verification
         public async Task<ActionResult> VerifyOTP(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] OtpVerifyRequest otpVerifyRequest)
         {
-            string sessionId = null;
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    sessionId = Request.Cookies[REPORTING_SESSION];
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
             
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
-
             var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
             try
             {
@@ -217,25 +167,8 @@ namespace In.ProjectEKA.HipService.Verification
         public async Task<ActionResult> CreatePhrAddress(
             [FromHeader(Name = CORRELATION_ID)] string correlationId)
         {
-            string sessionId = null;
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    sessionId = Request.Cookies[REPORTING_SESSION];
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
             
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
-
             try
             {
                 logger.Log(LogLevel.Information,
@@ -267,24 +200,7 @@ namespace In.ProjectEKA.HipService.Verification
         public async Task<ActionResult> UpdatePhrAddress(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromParameter("healthId")] string healthId)
         {
-            string sessionId = null;
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    sessionId = Request.Cookies[REPORTING_SESSION];
-            
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
             
             try
             {
@@ -312,19 +228,136 @@ namespace In.ProjectEKA.HipService.Verification
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
         
-        [NonAction]
-        private async Task<StatusCodeResult> IsAuthorised(String sessionId)
+        [Route(MOBILE_GENERATE_OTP)]
+        public async Task<ActionResult> GenerateMobileOtp(
+            [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] GenerateMobileOtpRequest generateMobileOtpRequest)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, openMrsConfiguration.Url + WHO_AM_I);
-            request.Headers.Add("Cookie", OPENMRS_SESSION_ID_COOKIE_NAME + "=" + sessionId);
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var response = await httpClient.SendAsync(request).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                return StatusCode(StatusCodes.Status401Unauthorized);
+                logger.Log(LogLevel.Information,
+                    LogEvents.Verification,
+                    "Request for generate mobile otp to gateway: {@GatewayResponse}", generateMobileOtpRequest);
+                logger.Log(LogLevel.Information,
+                    LogEvents.Verification, $"correlationId: {{correlationId}}," +
+                                            $" mobile: {{mobile}}",
+                    correlationId, generateMobileOtpRequest.mobile);
+                using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,gatewayConfiguration.AbhaNumberServiceUrl, MOBILE_GENERATE_OTP, generateMobileOtpRequest, correlationId))
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var generationResponse =
+                            JsonConvert.DeserializeObject<TransactionResponse>(responseContent);
+                        if (TxnDictionary.ContainsKey(sessionId))
+                        {
+                            TxnDictionary[sessionId] = generationResponse?.txnId;
+                        }
+                        else
+                        {
+                            TxnDictionary.Add(sessionId, generationResponse?.txnId);
+                        }
+                        return Accepted();
+                    }
+                    return StatusCode((int)response.StatusCode,responseContent);
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(LogEvents.Verification, exception, "Error happened for " +
+                                                                   "generate mobile otp request" + exception.StackTrace);
+            }
+            
+            return StatusCode(StatusCodes.Status500InternalServerError);
+            
+        }
+
+        [Route(MOBILE_VERIFY_OTP)]
+        public async Task<ActionResult> VerifyMobileOtp(
+            [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] VerifyMobileOtpRequest verifyMobileOtpRequest)
+        {
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
+
+            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            try
+            {
+                string encryptedOTP = await abhaService.EncryptText(public_key, verifyMobileOtpRequest.otp);
+                logger.Log(LogLevel.Information,
+                    LogEvents.Verification, $"Request for verify mobile otp to gateway:" +
+                                            $"txnId: {{txnId}}", txnId);
+                using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
+                    gatewayConfiguration.AbhaNumberServiceUrl,
+                    MOBILE_VERIFY_OTP,
+                    new OTPVerifyRequest(txnId, encryptedOTP), correlationId))
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var otpResponse = JsonConvert.DeserializeObject<VerifyMobileOtpResponse>(responseContent);
+                        TxnDictionary[sessionId] = otpResponse?.txnId;
+                        if (VerifiedMobileTokenDictionary.ContainsKey(sessionId))
+                        {
+                            VerifiedMobileTokenDictionary[sessionId] = $"{T_TOKEN_TYPE} {otpResponse?.token}";;
+                        }
+                        else
+                        {
+                            VerifiedMobileTokenDictionary.Add(sessionId, $"{T_TOKEN_TYPE} {otpResponse?.token}");
+                        }
+                        return Accepted(otpResponse.mobileLinkedHid);
+                    }
+
+                    return StatusCode((int) response.StatusCode, responseContent);
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(LogEvents.Verification, exception, "Error happened for " +
+                                                                   "verify mobile otp request" + exception.StackTrace);
             }
 
-            return StatusCode(StatusCodes.Status200OK);
+            return StatusCode(StatusCodes.Status500InternalServerError);
+        }
+        
+        [Route(GET_AUTHORIZED_TOKEN)]
+        public async Task<ActionResult> GetAuthorizedToken(
+            [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] AuthorizedTokenRequest authorizedTokenRequest)
+        {
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
+
+            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            var tToken = VerifiedMobileTokenDictionary.ContainsKey(sessionId) ? VerifiedMobileTokenDictionary[sessionId] : null;
+            try
+            {
+                logger.Log(LogLevel.Information,
+                    LogEvents.Verification, $"Request for get authorized token to gateway:" +
+                                            $"txnId: {{txnId}}", txnId);
+                logger.Log(LogLevel.Information,
+                    LogEvents.Verification, $"correlationId: {{correlationId}}," +
+                                            $" ABHA Number: {{abhaNumber}}",
+                    correlationId, authorizedTokenRequest.healthId);
+                using (var response = await gatewayClient.CallABHAService(HttpMethod.Post, gatewayConfiguration.AbhaNumberServiceUrl,
+                    GET_AUTHORIZED_TOKEN,
+                    new AuthorizedTokenRequest(authorizedTokenRequest.healthId, txnId), correlationId, null, tToken))
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var tokenResponse = JsonConvert.DeserializeObject<TokenResponse>(responseContent);
+                        var profile = await abhaService.getABHAProfile(sessionId,new TokenRequest(tokenResponse.token));
+                        return Accepted(profile);
+                    }
+
+                    return StatusCode((int) response.StatusCode, responseContent);
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(LogEvents.Verification, exception, "Error happened for " +
+                                                                   "get authorized token request" + exception.StackTrace);
+            }
+
+            return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
 }

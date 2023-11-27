@@ -90,10 +90,11 @@ namespace In.ProjectEKA.HipService.Link
             var time = new TimeSpan(0, 0, otpService.Value.OffsetInMinutes, 0);
             var expiry = DateTime.Now.Add(time).ToUniversalTime().ToString(Constants.DateTimeFormat);
             var meta = new LinkReferenceMeta(nameof(CommunicationMode.MOBILE), patient.PhoneNumber, expiry);
-            // var patientLinkReferenceResponse = new PatientLinkEnquiryRepresentation(
-            //     new LinkEnquiryRepresentation(linkRefNumber, "MEDIATED", meta)); // Commented for Suma testing M2
             var patientLinkReferenceResponse = new PatientLinkEnquiryRepresentation(
-                new LinkEnquiryRepresentation(linkRefNumber, "DIRECT", meta));
+                new LinkEnquiryRepresentation(linkRefNumber, "MEDIATED", meta));
+            // Commented for Suma testing M2
+            //var patientLinkReferenceResponse = new PatientLinkEnquiryRepresentation(
+            //    new LinkEnquiryRepresentation(linkRefNumber, "DIRECT", meta));
             return (patientLinkReferenceResponse, null);
         }
 

@@ -70,12 +70,8 @@ namespace In.ProjectEKA.HipService.DataFlow
                 var careContexReference = grantedContext.Split(":");
                 query["patientId"] = consentId;
                 query["visitUuid"] = careContexReference[1];
-
-                // IPLit for PHR data pull
-                // query["fromDate"] = DateTime.Parse(fromDate).ToString("yyyy-MM-dd");
-                // query["toDate"] = DateTime.Parse(toDate).AddDays(1).ToString("yyyy-MM-dd");
                 query["fromDate"] = DateTime.Parse(fromDate).ToString("yyyy-MM-dd");
-                query["toDate"] = DateTime.Parse(toDate).ToString("yyyy-MM-dd");
+                query["toDate"] = DateTime.Parse(toDate).AddDays(1).ToString("yyyy-MM-dd");
             }
 
             if (query.ToString() != "")

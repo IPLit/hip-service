@@ -52,29 +52,11 @@ namespace In.ProjectEKA.HipService.UserAuth
             this.openMrsConfiguration = openMrsConfiguration;
         }
 
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_FETCH_MODES)]
         public async Task<ActionResult> GetAuthModes(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] FetchRequest fetchRequest)
         {
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    string sessionId = Request.Cookies[REPORTING_SESSION];
-
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
-
-
             var (gatewayFetchModesRequestRepresentation, error) =
                 userAuthService.FetchModeResponse(fetchRequest, bahmniConfiguration);
             if (error != null)
@@ -156,28 +138,11 @@ namespace In.ProjectEKA.HipService.UserAuth
             return Accepted();
         }
 
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_HIP_AUTH_INIT)]
         public async Task<ActionResult> GetTransactionId(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] AuthInitRequest authInitRequest)
         {
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    string sessionId = Request.Cookies[REPORTING_SESSION];
-            
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
-
             var error =
                 await userAuthService.AuthInit(authInitRequest, correlationId, bahmniConfiguration,gatewayConfiguration);
             if (error == null) return Accepted();
@@ -217,28 +182,11 @@ namespace In.ProjectEKA.HipService.UserAuth
             return result;
         }
 
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_HIP_AUTH_CONFIRM)]
         public async Task<ActionResult> GetAccessToken(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] AuthConfirmRequest authConfirmRequest)
         {
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    string sessionId = Request.Cookies[REPORTING_SESSION];
-            
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
-            
             var (authConfirm, error) =
                 await userAuthService.AuthConfirm(authConfirmRequest, correlationId,gatewayConfiguration);
             if (error == null) return Accepted(authConfirm);
@@ -277,22 +225,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             result.StatusCode = StatusCodes.Status202Accepted;
             return result;
         }
-
-        [NonAction]
-        public async Task<StatusCodeResult> IsAuthorised(String sessionId)
-        {
-            var request = new HttpRequestMessage(HttpMethod.Get, openMrsConfiguration.Url + WHO_AM_I);
-            request.Headers.Add("Cookie", OPENMRS_SESSION_ID_COOKIE_NAME + "=" + sessionId);
-
-            var response = await httpClient.SendAsync(request).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                return StatusCode(StatusCodes.Status401Unauthorized);
-            }
-
-            return StatusCode(StatusCodes.Status200OK);
-        }
-
+        
         [Route(PATH_ADD_NDHM_DEMOGRAPHICS)]
         public async Task SetDemographicDetails(
             [FromBody] NDHMDemographicRequest ndhmDemographicRequest)
@@ -348,27 +281,10 @@ namespace In.ProjectEKA.HipService.UserAuth
             return Accepted();
         }
         
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_HIP_DIRECT_AUTH)]
         public async Task<ActionResult> GetPatientDetails([FromParameter("healthId")] string healthId)
         {
-            if (Request != null)
-            {
-                if (Request.Cookies.ContainsKey(REPORTING_SESSION))
-                {
-                    string sessionId = Request.Cookies[REPORTING_SESSION];
-            
-                    Task<StatusCodeResult> statusCodeResult = IsAuthorised(sessionId);
-                    if (!statusCodeResult.Result.StatusCode.Equals(StatusCodes.Status200OK))
-                    {
-                        return statusCodeResult.Result;
-                    }
-                }
-                else
-                {
-                    return StatusCode(StatusCodes.Status401Unauthorized);
-                }
-            }
-            
             var (authConfirmPatient, error) = userAuthService.GetPatientDetailsForDirectAuth(healthId, gatewayConfiguration);
             if (error == null) 
                 return Accepted(authConfirmPatient);
