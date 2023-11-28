@@ -237,29 +237,24 @@ namespace In.ProjectEKA.HipService
                         }
                     };
                 });
+            services.AddHttpsRedirection(options => options.HttpsPort = 443);
             services.AddHealthChecks();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            // IPLit
-            // app.Use(async (context, next) =>
-            // {
-            //     Stopwatch timer = new Stopwatch();
-            //     timer.Start();
-            //     var traceId = Guid.NewGuid();
-            //     Log.Information($"Request {traceId} received.");
-
-            //     //await next.Invoke(); // IPLit
-            //     await next(context);
-
-            //     timer.Stop();
-            //     Log.Information($"Request {traceId} served in {timer.ElapsedMilliseconds}ms.");
-            // });
-
-            app.Use((context, next) =>
+            app.Use(async (context, next) =>
             {
-               return next(context);
+                Stopwatch timer = new Stopwatch();
+                timer.Start();
+                var traceId = Guid.NewGuid();
+                Log.Information($"Request {traceId} received.");
+
+                await next.Invoke();
+                //await next(context); // IPLit
+
+                timer.Stop();
+                Log.Information($"Request {traceId} served in {timer.ElapsedMilliseconds}ms.");
             });
 
             app.UseSwagger();

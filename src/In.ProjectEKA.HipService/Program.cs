@@ -54,7 +54,7 @@
             return WebHost.CreateDefaultBuilder(args)
                 .UseSerilog()
                 .UseStartup<Startup>()
-                .UseUrls("http://*:80");
+                .UseUrls("http://*:80", "https://*:443");
         }
     }
 }
