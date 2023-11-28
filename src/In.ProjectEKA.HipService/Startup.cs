@@ -70,7 +70,7 @@ namespace In.ProjectEKA.HipService
                 Timeout = TimeSpan.FromSeconds(Configuration.GetSection("Gateway:timeout").Get<int>())
             };
             // Create new connection everytime
-            HttpClient.DefaultRequestHeaders.Add("Connection", "close");
+            // HttpClient.DefaultRequestHeaders.Add("Connection", "close"); // IPLit
             IdentityModelEventSource.ShowPII = true;
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls11
                     | SecurityProtocolType.Tls12;
@@ -216,7 +216,7 @@ namespace In.ProjectEKA.HipService
                 .AddJwtBearer(Constants.GATEWAY_AUTH, options =>
                 {
                     // Need to validate Audience and Issuer properly
-                    options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.PATH_SESSIONS}";
+                    options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}";
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,
