@@ -237,7 +237,7 @@ namespace In.ProjectEKA.HipService
                         }
                     };
                 });
-            services.AddHttpsRedirection(options => options.HttpsPort = 443); //IPLit
+            // services.AddHttpsRedirection(options => options.HttpsPort = 443); //IPLit
             services.AddHealthChecks();
         }
 
