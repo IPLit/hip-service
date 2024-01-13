@@ -17,7 +17,7 @@ namespace In.ProjectEKA.HipService.Link
     using static Common.Constants;
     using Model;
 
-    //[Authorize] // Commented for Suma testing M2
+    [Authorize]
     [ApiController]
     [Consumes("application/json")]
     [Produces("application/json")]

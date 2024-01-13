@@ -15,7 +15,7 @@
     using Common;
 
 
-    //[Authorize] // Commented for Suma testing M2
+    [Authorize]
     [Route(PATH_CARE_CONTEXTS_DISCOVER)]
     [ApiController]
     public class CareContextDiscoveryController : Controller

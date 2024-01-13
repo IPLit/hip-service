@@ -16,7 +16,6 @@ namespace In.ProjectEKA.HipService
     using System.IO;
     using System.Linq;
     using System.Net.Http;
-    using System.Net;
     using System.Reflection;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -72,9 +71,6 @@ namespace In.ProjectEKA.HipService
             // Create new connection everytime
             HttpClient.DefaultRequestHeaders.Add("Connection", "close");
             IdentityModelEventSource.ShowPII = true;
-             // IPLit
-            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls11
-                    | SecurityProtocolType.Tls12;
         }
 
         private IConfiguration Configuration { get; }
@@ -237,7 +233,6 @@ namespace In.ProjectEKA.HipService
                         }
                     };
                 });
-            // services.AddHttpsRedirection(options => options.HttpsPort = 443); //IPLit
             services.AddHealthChecks();
         }
 
@@ -251,12 +246,10 @@ namespace In.ProjectEKA.HipService
                 Log.Information($"Request {traceId} received.");
 
                 await next.Invoke();
-                //await next(context); // IPLit
 
                 timer.Stop();
                 Log.Information($"Request {traceId} served in {timer.ElapsedMilliseconds}ms.");
             });
-
             app.UseSwagger();
             app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "HIP Service"); });
 
@@ -309,8 +302,8 @@ namespace In.ProjectEKA.HipService
         {
             const string claimTypeClientId = "clientId";
             var accessToken = context.SecurityToken as JwtSecurityToken;
-            // if (!CheckRoleInAccessToken(accessToken))
-            //     return false;
+            if (!CheckRoleInAccessToken(accessToken))
+                return false;
             if (!context.Principal.HasClaim(claim => claim.Type == claimTypeClientId))
                 return false;
             var clientId = context.Principal.Claims.First(claim => claim.Type == claimTypeClientId).Value;
