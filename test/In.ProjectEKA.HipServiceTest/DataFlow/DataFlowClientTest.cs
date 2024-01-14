@@ -33,6 +33,10 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
                 ClientId = "IN0410000183",
                 ClientSecret = TestBuilder.RandomString()
             };
+            var bahmniConfiguration = new HipService.Common.Model.BahmniConfiguration
+            {
+                Id = "HIP_ID_123"
+            };
             const string transactionId = "transactionId";
             var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var httpClient = new HttpClient(handlerMock.Object);
@@ -46,7 +50,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
                 new Entry(content, MediaTypeNames.Application.Json, checksum, null, "careContextReference")
             }.AsEnumerable();
             var expectedUri = new Uri("http://callback/data/notification");
-            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration);
+            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration);
             handlerMock
                 .Protected()
                 .Setup<Task<HttpResponseMessage>>(
@@ -91,11 +95,15 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             {
                 ClientId = id
             };
+            var bahmniConfiguration = new HipService.Common.Model.BahmniConfiguration
+            {
+                Id = "HIP_ID_123"
+            };
             var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var httpClient = new HttpClient(handlerMock.Object);
             var dataRequest = TestBuilder.TraceableDataRequest(TestBuilder.Faker().Random.Hash());
             var entries = new List<Entry>().AsEnumerable();
-            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration);
+            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration);
             var correlationId = Uuid.Generate().ToString();
             handlerMock
                 .Protected()
