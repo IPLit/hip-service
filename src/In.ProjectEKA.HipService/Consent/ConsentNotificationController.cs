@@ -1,5 +1,7 @@
 // ReSharper disable MemberCanBePrivate.Global
 
+using In.ProjectEKA.HipService.Common;
+
 namespace In.ProjectEKA.HipService.Consent
 {
     using System;
@@ -12,10 +14,6 @@ namespace In.ProjectEKA.HipService.Consent
     using Microsoft.AspNetCore.Mvc;
     using Model;
     using static Common.Constants;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
-    using Logger;
-
 
     [ApiController]
     public class ConsentNotificationController : ControllerBase
@@ -59,7 +57,7 @@ namespace In.ProjectEKA.HipService.Consent
                 var cmSuffix = consent.ConsentArtefact.ConsentManager.Id;
                 var gatewayResponse = new GatewayConsentRepresentation(
                     Guid.NewGuid(),
-                    DateTime.Now.ToUniversalTime(),
+                    DateTime.Now.ToUniversalTime().ToString(DateTimeFormat),
                     new ConsentUpdateResponse(ConsentUpdateStatus.OK.ToString(), notification.ConsentId),
                     null,
                     new Resp(consentArtefact.RequestId));
@@ -75,7 +73,7 @@ namespace In.ProjectEKA.HipService.Consent
                     var cmSuffix = consent.ConsentArtefact.ConsentManager.Id;
                     var gatewayResponse = new GatewayConsentRepresentation(
                         Guid.NewGuid(),
-                        DateTime.Now.ToUniversalTime(),
+                        DateTime.Now.ToUniversalTime().ToString(DateTimeFormat),
                         new ConsentUpdateResponse(ConsentUpdateStatus.OK.ToString(), notification.ConsentId),
                         null,
                         new Resp(consentArtefact.RequestId));

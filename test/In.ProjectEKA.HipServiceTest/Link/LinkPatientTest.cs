@@ -1,3 +1,8 @@
+using System.Net;
+using System.Net.Http;
+using In.ProjectEKA.HipService.OpenMrs;
+using In.ProjectEKA.HipService.UserAuth;
+
 namespace In.ProjectEKA.HipServiceTest.Link
 {
     using System;
@@ -44,6 +49,8 @@ namespace In.ProjectEKA.HipServiceTest.Link
         private readonly Mock<IPatientRepository> patientRepository = new Mock<IPatientRepository>();
         private readonly Mock<IPatientVerification> patientVerification = new Mock<IPatientVerification>();
         private readonly Mock<ReferenceNumberGenerator> guidGenerator = new Mock<ReferenceNumberGenerator>();
+        private readonly Mock<IOpenMrsClient> openmrsClient = new Mock<IOpenMrsClient>();
+        private readonly Mock<IUserAuthService> userAuthService = new Mock<IUserAuthService>();
 
         public LinkPatientTest()
         {
@@ -54,7 +61,9 @@ namespace In.ProjectEKA.HipServiceTest.Link
                 patientVerification.Object,
                 guidGenerator.Object,
                 discoveryRequestRepository.Object,
-                otpServiceConfigurations);
+                otpServiceConfigurations,
+                openmrsClient.Object,
+                userAuthService.Object);
         }
 
         [Fact]
@@ -211,6 +220,15 @@ namespace In.ProjectEKA.HipServiceTest.Link
             var testLinkedAccounts = new LinkedAccounts(testLinkRequest.PatientReferenceNumber,
                 testLinkRequest.LinkReferenceNumber,
                 testLinkRequest.ConsentManagerUserId, It.IsAny<string>(), new[] {programRefNo}.ToList(),It.IsAny<Guid>());
+            var patientEnquiry =
+                new PatientEnquiry(
+                    "id", verifiedIdentifiers: new List<Identifier>()
+                    {
+                        new Identifier(IdentifierType.MOBILE, "9999999999"),
+                        new Identifier(IdentifierType.NDHM_HEALTH_NUMBER, "123456718910")
+                    }, unverifiedIdentifiers: null,
+                    "name", HipLibrary.Patient.Model.Gender.M, 2000);
+            DiscoveryReqMap.PatientInfoMap.Add(testLinkRequest.ConsentManagerUserId, patientEnquiry);
             patientVerification.Setup(e => e.Verify(sessionId, otpToken))
                 .ReturnsAsync((OtpMessage) null);
             linkRepository.Setup(e => e.GetPatientFor(sessionId))
@@ -224,6 +242,13 @@ namespace In.ProjectEKA.HipServiceTest.Link
                     It.IsAny<Guid>()
                     ))
                 .ReturnsAsync(Option.Some(testLinkedAccounts));
+            openmrsClient
+                .Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK
+                })
+                .Verifiable();
             var expectedLinkResponse = new PatientLinkConfirmationRepresentation(
                 new LinkConfirmationRepresentation(
                     testPatient.Identifier,

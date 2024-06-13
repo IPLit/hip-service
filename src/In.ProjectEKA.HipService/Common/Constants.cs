@@ -20,7 +20,7 @@ namespace In.ProjectEKA.HipService.Common
         public const string PATH_ON_FETCH_AUTH_MODES = "/" + CURRENT_VERSION + "/users/auth/on-fetch-modes";
         public const string PATH_ON_ADD_CONTEXTS = "/" + CURRENT_VERSION + "/links/link/on-add-contexts";
         public const string PATH_ON_NOTIFY_CONTEXTS = "/" + CURRENT_VERSION + "/links/context/on-notify";
-        public static readonly string DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
+        public static readonly string DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
         public static readonly string PATH_ON_DISCOVER = "/" + CURRENT_VERSION + "/care-contexts/on-discover";
         public static readonly string PATH_ON_LINK_INIT = "/" + CURRENT_VERSION + "/links/link/on-init";
         public static readonly string PATH_ON_LINK_CONFIRM = "/" + CURRENT_VERSION + "/links/link/on-confirm";
@@ -39,6 +39,7 @@ namespace In.ProjectEKA.HipService.Common
         public static readonly string PATH_OPENMRS_HITYPE = "ws/rest/v1/hip/";
         public static readonly string CONFIG_KEY = "OpenMrs";
         public static readonly string PATH_OPENMRS_LGD_CODE = "ws/rest/v1/hip/lgdCode";
+        public static readonly string PATH_OPENMRS_UPDATE_IDENTIFIER = "ws/rest/v1/hip/existingPatients/update";
 
         public const string CORRELATION_ID = "CORRELATION-ID";
         public const string PATH_PATIENT_PROFILE_ON_SHARE = "/" + CURRENT_VERSION + "/patients/profile/on-share";

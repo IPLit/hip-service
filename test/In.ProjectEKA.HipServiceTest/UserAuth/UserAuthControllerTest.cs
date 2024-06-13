@@ -55,6 +55,8 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
 
         public UserAuthControllerTest()
         {
+            var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            httpClient = new HttpClient(handlerMock.Object);
             userAuthController = new UserAuthController(gatewayClient.Object,
                 logger.Object,
                 userAuthService.Object, bahmniConfiguration, gatewayConfiguration, httpClient, openMrsConfiguration);
@@ -70,7 +72,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
             var requestId = Guid.NewGuid();
             var cmSuffix = "ncg";
             var gatewayFetchModesRequestRepresentation =
-                new GatewayFetchModesRequestRepresentation(requestId, timeStamp, query);
+                new GatewayFetchModesRequestRepresentation(requestId, timeStamp.ToString(DateTimeFormat), query);
             var correlationId = Uuid.Generate().ToString();
             var modes = new List<Mode>
             {
@@ -109,7 +111,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
             var request = new FetchRequest("hina_patel@ncg", KYC_AND_LINK);
             var requester = new Requester(bahmniConfiguration.Id, HIP);
             var query = new FetchQuery(request.healthId, KYC_AND_LINK, requester);
-            var timeStamp = DateTime.Now.ToUniversalTime();
+            var timeStamp = DateTime.Now.ToUniversalTime().ToString(DateTimeFormat);
             var requestId = Guid.NewGuid();
             var cmSuffix = "ncg";
             var gatewayFetchModesRequestRepresentation =
@@ -248,7 +250,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
         {
             var authConfirmRequest = new AuthConfirmRequest("123444", "hinapatel@sbx",null);
             AuthConfirmCredential credential = new AuthConfirmCredential(authConfirmRequest.authCode,null);
-            DateTime timeStamp = DateTime.Now.ToUniversalTime();
+            var timeStamp = DateTime.Now.ToUniversalTime().ToString(DateTimeFormat);
             var transactionId = TestBuilder.Faker().Random.Hash();
             Guid requestId = Guid.NewGuid();
             Error error = new Error(ErrorCode.OtpInValid, "Invalid OTP");
@@ -290,7 +292,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
             var request = new FetchRequest("hina_patel@sbx", KYC_AND_LINK);
             var requester = new Requester(bahmniConfiguration.Id, HIP);
             var query = new FetchQuery(request.healthId, KYC_AND_LINK, requester);
-            var timeStamp = DateTime.Now.ToUniversalTime();
+            var timeStamp = DateTime.Now.ToUniversalTime().ToString(DateTimeFormat);
             var requestId = Guid.NewGuid();
             var gatewayFetchModesRequestRepresentation =
                 new GatewayFetchModesRequestRepresentation(requestId, timeStamp, query);

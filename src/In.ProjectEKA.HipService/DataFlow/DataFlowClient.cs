@@ -1,3 +1,5 @@
+using In.ProjectEKA.HipService.Common;
+
 namespace In.ProjectEKA.HipService.DataFlow
 {
     using System;
@@ -74,7 +76,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                             message))
                     .ToList();
                 var dataNotificationRequest = new DataNotificationRequest(dataResponse.TransactionId,
-                    DateTime.Now.ToUniversalTime(),
+                    DateTime.Now.ToUniversalTime().ToString(Constants.DateTimeFormat),
                     new Notifier(Type.HIP, bahmniConfiguration.Id),
                     new StatusNotification(sessionStatus, bahmniConfiguration.Id, statusResponses),
                     consentId,

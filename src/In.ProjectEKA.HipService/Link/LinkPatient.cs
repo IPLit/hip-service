@@ -1,3 +1,9 @@
+using In.ProjectEKA.HipService.OpenMrs;
+using In.ProjectEKA.HipService.UserAuth;
+using In.ProjectEKA.HipService.UserAuth.Model;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+
 namespace In.ProjectEKA.HipService.Link
 {
     using System;
@@ -11,7 +17,8 @@ namespace In.ProjectEKA.HipService.Link
     using Logger;
     using Microsoft.Extensions.Options;
     using Model;
-
+    using static In.ProjectEKA.HipService.Discovery.DiscoveryReqMap;
+    
     public class LinkPatient
     {
         private readonly IDiscoveryRequestRepository discoveryRequestRepository;
@@ -20,6 +27,8 @@ namespace In.ProjectEKA.HipService.Link
         private readonly IPatientRepository patientRepository;
         private readonly IPatientVerification patientVerification;
         private readonly ReferenceNumberGenerator referenceNumberGenerator;
+        private readonly IOpenMrsClient openMrsClient;
+        private readonly IUserAuthService userAuthService;
 
         public LinkPatient(
             ILinkPatientRepository linkPatientRepository,
@@ -27,7 +36,8 @@ namespace In.ProjectEKA.HipService.Link
             IPatientVerification patientVerification,
             ReferenceNumberGenerator referenceNumberGenerator,
             IDiscoveryRequestRepository discoveryRequestRepository,
-            IOptions<OtpServiceConfiguration> otpService)
+            IOptions<OtpServiceConfiguration> otpService,
+            IOpenMrsClient openMrsClient, IUserAuthService userAuthService)
         {
             this.linkPatientRepository = linkPatientRepository;
             this.patientRepository = patientRepository;
@@ -35,6 +45,8 @@ namespace In.ProjectEKA.HipService.Link
             this.referenceNumberGenerator = referenceNumberGenerator;
             this.discoveryRequestRepository = discoveryRequestRepository;
             this.otpService = otpService;
+            this.openMrsClient = openMrsClient;
+            this.userAuthService = userAuthService;
         }
 
         public virtual async Task<ValueTuple<PatientLinkEnquiryRepresentation, ErrorRepresentation>> LinkPatients(
@@ -157,9 +169,13 @@ namespace In.ProjectEKA.HipService.Link
                             linkEnquires.PatientReferenceNumber,
                             $"{patient.Name}",
                             representations));
-                    return await SaveLinkedAccounts(linkEnquires,patient.Uuid)
-                        ? (patientLinkResponse,cmId, (ErrorRepresentation) null)
-                        : (null,cmId,
+                    var resp = await SaveLinkedAccounts(linkEnquires, patient.Uuid);
+                    if (resp)
+                    {
+                        LinkAbhaIdentifier(patient.Uuid, linkEnquires.ConsentManagerUserId);
+                        return (patientLinkResponse, cmId, (ErrorRepresentation) null);
+                    } 
+                    return (null,cmId,
                             new ErrorRepresentation(new Error(ErrorCode.NoPatientFound,
                                 ErrorMessage.NoPatientFound)));
                 }).ValueOr(
@@ -178,7 +194,37 @@ namespace In.ProjectEKA.HipService.Link
                 (patientUuid!=null?Guid.Parse(patientUuid): Guid.Empty)
                 )
                 .ConfigureAwait(false);
+            
             return linkedAccount.HasValue;
+            
+        }
+        
+        private async void LinkAbhaIdentifier(string patientUuid, string abhaAddress)
+        {
+            var patient = PatientInfoMap[abhaAddress];
+            var abhaNumberIdentifier =  patient?.VerifiedIdentifiers.FirstOrDefault(id => id.Type == IdentifierType.NDHM_HEALTH_NUMBER);
+            var json = JsonConvert.SerializeObject(new PatientAbhaIdentifier(abhaNumberIdentifier?.Value, abhaAddress), new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy()
+                }
+            });
+            var resp = await openMrsClient.PostAsync(
+                    $"{Constants.PATH_OPENMRS_UPDATE_IDENTIFIER}/{patientUuid}",
+                    json
+                )
+                .ConfigureAwait(false);
+            if (resp.IsSuccessStatusCode)
+            {
+                var ndhmDemographics = new NdhmDemographics(abhaAddress, patient.Name, patient.Gender.ToString(), patient.YearOfBirth.ToString(), patient.VerifiedIdentifiers.FirstOrDefault(id => id.Type == IdentifierType.MOBILE)?.Value);
+                await userAuthService.Dump(ndhmDemographics);
+            }
+            else
+            {
+                Log.Error("Errored in linking the abha identifier to the patient");
+            }
         }
 
         public async Task<bool> SaveInitiatedLinkRequest(string requestId, string transactionId,

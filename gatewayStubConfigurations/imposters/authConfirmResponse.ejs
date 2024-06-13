@@ -1,0 +1,96 @@
+function(config) {
+
+config.logger.info(config.request.body);
+config.logger.info(config.request.path + " is called");
+var reqBody = JSON.parse(config.request.body);
+var reqId = reqBody.requestId;
+var token = config.request.headers.Authorization;
+var body1 ={
+    "requestId": "3d839b9a-0479-46bd-a620-d9f885ad11e9",
+    "timestamp": "2021-03-10T11:04:25.454Z",
+    "auth": {
+        "accessToken": "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI3MC00ODIwLTgyNzgtMTcwNCIsInJlcXVlc3RlclR5cGUiOiJISVAiLCJyZXF1ZXN0ZXJJZCI6IkJhaG1uaSIsInBhdGllbnRJZCI6IjcwLTQ4MjAtODI3OC0xNzA0Iiwic2Vzc2lvbklkIjoiN2Q5MDkzZjgtNGJiMy00ZTllLWI1ZjYtOWU1MzQwNTk3NzVkIiwiZXhwIjoxNjIwOTEwNzY3LCJpYXQiOjE2MjA4MjQzNjd9.D8E4lT44rRS6j-O2UnsssythbBZMmj9EhAT4c0UjAYGhE-iNNF4EvmCt8P9h_LSodrkz5i5WjWwSs40WDUbyRJdiND__Rx31aye93dPRNJ7waHgNtX5Qb_mVDTF0tPcVwwdzThLYof9MIBFK7SlKR5xIyH0OK1H-VZf9QgcYKhnnl4l5z9yRngWCwjG84_qrdxfTm2K-AJR330ZiP1ylOYKBcc8I5SSRcecuG_zHhJYF6ifbfvylzJEjwbLIv33SvQM8hQxWl6Y_oLtm_m2hhzEkLN_sbQQ6AflQPcGz2suTW-TnSrHxjqsB7ri3cBiIOiCF2lgsTn_kPFVT2ylggQ",
+        "validity": {
+          "purpose": "LINK",
+          "requester": {
+            "type": "HIP",
+            "id": 100005
+          },
+          "expiry": "2021-03-12T10:42:02.524Z",
+          "limit": "1"
+        },
+        "patient": {
+          "id": "hina.p@sbx",
+          "name": "Hina Patel",
+          "gender": "F",
+          "yearOfBirth": 2000,
+          "address": {
+            "line": "A-12, Dholakpur",
+            "district": "Bhopal",
+            "state": "Madhya Pradesh",
+            "pincode": "212021"
+          },
+          "identifiers": [
+            {
+              "type": "MOBILE",
+              "value": "+919800083232"
+            },
+            {
+              "type": "HEALTH_NUMBER",
+              "value": "57-0517-6745-1839"
+            }
+          ]
+        }
+      },
+    "resp": {
+        "requestId": reqId
+    }
+};
+var reqBodyOnFetchModes = JSON.stringify(body1);
+var http = require('http');
+var options = {
+    method: 'POST',
+    port: '9052',
+    hostname: 'host.docker.internal',
+    path: '/v0.5/users/auth/on-confirm',
+    json: body1,
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token,
+        'content-length': reqBodyOnFetchModes.length,
+        'X-HIP-ID': '10000005'
+    }
+},
+httpRequest = http.request(options, response => {
+    var body = JSON.parse(body1);
+    response.setEncoding('utf8');
+    response.on('data', chunk => {
+        body += chunk;
+    });
+    response.on('end', () => {
+        var stubResponse = {
+            statusCode: response.statusCode,
+            headers: response.headers,
+            body
+        };
+        config.logger.info('Successfully proxied: ' + JSON.stringify(stubResponse));
+    });
+});
+httpRequest.write(reqBodyOnFetchModes);
+httpRequest.end();
+
+return {
+    statusCode: '202',
+    headers: {
+    'Content-Type': 'application/json'
+},
+// this is the redacted response that would come from the openid connect mock server, but we need to replace the host in the url,
+// so the response is copied here with the updated host and the only entry that is required
+body: JSON.stringify(
+{
+    "Request":'Accepted',
+    'code':'202'
+}
+)
+};
+}

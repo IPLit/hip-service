@@ -1,4 +1,6 @@
-﻿namespace In.ProjectEKA.HipService.Discovery
+﻿using System.Linq;
+
+namespace In.ProjectEKA.HipService.Discovery
 {
     using System;
     using System.Net;
@@ -12,6 +14,7 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
+    using static In.ProjectEKA.HipService.Discovery.DiscoveryReqMap;
     using Common;
 
 
@@ -65,12 +68,17 @@
                 var gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
                     response?.Patient,
                     Guid.NewGuid(),
-                    DateTime.Now.ToUniversalTime(),
+                    DateTime.Now.ToUniversalTime().ToString(DateTimeFormat),
                     request.TransactionId, //TODO: should be reading transactionId from contract
                     error?.Error,
                     new DiscoveryResponse(request.RequestId,
                         error == null ? HttpStatusCode.OK : HttpStatusCode.NotFound,
                         error == null ? SuccessMessage : ErrorMessage));
+                if (!PatientInfoMap.ContainsKey(patientId))
+                {
+                    PatientInfoMap.Add(patientId, request.Patient);
+                }
+                
                 Log.Information("new GatewayDiscoveryRepresentation" + gatewayDiscoveryRepresentation);
                 Log.Information("Sending data to gateway");
                 Log.Information($"Response about to be send for {request.RequestId} with {@response?.Patient}");
@@ -82,7 +90,7 @@
                 var gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
                     null,
                     Guid.NewGuid(),
-                    DateTime.Now.ToUniversalTime(),
+                    DateTime.Now.ToUniversalTime().ToString(DateTimeFormat),
                     request.TransactionId, //TODO: should be reading transactionId from contract
                     new Error(ErrorCode.ServerInternalError, "Unreachable external service"),
                     new DiscoveryResponse(request.RequestId, HttpStatusCode.InternalServerError,

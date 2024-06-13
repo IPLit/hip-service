@@ -1,0 +1,50 @@
+(request, state, logger) => {
+    logger.info(request.path + " is called");
+        
+    var http = require('http');
+    var querystring = require('querystring');
+
+    var body = querystring.stringify( {
+      grant_type: 'client_credentials', scope:'some-app-scope-1'});
+
+
+var options = {
+    method: 'POST',
+    port: '80',
+    hostname: 'oidc-server-mock',
+    path: '/connect/token',
+    body: body ,
+    headers: {
+        'Accept': '/',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic Y2xpZW50LWNyZWRlbnRpYWxzLW1vY2stY2xpZW50OmNsaWVudC1jcmVkZW50aWFscy1tb2NrLWNsaWVudC1zZWNyZXQ=',
+        'Content-Length': body.length
+    }
+},
+httpRequest = http.request(options, response => {
+
+  var body = "";
+    response.setEncoding('utf8');
+    response.on('data', chunk => {
+        body += chunk;
+    });
+  config.logger.info (body);
+    response.on('end', () => {
+        var jsonBody = JSON.parse (body);
+        var result = JSON.stringify({
+          'accessToken': jsonBody.access_token,
+          'tokenType': jsonBody.token_type
+        });
+        var stubResponse = {
+            statusCode: response.statusCode,
+            headers: response.headers,
+            body: result
+        };
+        config.callback (stubResponse);
+    });
+});
+httpRequest.write(body);
+httpRequest.end();
+
+    
+  }
