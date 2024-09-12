@@ -38,6 +38,7 @@ namespace In.ProjectEKA.HipService.Common
                 Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json)
             };
 
+            Log.Information("GatewayClient PostTo accessToken: " + token); // IPLit
             if (token != null)
                 httpRequestMessage.Headers.Add(HeaderNames.Authorization, token);
             if(xtoken != null)
