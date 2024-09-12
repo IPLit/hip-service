@@ -151,7 +151,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(error.Error.Code, StatusCodes.Status400BadRequest), error);
         }
 
-        //[Authorize]
+        [Authorize]
         [HttpPost(PATH_ON_AUTH_INIT)]
         public AcceptedResult SetTransactionId(AuthOnInitRequest request)
         {
@@ -195,7 +195,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(error.Error.Code, StatusCodes.Status400BadRequest), error);
         }
 
-        //[Authorize]
+        [Authorize]
         [HttpPost(PATH_ON_AUTH_CONFIRM)]
         public async Task<ActionResult> SetAccessToken(OnAuthConfirmRequest request)
         {
@@ -257,7 +257,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return confirmError != null ? StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(confirmError.Error.Code,StatusCodes.Status400BadRequest),confirmError) : Accepted(authConfirm);
         }
 
-        //[Authorize]
+        [Authorize]
         [HttpPost(PATH_AUTH_NOTIFY)]
         public async Task<ActionResult> AuthNotify([FromHeader(Name = CORRELATION_ID)] string correlationId, 
             [FromBody] AuthNotifyRequest request)

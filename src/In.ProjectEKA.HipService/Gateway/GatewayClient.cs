@@ -69,7 +69,6 @@ namespace In.ProjectEKA.HipService.Gateway
                 var definition = new {accessToken = "", tokenType = ""};
                 var result = JsonConvert.DeserializeAnonymousType(response, definition);
                 var tokenType = char.ToUpper(result.tokenType[0]) + result.tokenType.Substring(1);
-                Log.Information($"GatewayClient Authenticate: tokenType {tokenType} accessToken {result.accessToken}"); // IPLit
                 return Option.Some($"{tokenType} {result.accessToken}");
             }
             catch (Exception exception)

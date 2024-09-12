@@ -78,7 +78,7 @@ namespace In.ProjectEKA.HipService.SmsNotification
 
         }
         
-        //[Authorize]
+        [Authorize]
         [HttpPost (PATH_SMS_ON_NOTIFY)]
         public AcceptedResult SmsNotifyStatus(OnSmsNotifyRequest request)
         {
