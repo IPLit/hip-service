@@ -170,7 +170,7 @@ namespace In.ProjectEKA.HipService
                 .AddTransient<IDataFlow, DataFlow.DataFlow>()
                 .AddRouting(options => options.LowercaseUrls = true)
                 .AddHttpContextAccessor()
-                .AddSwaggerGen(c =>
+                /* .AddSwaggerGen(c => // IPLit
                 {
                     c.SwaggerDoc("v1", new OpenApiInfo
                     {
@@ -194,7 +194,7 @@ namespace In.ProjectEKA.HipService
                     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                     c.IncludeXmlComments(xmlPath);
                 })
-                .AddSwaggerGenNewtonsoftSupport()
+                .AddSwaggerGenNewtonsoftSupport() */
                 .AddControllers()
                 .AddNewtonsoftJson(
                     options => { options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore; })
@@ -209,19 +209,19 @@ namespace In.ProjectEKA.HipService
                     options.DefaultChallengeScheme = Constants.GATEWAY_AUTH;
                 })
                 .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
-            /* services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(Constants.GATEWAY_AUTH, options =>
                 {
                     // Need to validate Audience and Issuer properly
                     options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}";
                     // IPLit - remove cert validation for gateway
-                    // options.TokenValidationParameters = new TokenValidationParameters
-                    // {
-                    //     ValidateIssuerSigningKey = true,
-                    //     ValidateLifetime = true,
-                    //     AudienceValidator = (audiences, token, parameters) => true,
-                    //     IssuerValidator = (issuer, token, parameters) => token.Issuer
-                    // };
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        ValidateLifetime = true,
+                        AudienceValidator = (audiences, token, parameters) => true,
+                        IssuerValidator = (issuer, token, parameters) => token.Issuer
+                    };
                     options.RequireHttpsMetadata = false;
                     options.IncludeErrorDetails = true;
                     options.Events = new JwtBearerEvents
@@ -229,12 +229,12 @@ namespace In.ProjectEKA.HipService
                         OnTokenValidated = context =>
                         {
                             // IPLit - remove cert validation for gateway
-                            // if (!IsTokenValid(context))
-                            //     context.Fail("Unable to validate token.");
+                            if (!IsTokenValid(context))
+                                context.Fail("Unable to validate token.");
                             return Task.CompletedTask;
                         }
                     };
-                }); */
+                });
             services.AddHealthChecks();
         }
 
@@ -252,8 +252,8 @@ namespace In.ProjectEKA.HipService
                 timer.Stop();
                 Log.Information($"Request {traceId} served in {timer.ElapsedMilliseconds}ms.");
             });
-            app.UseSwagger();
-            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "HIP Service"); });
+            // app.UseSwagger(); // IPLit
+            // app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "HIP Service"); });
 
             app.UseStaticFilesWithYaml()
                 .UseRouting()
