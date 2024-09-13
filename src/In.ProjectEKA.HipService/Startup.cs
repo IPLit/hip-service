@@ -209,7 +209,7 @@ namespace In.ProjectEKA.HipService
                     options.DefaultChallengeScheme = Constants.GATEWAY_AUTH;
                 })
                 .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            /* services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(Constants.GATEWAY_AUTH, options =>
                 {
                     // Need to validate Audience and Issuer properly
@@ -234,7 +234,7 @@ namespace In.ProjectEKA.HipService
                             return Task.CompletedTask;
                         }
                     };
-                });
+                }); */
             services.AddHealthChecks();
         }
 
