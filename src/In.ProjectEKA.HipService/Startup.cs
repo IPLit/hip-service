@@ -213,14 +213,14 @@ namespace In.ProjectEKA.HipService
                 .AddJwtBearer(Constants.GATEWAY_AUTH, options =>
                 {
                     // Need to validate Audience and Issuer properly
-                    options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}";
-                    // IPLit - remove cert validation for gateway
+                    // options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}"; // IPLit
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidateIssuerSigningKey = true,
-                        ValidateLifetime = true,
-                        AudienceValidator = (audiences, token, parameters) => true,
-                        IssuerValidator = (issuer, token, parameters) => token.Issuer
+                        ValidateIssuer = false,
+                        ValidateIssuerSigningKey = false, // true, // IPLit
+                        ValidateLifetime = true
+                        // AudienceValidator = (audiences, token, parameters) => true,
+                        // IssuerValidator = (issuer, token, parameters) => token.Issuer
                     };
                     options.RequireHttpsMetadata = false;
                     options.IncludeErrorDetails = true;
@@ -228,7 +228,6 @@ namespace In.ProjectEKA.HipService
                     {
                         OnTokenValidated = context =>
                         {
-                            // IPLit - remove cert validation for gateway
                             if (!IsTokenValid(context))
                                 context.Fail("Unable to validate token.");
                             return Task.CompletedTask;
