@@ -60,9 +60,13 @@ namespace In.ProjectEKA.HipService.Common.Model
                 var validationParameters = new TokenValidationParameters
                 {
                     ValidateLifetime = true,
-                    ValidAudience = _jwtConfiguration.Audience,
-                    ValidIssuer = _jwtConfiguration.Authority,
-                    IssuerSigningKey = key
+                    // ValidAudience = _jwtConfiguration.Audience, // IPLit
+                    // ValidIssuer = _jwtConfiguration.Authority,
+                    // ValidIssuer = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}",
+                    IssuerSigningKey = key,
+                    ValidateIssuer = false,
+                    RequireAudience = false,
+                    ValidateAudience = false
                 };
 
                 try
