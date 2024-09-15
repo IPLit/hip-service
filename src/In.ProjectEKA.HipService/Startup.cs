@@ -203,22 +203,25 @@ namespace In.ProjectEKA.HipService
                     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                     options.JsonSerializerOptions.IgnoreNullValues = true;
                 });
-            services.AddAuthentication(options =>
+            /* services.AddAuthentication(options =>
                 {
                     options.DefaultAuthenticateScheme = Constants.GATEWAY_AUTH;
                     options.DefaultChallengeScheme = Constants.GATEWAY_AUTH;
                 })
-                .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
+                .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { }); */
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(Constants.GATEWAY_AUTH, options =>
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
                     // Need to validate Audience and Issuer properly
-                    // options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}"; // IPLit
+                    options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}";
+                    //options.Audience = "";
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = false,
                         ValidateIssuerSigningKey = false, // true, // IPLit
-                        ValidateLifetime = true
+                        ValidateLifetime = true,
+                        RequireAudience = false,
+                        ValidateAudience = false
                         // AudienceValidator = (audiences, token, parameters) => true,
                         // IssuerValidator = (issuer, token, parameters) => token.Issuer
                     };
@@ -295,8 +298,9 @@ namespace In.ProjectEKA.HipService
         {
             if (!(JsonConvert.DeserializeObject(accessToken.Payload["realm_access"].ToString()) is JObject resourceAccess))
                 return false;
-            var token = new Token(resourceAccess["roles"]?.ToObject<List<string>>() ?? new List<string>());
-            return token.Roles.Contains("gateway", StringComparer.OrdinalIgnoreCase);
+            /* var token = new Token(resourceAccess["roles"]?.ToObject<List<string>>() ?? new List<string>());
+            return token.Roles.Contains("gateway", StringComparer.OrdinalIgnoreCase); */
+            return true; // IPLit
         }
 
         private static bool IsTokenValid(TokenValidatedContext context)
