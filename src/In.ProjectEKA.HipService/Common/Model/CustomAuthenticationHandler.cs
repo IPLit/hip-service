@@ -54,7 +54,7 @@ namespace In.ProjectEKA.HipService.Common.Model
             {
                 string token = authorizationHeader.Substring($"{X_TOKEN_TYPE} ".Length).Trim();
 
-                var key = await GetPublicKeysFromKeycloakAsync(new JwtSecurityToken(token).Header.Kid);
+                // var key = await GetPublicKeysFromKeycloakAsync(new JwtSecurityToken(token).Header.Kid); // IPLit
 
                 ISecurityTokenValidator tokenHandler = new JwtSecurityTokenHandler();
                 var validationParameters = new TokenValidationParameters
@@ -63,7 +63,7 @@ namespace In.ProjectEKA.HipService.Common.Model
                     // ValidAudience = _jwtConfiguration.Audience, // IPLit
                     // ValidIssuer = _jwtConfiguration.Authority,
                     // ValidIssuer = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}",
-                    IssuerSigningKey = key,
+                    // IssuerSigningKey = key,
                     ValidateIssuer = false,
                     RequireAudience = false,
                     ValidateAudience = false

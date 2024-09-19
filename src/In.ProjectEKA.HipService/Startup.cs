@@ -205,12 +205,13 @@ namespace In.ProjectEKA.HipService
                 });
             services.AddAuthentication(options =>
                 {
-                    options.DefaultAuthenticateScheme = Constants.GATEWAY_AUTH;
-                    options.DefaultChallengeScheme = Constants.GATEWAY_AUTH;
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 })
                 .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(Constants.GATEWAY_AUTH, options =>
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
                     // Need to validate Audience and Issuer properly
                     options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}";
