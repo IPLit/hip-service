@@ -64,7 +64,7 @@ namespace In.ProjectEKA.HipService
                     chain,
                     sslPolicyErrors) => true
             };
-            HttpClient = new HttpClient(clientHandler)
+            HttpClient = new HttpClient()
             {
                 Timeout = TimeSpan.FromSeconds(Configuration.GetSection("Gateway:timeout").Get<int>())
             };

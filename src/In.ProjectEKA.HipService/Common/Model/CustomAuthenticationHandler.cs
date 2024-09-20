@@ -54,19 +54,15 @@ namespace In.ProjectEKA.HipService.Common.Model
             {
                 string token = authorizationHeader.Substring($"{X_TOKEN_TYPE} ".Length).Trim();
 
-                // var key = await GetPublicKeysFromKeycloakAsync(new JwtSecurityToken(token).Header.Kid); // IPLit
+                var key = await GetPublicKeysFromKeycloakAsync(new JwtSecurityToken(token).Header.Kid);
 
                 ISecurityTokenValidator tokenHandler = new JwtSecurityTokenHandler();
                 var validationParameters = new TokenValidationParameters
                 {
                     ValidateLifetime = true,
-                    // ValidAudience = _jwtConfiguration.Audience, // IPLit
-                    // ValidIssuer = _jwtConfiguration.Authority,
-                    // ValidIssuer = $"{Configuration.GetValue<string>("Gateway:url")}/{Constants.CURRENT_VERSION}",
-                    // IssuerSigningKey = key,
-                    ValidateIssuer = false,
-                    RequireAudience = false,
-                    ValidateAudience = false
+                    ValidAudience = _jwtConfiguration.Audience,
+                    ValidIssuer = _jwtConfiguration.Authority,
+                    IssuerSigningKey = key
                 };
 
                 try
@@ -170,5 +166,3 @@ namespace In.ProjectEKA.HipService.Common.Model
 
     }
 }
-
-
