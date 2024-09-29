@@ -208,8 +208,8 @@ namespace In.ProjectEKA.HipService
                     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
-                .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
+                });
+                //.AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { }); // IPLit
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
