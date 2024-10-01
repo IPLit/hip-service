@@ -208,8 +208,8 @@ namespace In.ProjectEKA.HipService
                     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                });
-                //.AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { }); // IPLit
+                })
+                .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>(Constants.BAHMNI_AUTH, options => { });
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
@@ -219,7 +219,7 @@ namespace In.ProjectEKA.HipService
                     {
                         ValidateIssuer = false,
                         ValidateIssuerSigningKey = false, // true, // IPLit
-                        ValidateLifetime = true,
+                        // ValidateLifetime = true,
                         RequireAudience = false,
                         ValidateAudience = false
                         // AudienceValidator = (audiences, token, parameters) => true,

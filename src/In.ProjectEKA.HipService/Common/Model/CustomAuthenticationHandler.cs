@@ -18,20 +18,20 @@ using Microsoft.IdentityModel.Tokens;
 namespace In.ProjectEKA.HipService.Common.Model
 {
     using static Constants;
-    public class CustomAuthenticationHandler // : AuthenticationHandler<CustomAuthenticationOptions> // IPLit
+    public class CustomAuthenticationHandler : AuthenticationHandler<CustomAuthenticationOptions>
     {
         
         private readonly OpenMrsConfiguration _configuration;
         private readonly JwtConfiguration _jwtConfiguration;
         private string unauthorizedError = "Failed to authenticate. Please check your credentials.";
         public CustomAuthenticationHandler(IOptionsMonitor<CustomAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, OpenMrsConfiguration configuration, JwtConfiguration jwtConfiguration)
-            //: base(options, logger, encoder, clock)
+            : base(options, logger, encoder, clock)
         {
             _configuration = configuration;
             _jwtConfiguration = jwtConfiguration;
         }
 
-        /* protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+        protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             
             if (Request.Cookies.ContainsKey(REPORTING_SESSION))
@@ -59,7 +59,7 @@ namespace In.ProjectEKA.HipService.Common.Model
                 ISecurityTokenValidator tokenHandler = new JwtSecurityTokenHandler();
                 var validationParameters = new TokenValidationParameters
                 {
-                    ValidateLifetime = true,
+                    // ValidateLifetime = true,
                     ValidAudience = _jwtConfiguration.Audience,
                     ValidIssuer = _jwtConfiguration.Authority,
                     IssuerSigningKey = key
@@ -121,7 +121,7 @@ namespace In.ProjectEKA.HipService.Common.Model
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
             return AuthenticateResult.Success(ticket);
-        } */
+        }
 
         private static byte[] Base64UrlDecode(string base64Url)
         {
