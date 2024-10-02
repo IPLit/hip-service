@@ -59,7 +59,7 @@ namespace In.ProjectEKA.HipService.Common.Model
                 ISecurityTokenValidator tokenHandler = new JwtSecurityTokenHandler();
                 var validationParameters = new TokenValidationParameters
                 {
-                    // ValidateLifetime = true,
+                    ValidateLifetime = true,
                     ValidAudience = _jwtConfiguration.Audience,
                     ValidIssuer = _jwtConfiguration.Authority,
                     IssuerSigningKey = key
@@ -166,3 +166,4 @@ namespace In.ProjectEKA.HipService.Common.Model
 
     }
 }
+

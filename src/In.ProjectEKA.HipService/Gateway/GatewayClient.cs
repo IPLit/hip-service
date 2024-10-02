@@ -18,6 +18,7 @@ namespace In.ProjectEKA.HipService.Gateway
         Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix,string correlationId);
         Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl, string urlPath, T response,
             string correlationId, string xtoken = null, string tToken = null);
+        Task PostToGateway<T>(string gatewayUrlPath, T response, string cmSuffix, string correlationId);
     }
     
     public class GatewayClient: IGatewayClient
@@ -130,6 +131,11 @@ namespace In.ProjectEKA.HipService.Gateway
             {
                 Log.Error(exception, exception.StackTrace);
             }
+        }
+
+        public virtual async Task PostToGateway<T>(string gatewayUrlPath, T response, string cmSuffix, string correlationId)
+        {
+            await PostTo(gatewayUrlPath, response, cmSuffix, correlationId).ConfigureAwait(false);
         }
 
         public void SendDataToGateway(object pATH_CONSENT_ON_NOTIFY, GatewayConsentRepresentation gatewayRevokedConsentRepresentation, string id)

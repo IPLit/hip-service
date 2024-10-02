@@ -74,7 +74,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                     LogEvents.UserAuth, $"cmSuffix: {{cmSuffix}}, correlationId: {{correlationId}}," +
                                         $" healthId: {{healthId}}, requestId: {{requestId}}",
                     cmSuffix, correlationId, gatewayFetchModesRequestRepresentation.query.id, requestId);
-                await gatewayClient.SendDataToGateway(PATH_FETCH_AUTH_MODES, gatewayFetchModesRequestRepresentation,
+                await gatewayClient.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_FETCH_AUTH_MODES, gatewayFetchModesRequestRepresentation,
                     cmSuffix, correlationId);
 
                 var i = 0;
@@ -138,7 +138,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return Accepted();
         }
 
-        //[Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_HIP_AUTH_INIT)]
         public async Task<ActionResult> GetTransactionId(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] AuthInitRequest authInitRequest)
@@ -151,7 +151,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(error.Error.Code, StatusCodes.Status400BadRequest), error);
         }
 
-        //[Authorize] //IPLit
+        [Authorize]
         [HttpPost(PATH_ON_AUTH_INIT)]
         public AcceptedResult SetTransactionId(AuthOnInitRequest request)
         {
@@ -182,7 +182,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return result;
         }
 
-        //[Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_HIP_AUTH_CONFIRM)]
         public async Task<ActionResult> GetAccessToken(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] AuthConfirmRequest authConfirmRequest)
@@ -195,7 +195,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return StatusCode(ErrorCodeToStatusCode.GetValueOrDefault(error.Error.Code, StatusCodes.Status400BadRequest), error);
         }
 
-        //[Authorize] //IPLit
+        [Authorize]
         [HttpPost(PATH_ON_AUTH_CONFIRM)]
         public async Task<ActionResult> SetAccessToken(OnAuthConfirmRequest request)
         {

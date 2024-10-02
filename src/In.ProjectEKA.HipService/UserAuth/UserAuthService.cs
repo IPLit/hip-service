@@ -76,7 +76,9 @@ namespace In.ProjectEKA.HipService.UserAuth
                                                                      $" correlationId: {{correlationId}}, " +
                                                                      $"healthId: {{healthId}}, requestId: {{requestId}}",
                     cmSuffix, correlationId, gatewayAuthInitRequestRepresentation.query.id, requestId);
-                await gatewayClient.SendDataToGateway(PATH_AUTH_INIT, gatewayAuthInitRequestRepresentation, cmSuffix,
+                // await gatewayClient.SendDataToGateway(PATH_AUTH_INIT, gatewayAuthInitRequestRepresentation, cmSuffix,
+                //    correlationId); // IPLit
+                await gatewayClient.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_AUTH_INIT, gatewayAuthInitRequestRepresentation, cmSuffix,
                     correlationId);
                 var i = 0;
                 do
@@ -194,7 +196,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                                         $" authCode: {{authCode}}, transactionId: {{transactionId}} requestId: {{requestId}}",
                     cmSuffix, correlationId, gatewayAuthConfirmRequestRepresentation.credential.authCode,
                     gatewayAuthConfirmRequestRepresentation.transactionId, requestId);
-                await gatewayClient.SendDataToGateway(PATH_AUTH_CONFIRM, gatewayAuthConfirmRequestRepresentation
+                await gatewayClient.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_AUTH_CONFIRM, gatewayAuthConfirmRequestRepresentation
                     , cmSuffix, correlationId);
                 var i = 0;
                 do

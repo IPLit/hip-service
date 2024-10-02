@@ -3,6 +3,8 @@ namespace In.ProjectEKA.HipService.Gateway
     public class GatewayConfiguration
     {
         public string Url { get; set; }
+
+        public string SessionM1GatewayUrl { get; set; }
         
         public int TimeOut { get; set; }
         
