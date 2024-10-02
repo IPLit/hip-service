@@ -87,7 +87,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
                     (gatewayFetchModesRequestRepresentation, null));
             gatewayClient.Setup(
                     client =>
-                        client.SendDataToGateway(PATH_FETCH_AUTH_MODES,
+                        client.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_FETCH_AUTH_MODES,
                             gatewayFetchModesRequestRepresentation, cmSuffix, correlationId))
                 .Returns(Task.CompletedTask)
                 .Callback<string, GatewayFetchModesRequestRepresentation, string, string>
@@ -123,7 +123,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
                     (gatewayFetchModesRequestRepresentation, null));
             gatewayClient.Setup(
                     client =>
-                        client.SendDataToGateway(PATH_FETCH_AUTH_MODES,
+                        client.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_FETCH_AUTH_MODES,
                             gatewayFetchModesRequestRepresentation, cmSuffix, correlationId))
                 .Returns(Task.FromResult(""));
 
@@ -305,7 +305,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
                     (gatewayFetchModesRequestRepresentation, null));
             gatewayClient.Setup(
                     client =>
-                        client.SendDataToGateway(PATH_FETCH_AUTH_MODES,
+                        client.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_FETCH_AUTH_MODES,
                             gatewayFetchModesRequestRepresentation, gatewayConfiguration.CmSuffix, correlationId))
                 .Returns(Task.CompletedTask);
 
