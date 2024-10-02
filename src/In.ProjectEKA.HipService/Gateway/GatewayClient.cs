@@ -50,7 +50,7 @@ namespace In.ProjectEKA.HipService.Gateway
                 });
                 var message = new HttpRequestMessage
                 {
-                    RequestUri = new Uri($"{configuration.Url}/{Constants.PATH_SESSIONS}"),
+                    RequestUri = new Uri($"{configuration.SessionM1GatewayUrl}/{Constants.PATH_SESSIONS}"),
                     Method = HttpMethod.Post,
                     Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json)
                 };
