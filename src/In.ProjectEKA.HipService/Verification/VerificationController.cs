@@ -20,7 +20,7 @@ namespace In.ProjectEKA.HipService.Verification
     using static Constants;
     
     [ApiController]
-    //[Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
+    [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
     public class VerificationController : Controller
     {
         private readonly IGatewayClient gatewayClient;

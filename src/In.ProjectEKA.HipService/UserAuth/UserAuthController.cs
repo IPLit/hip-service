@@ -52,7 +52,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             this.openMrsConfiguration = openMrsConfiguration;
         }
 
-        //[Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_FETCH_MODES)]
         public async Task<ActionResult> GetAuthModes(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] FetchRequest fetchRequest)
@@ -138,7 +138,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return Accepted();
         }
 
-        //[Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_HIP_AUTH_INIT)]
         public async Task<ActionResult> GetTransactionId(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] AuthInitRequest authInitRequest)
@@ -182,7 +182,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return result;
         }
 
-        //[Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_HIP_AUTH_CONFIRM)]
         public async Task<ActionResult> GetAccessToken(
             [FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] AuthConfirmRequest authConfirmRequest)
@@ -281,7 +281,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             return Accepted();
         }
         
-        //[Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
+        [Authorize(AuthenticationSchemes = BAHMNI_AUTH)]
         [Route(PATH_HIP_DIRECT_AUTH)]
         public async Task<ActionResult> GetPatientDetails([FromParameter("healthId")] string healthId)
         {
