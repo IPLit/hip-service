@@ -17,18 +17,15 @@ namespace In.ProjectEKA.HipService.DataFlow
     {
         private readonly DataFlowNotificationClient dataFlowNotificationClient;
         private readonly GatewayConfiguration gatewayConfiguration;
-        private readonly HipService.Common.Model.BahmniConfiguration bahmniConfiguration;
         private readonly HttpClient httpClient;
 
         public DataFlowClient(HttpClient httpClient,
             DataFlowNotificationClient dataFlowNotificationClient,
-            GatewayConfiguration gatewayConfiguration,
-            HipService.Common.Model.BahmniConfiguration bahmniConfiguration)
+            GatewayConfiguration gatewayConfiguration)
         {
             this.httpClient = httpClient;
             this.dataFlowNotificationClient = dataFlowNotificationClient;
             this.gatewayConfiguration = gatewayConfiguration;
-            this.bahmniConfiguration = bahmniConfiguration;
         }
 
         public virtual async Task SendDataToHiu(TraceableDataRequest dataRequest,
@@ -77,8 +74,8 @@ namespace In.ProjectEKA.HipService.DataFlow
                     .ToList();
                 var dataNotificationRequest = new DataNotificationRequest(dataResponse.TransactionId,
                     DateTime.Now.ToUniversalTime().ToString(Constants.DateTimeFormat),
-                    new Notifier(Type.HIP, bahmniConfiguration.Id),
-                    new StatusNotification(sessionStatus, bahmniConfiguration.Id, statusResponses),
+                    new Notifier(Type.HIP, gatewayConfiguration.ClientId),
+                    new StatusNotification(sessionStatus, gatewayConfiguration.ClientId, statusResponses),
                     consentId,
                     Guid.NewGuid());
                 await GetDataNotificationRequest(dataNotificationRequest, cmSuffix, correlationId).ConfigureAwait(false);
