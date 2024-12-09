@@ -30,8 +30,8 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
         {
             var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var httpClient = new HttpClient(handlerMock.Object);
-            var gatewayConfiguration = new GatewayConfiguration {Url = "http://someUrl", SessionM1GatewayUrl = "http://someUrl"};
-            var authenticationUri = new Uri($"{gatewayConfiguration.SessionM1GatewayUrl}/{PATH_SESSIONS}");
+            var gatewayConfiguration = new GatewayConfiguration {Url = "http://someUrl"};
+            var authenticationUri = new Uri($"{gatewayConfiguration.Url}/{PATH_SESSIONS}");
             var expectedUri = new Uri($"{gatewayConfiguration.Url}{PATH_ON_DISCOVER}");
             var patientEnquiryRepresentation = new PatientEnquiryRepresentation(
                 "123",
@@ -85,8 +85,8 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
         {
             var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var httpClient = new HttpClient(handlerMock.Object);
-            var gatewayConfiguration = new GatewayConfiguration {Url = "http://someUrl", SessionM1GatewayUrl = "http://someUrl"};
-            var authenticationUri = new Uri($"{gatewayConfiguration.SessionM1GatewayUrl}/{PATH_SESSIONS}");
+            var gatewayConfiguration = new GatewayConfiguration {Url = "http://someUrl"};
+            var authenticationUri = new Uri($"{gatewayConfiguration.Url}/{PATH_SESSIONS}");
             var patientEnquiryRepresentation = new PatientEnquiryRepresentation(
                 "123",
                 "Jack",
@@ -134,7 +134,6 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
             var configuration = new GatewayConfiguration
             {
                 Url = rootRul,
-                SessionM1GatewayUrl = rootRul,
                 ClientId = TestBuilder.RandomString(),
                 ClientSecret = TestBuilder.RandomString()
             };
@@ -178,7 +177,6 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
             var configuration = new GatewayConfiguration
             {
                 Url = centralRegistryRootUrl,
-                SessionM1GatewayUrl = centralRegistryRootUrl,
                 ClientId = TestBuilder.RandomString(),
                 ClientSecret = TestBuilder.RandomString()
             };

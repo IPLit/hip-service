@@ -6,7 +6,29 @@ namespace In.ProjectEKA.HipService.Common
         public const string UPDATED_VERSION = "v1.0";
         public const string VERSION_V1 = "v1";
         public const string VERSION_V2 = "v2";
-        public const string PATH_SESSIONS = CURRENT_VERSION + "/sessions";
+        public const string VERSION_V3 = "v3";
+        
+        //APIs Used for ABHA Creation from Frontend
+        public const string APP_PATH_GENERATE_AADHAAR_OTP = "/" + VERSION_V3 + "/hip/generateAadhaarOtp";
+        public const string APP_PATH_VERIFY_OTP_AND_CREATE_ABHA = "/" + VERSION_V3 + "/hip/verifyOtpAndCreateABHA";
+        public const string APP_PATH_GENERATE_MOBILE_OTP = "/" + VERSION_V3 + "/hip/generateMobileOtp";
+        public const string APP_PATH_VERIFY_MOBILE_OTP = "/" + VERSION_V3 + "/hip/verifyMobileOtp";
+        public const string APP_PATH_GET_ABHA_ADDRESS_SUGGESTIONS = "/" + VERSION_V3 + "/hip/getAbhaAddressSuggestions";
+        public const string APP_PATH_CREATE_ABHA_ADDRESS = "/" + VERSION_V3 + "/hip/createAbhaAddress";
+        public const string APP_PATH_GET_ABHA_CARD = "/" + VERSION_V3 + "/hip/getAbhaCard";
+
+        public const string APP_PATH_VERIFICATION_REQUEST_OTP = "/" + VERSION_V3 + "/hip/verification/requestOtp";
+        public const string APP_PATH_VERIFICATION_VERIFY_OTP = "/" + VERSION_V3 + "/hip/verification/verifyOtp";
+        public const string APP_PATH_VERIFICATION_VERIFY_ABHA_ACCOUNT = "/" + VERSION_V3 + "/hip/verification/verifyAbhaAccount";
+        public const string APP_PATH_VERIFICATION_ABHA_PROFILE = "/" + VERSION_V3 + "/hip/verification/getAbhaProfile";
+        public const string APP_PATH_VERIFICATION_ABHAADDRESS_SEARCH = "/" + VERSION_V3 + "/hip/verification/abhaAddress/search";
+        public const string APP_PATH_VERIFICATION_ABHAADDRESS_REQUEST_OTP = "/" + VERSION_V3 + "/hip/verification/abhaAddress/requestOtp";
+        public const string APP_PATH_VERIFICATION_ABHAADDRESS_VERIFY_OTP = "/" + VERSION_V3 + "/hip/verification/abhaAddress/verifyOtp";
+        public const string APP_PATH_VERIFICATION_ABHAADDRESS_PROFILE = "/" + VERSION_V3 + "/hip/verification/abhaAddress/getProfile";
+        public const string APP_PATH_VERIFICATION_ABHAADDRESS_CARD = "/" + VERSION_V3 + "/hip/verification/abhaAddress/getCard";
+
+        public const string PATH_SESSIONS =  "api/hiecm/gateway/"+VERSION_V3+"/sessions";
+
         public const string PATH_CARE_CONTEXTS_DISCOVER = CURRENT_VERSION + "/care-contexts/discover";
         public const string PATH_CONSENTS_HIP = CURRENT_VERSION + "/consents/hip/notify";
         public const string PATH_LINKS_LINK_INIT = CURRENT_VERSION + "/links/link/init";
@@ -75,26 +97,31 @@ namespace In.ProjectEKA.HipService.Common
         public const string DEEPLINK_URL = "https://link.to.health.records";
         public const string PATH_PATIENT_NOTIFY = "/" + CURRENT_VERSION + "/patients/status/notify";
         public const string PATH_PATIENT_ON_NOTIFY = "/" + CURRENT_VERSION + "/patients/status/on-notify";
-        public const string PATH_PROFILE_SHARE = "/" + UPDATED_VERSION + "/patients/profile/share";
-        public const string PATH_PROFILE_ON_SHARE = "/" + UPDATED_VERSION + "/patients/profile/on-share";
-        public const string PATH_PROFILE_FETCH = "/" + CURRENT_VERSION + "/patients/profile/fetch";
+        public const string PATH_PROFILE_SHARE = "/api/" + VERSION_V3 + "/hip/patient/share";
+        public const string PATH_PROFILE_ON_SHARE = "/api/hiecm/patient-share/"+VERSION_V3 +"/on-share";
+        public const string GET_PATIENT_QUEUE = "/" + VERSION_V3 + "/hip/getPatientQueue";
 
-        public const string CERT = "/" + VERSION_V2 +"/auth/cert";
-        public const string AADHAAR_GENERATE_OTP = "/" + VERSION_V2 +"/registration/aadhaar/generateOtp";
-        public const string AADHAAR_VERIFY_OTP = "/" + VERSION_V2 + "/registration/aadhaar/verifyOTP";  
-        public const string CHECK_GENERATE_MOBILE_OTP = "/" + VERSION_V2 + "/registration/aadhaar/checkAndGenerateMobileOTP";
-        public const string VERIFY_MOBILE_OTP = "/" + VERSION_V2 + "/registration/aadhaar/verifyMobileOTP";
-        public const string CREATE_ABHA_ID = "/" + VERSION_V2 + "/registration/aadhaar/createHealthIdByAdhaar";
-        public const string GET_ABHA_CARD =  "/" + VERSION_V2 + "/account/getPngCard";
+        public const string ABHA_SERVICE_CERT_URL = "/" + VERSION_V3 + "/profile/public/certificate";
+        public const string ENROLLMENT_REQUEST_OTP = "/" + VERSION_V3 + "/enrollment/request/otp";
+        public const string ENROLLMENT_BY_AADHAAR = "/" + VERSION_V3 + "/enrollment/enrol/byAadhaar";
+        public const string ENROLLMENT_AUTH_BY_ABDM = "/" + VERSION_V3 + "/enrollment/auth/byAbdm";
+        public const string GET_ABHA_ADDRESS_SUGGESTIONS = "/" + VERSION_V3 + "/enrollment/enrol/suggestion";
+        public const string CREATE_ABHA_ADDRESS = "/" + VERSION_V3 + "/enrollment/enrol/abha-address";
+        public const string GET_ABHA_CARD =  "/" + VERSION_V3 + "/profile/account/abha-card";
+        public const string ABHA_LOGIN_REQUEST_OTP = "/" + VERSION_V3 + "/profile/login/request/otp";
+        public const string ABHA_LOGIN_VERIFY_OTP = "/" + VERSION_V3 + "/profile/login/verify";
+        public const string VERIFY_ABHA_ACCOUNT = "/" + VERSION_V3 + "/profile/login/verify/user";
+        public const string ABHA_ACCOUNT = "/" + VERSION_V3 + "/profile/account";
         public const string ABHA_PATIENT_PROFILE = "/" + VERSION_V2 + "/account/profile";
-        public const string CREATE_PHR = "/" + VERSION_V2 + "/account/phr-linked";
-        public const string SEARCH_HEALTHID = "/" + VERSION_V2 + "/search/searchHealthIdToLogin";
+        public const string SEARCH_ABHA_ADDRESS = "/login/abha/search";
+        public const string ABHA_ADDRESS_REQUEST_OTP = "/login/abha/request/otp";
+        public const string ABHA_ADDRESS_VERIFY_OTP = "/login/abha/verify";
+        public const string ABHA_ADDRESS_GET_PROFILE = "/login/profile/abha-profile";
+        public const string ABHA_ADDRESS_GET_CARD = "/login/profile/abha/phr-card";
         public const string AUTH_INIT_VERIFY = "/" + VERSION_V2 + "/auth/init";
         public const string CONFIRM_OTP_VERIFY = "/" + VERSION_V2 + "/hip/confirmOTP";
         public const string CONFIRM_WITH_MOBILE_OTP = "/" + VERSION_V2 + "/auth/confirmWithMobileOTP";
         public const string CONFIRM_WITH_AADHAAR_OTP = "/" + VERSION_V2 + "/auth/confirmWithAadhaarOtp";
-        public const string CREATE_DEFAULT_PHR_ADDRESS = "/" + VERSION_V1 + "/account/update/phr-address";
-        public const string CREATE_PHR_ADDRESS = "/" + VERSION_V2 + "/hip/profile/updatePhrAddress";
         public const string MOBILE_GENERATE_OTP = "/" + VERSION_V2 + "/registration/mobile/login/generateOtp";
         public const string MOBILE_VERIFY_OTP = "/" + VERSION_V2 + "/registration/mobile/login/verifyOtp";
         public const string GET_AUTHORIZED_TOKEN = "/" + VERSION_V2 + "/registration/mobile/login/userAuthorizedToken";
@@ -114,6 +141,7 @@ namespace In.ProjectEKA.HipService.Common
         public const string AUTHORIZATION = "Authorization";
         public const string BAHMNI_AUTH = "bahmni";
         public const string GATEWAY_AUTH = "gateway";
+        public const string TIMESTAMP_FORMAT = "yyyy-MM-ddTHH:mm:ss.fffZ";
 
     }
 }

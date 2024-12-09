@@ -6,13 +6,12 @@ namespace In.ProjectEKA.HipService.DataFlow
     {
         public StatusNotification(SessionStatus sessionStatus, string hipId, IEnumerable<StatusResponse> statusResponses)
         {
-            SessionStatus ss = (SessionStatus) sessionStatus;
-            SessionStatus = ss.ToString();
+            SessionStatus = sessionStatus;
             HipId = hipId;
             StatusResponses = statusResponses;
         }
 
-        public string SessionStatus { get; }
+        public SessionStatus SessionStatus { get; }
         public string HipId { get; }
         public IEnumerable<StatusResponse> StatusResponses { get; }
     }

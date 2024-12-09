@@ -1,3 +1,5 @@
+using In.ProjectEKA.HipService.Logger;
+
 namespace In.ProjectEKA.HipService.Gateway
 {
     using System;
@@ -7,7 +9,6 @@ namespace In.ProjectEKA.HipService.Gateway
     using System.Threading.Tasks;
     using Common;
     using Model;
-    using Logger;
     using static Common.HttpRequestHelper;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
@@ -16,9 +17,8 @@ namespace In.ProjectEKA.HipService.Gateway
     public interface IGatewayClient
     {
         Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix,string correlationId);
-        Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl, string urlPath, T response,
-            string correlationId, string xtoken = null, string tToken = null);
-        Task PostToGateway<T>(string gatewayUrlPath, T response, string cmSuffix, string correlationId);
+        Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl, string urlPath, T representation,
+            string correlationId, string xtoken = null, string tToken = null, string transactionId = null);
     }
     
     public class GatewayClient: IGatewayClient
@@ -39,7 +39,8 @@ namespace In.ProjectEKA.HipService.Gateway
                 var json = JsonConvert.SerializeObject(new
                 {
                     clientId = configuration.ClientId,
-                    clientSecret = configuration.ClientSecret
+                    clientSecret = configuration.ClientSecret,
+                    grantType = "client_credentials"
                 }, new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore,
@@ -50,12 +51,15 @@ namespace In.ProjectEKA.HipService.Gateway
                 });
                 var message = new HttpRequestMessage
                 {
-                    RequestUri = new Uri($"{configuration.SessionM1GatewayUrl}/{Constants.PATH_SESSIONS}"),
+                    RequestUri = new Uri($"{configuration.Url}/{Constants.PATH_SESSIONS}"),
                     Method = HttpMethod.Post,
                     Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json)
                 };
                 if (correlationId != null)
                     message.Headers.Add(Constants.CORRELATION_ID, correlationId);
+                message.Headers.Add("REQUEST-ID", Guid.NewGuid().ToString());
+                message.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(Constants.TIMESTAMP_FORMAT));
+                message.Headers.Add("X-CM-ID", configuration.CmSuffix);
                 var responseMessage = await httpClient.SendAsync(message).ConfigureAwait(false);
                 var response = await responseMessage.Content.ReadAsStringAsync();
 
@@ -85,7 +89,7 @@ namespace In.ProjectEKA.HipService.Gateway
         }
 
         public virtual async Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl,string urlPath,
-            T representation, string correlationId, string xtoken = null, string tToken = null)
+            T representation, string correlationId, string xtoken = null, string tToken = null, string transactionId = null)
         {
             var token = await Authenticate(correlationId).ConfigureAwait(false);
             HttpResponseMessage response = null;
@@ -93,10 +97,14 @@ namespace In.ProjectEKA.HipService.Gateway
             {
                 try
                 {
+                    Log.Information("Initiating Request to ABHA Service for URI {@uri} with method {@method}", baseUrl + urlPath,method);
+                    Log.Debug("Request Payload {@payload}", representation);
                     response = await httpClient
                         .SendAsync(CreateHttpRequest(method, baseUrl + urlPath, representation, token.ValueOr(String.Empty),
-                            null, correlationId,xtoken, tToken))
+                            null, correlationId,xtoken, tToken, transactionId))
                         .ConfigureAwait(false);
+                    Log.Information("Response Status from ABHA Service for URI {@uri} is {@status}", baseUrl + urlPath, response.StatusCode);
+                    Log.Debug("Response Payload {@payload}", response.Content.ReadAsStringAsync());
                 }
                 catch (Exception exception)
                 {
@@ -131,11 +139,6 @@ namespace In.ProjectEKA.HipService.Gateway
             {
                 Log.Error(exception, exception.StackTrace);
             }
-        }
-
-        public virtual async Task PostToGateway<T>(string gatewayUrlPath, T response, string cmSuffix, string correlationId)
-        {
-            await PostTo(gatewayUrlPath, response, cmSuffix, correlationId).ConfigureAwait(false);
         }
 
         public void SendDataToGateway(object pATH_CONSENT_ON_NOTIFY, GatewayConsentRepresentation gatewayRevokedConsentRepresentation, string id)

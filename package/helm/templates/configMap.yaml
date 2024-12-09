@@ -5,7 +5,6 @@ metadata:
 data:
 
   Gateway__url: "{{ .Values.config.GATEWAY_URL }}"
-  Gateway__sessionM1GatewayUrl: "{{ .Values.config.SESSION_M1_GATEWAY_URL }}"
   Gateway__abhaNumberServiceUrl: "{{ .Values.config.ABHA_NUMBER_URL }}"
   Gateway__abhaAddressServiceUrl: "{{ .Values.config.ABHA_ADDRESS_URL }}"
   OpenMrs__url: "{{ .Values.config.BAHMNI_URL }}"

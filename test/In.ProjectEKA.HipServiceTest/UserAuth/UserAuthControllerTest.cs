@@ -55,8 +55,6 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
 
         public UserAuthControllerTest()
         {
-            var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
-            httpClient = new HttpClient(handlerMock.Object);
             userAuthController = new UserAuthController(gatewayClient.Object,
                 logger.Object,
                 userAuthService.Object, bahmniConfiguration, gatewayConfiguration, httpClient, openMrsConfiguration);
@@ -87,7 +85,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
                     (gatewayFetchModesRequestRepresentation, null));
             gatewayClient.Setup(
                     client =>
-                        client.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_FETCH_AUTH_MODES,
+                        client.SendDataToGateway(PATH_FETCH_AUTH_MODES,
                             gatewayFetchModesRequestRepresentation, cmSuffix, correlationId))
                 .Returns(Task.CompletedTask)
                 .Callback<string, GatewayFetchModesRequestRepresentation, string, string>
@@ -123,7 +121,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
                     (gatewayFetchModesRequestRepresentation, null));
             gatewayClient.Setup(
                     client =>
-                        client.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_FETCH_AUTH_MODES,
+                        client.SendDataToGateway(PATH_FETCH_AUTH_MODES,
                             gatewayFetchModesRequestRepresentation, cmSuffix, correlationId))
                 .Returns(Task.FromResult(""));
 
@@ -305,7 +303,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
                     (gatewayFetchModesRequestRepresentation, null));
             gatewayClient.Setup(
                     client =>
-                        client.PostToGateway(gatewayConfiguration.SessionM1GatewayUrl+PATH_FETCH_AUTH_MODES,
+                        client.SendDataToGateway(PATH_FETCH_AUTH_MODES,
                             gatewayFetchModesRequestRepresentation, gatewayConfiguration.CmSuffix, correlationId))
                 .Returns(Task.CompletedTask);
 

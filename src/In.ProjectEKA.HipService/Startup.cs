@@ -2,6 +2,7 @@ using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.Creation;
 using In.ProjectEKA.HipService.Patient;
 using In.ProjectEKA.HipService.Patient.Database;
+using In.ProjectEKA.HipService.Patient.jobs;
 using In.ProjectEKA.HipService.SmsNotification;
 using In.ProjectEKA.HipService.UserAuth;
 using In.ProjectEKA.HipService.UserAuth.Database;
@@ -137,7 +138,7 @@ namespace In.ProjectEKA.HipService
                 .AddSingleton<DataEntryFactory>()
                 .AddSingleton<DataFlowMessageHandler>()
                 .AddSingleton(HttpClient)
-                .AddScoped<IHealthCheckClient>(_ => new OpenMrsHealthCheckClient(new Dictionary<string, string>
+                .AddSingleton<IHealthCheckClient>(_ => new OpenMrsHealthCheckClient(new Dictionary<string, string>
                     {
                         {"OpenMRS-FHIR", Constants.PATH_OPENMRS_FHIR},
                         {"OpenMRS-REST", Constants.PATH_OPENMRS_REST}
@@ -161,12 +162,14 @@ namespace In.ProjectEKA.HipService
                 .AddSingleton(new OpenMrsClient(HttpClient,
                     Configuration.GetSection("OpenMrs").Get<OpenMrsConfiguration>()))
                 .AddSingleton(Configuration.GetSection("Jwt").Get<JwtConfiguration>())
-                .AddScoped<IOpenMrsClient, OpenMrsClient>()
-                .AddScoped<IOpenMrsPatientData, OpenMrsPatientData>()
+                .AddSingleton<IOpenMrsClient, OpenMrsClient>()
+                .AddSingleton<IOpenMrsPatientData, OpenMrsPatientData>()
                 .AddScoped<IUserAuthRepository, UserAuthRepository>()
                 .AddSingleton<ICollectHipService, CollectHipService>()
                 .AddScoped<IPatientDal, FhirDiscoveryDataSource>()
                 .AddScoped<IPhoneNumberRepository, OpenMrsPhoneNumberRepository>()
+                .AddScoped<CleanPatientQueueJob>()
+                .AddSingleton<EncryptionService>()
                 .AddTransient<IDataFlow, DataFlow.DataFlow>()
                 .AddRouting(options => options.LowercaseUrls = true)
                 .AddHttpContextAccessor()
@@ -213,8 +216,8 @@ namespace In.ProjectEKA.HipService
                 .AddJwtBearer(Constants.GATEWAY_AUTH, options =>
                 {
                     // Need to validate Audience and Issuer properly
-                    // IPLit
-                    options.Authority = $"{Configuration.GetValue<string>("Gateway:sessionM1GatewayUrl")}/{Constants.CURRENT_VERSION}";
+                    options.Authority = $"{Configuration.GetValue<string>("Gateway:url")}/api/hiecm/gateway/v3/";
+                    options.BackchannelHttpHandler = new GatewayAuthHttpHandler(Configuration);
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,
@@ -273,6 +276,12 @@ namespace In.ProjectEKA.HipService
                     CancellationCheckInterval = TimeSpan.FromMinutes(
                         Configuration.GetSection("BackgroundJobs:cancellationCheckInterval").Get<int>())
                 });
+            RecurringJob.AddOrUpdate<CleanPatientQueueJob>(
+                "cleanup-patient-queue",
+                job => job.CleanPatientQueue(),
+                Cron.Hourly
+            );
+
 
             using var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope();
             var linkContext = serviceScope.ServiceProvider.GetService<LinkPatientContext>();
@@ -289,6 +298,8 @@ namespace In.ProjectEKA.HipService
             ndhmContext.Database.Migrate();
             var patientContext = serviceScope.ServiceProvider.GetService<PatientContext>();
             patientContext.Database.Migrate();
+            var encryptionService = serviceScope.ServiceProvider.GetService<EncryptionService>();
+            encryptionService.InitializePublicKeyForEncryption().GetAwaiter().GetResult();
         }
 
         private static bool CheckRoleInAccessToken(JwtSecurityToken accessToken)

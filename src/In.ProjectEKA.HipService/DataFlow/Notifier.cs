@@ -4,12 +4,11 @@ namespace In.ProjectEKA.HipService.DataFlow
     {
         public Notifier(Type type, string id)
         {
-            Type tp = (Type) type;
-            Type = tp.ToString();
+            Type = type;
             Id = id;
         }
 
-        public string Type { get; }
+        public Type Type { get; }
         public string Id { get; }
     }
 }
