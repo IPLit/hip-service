@@ -24,7 +24,7 @@ namespace In.ProjectEKA.HipService.Common
         {
             var response = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
                 gatewayConfiguration.AbhaNumberServiceUrl, Constants.ABHA_SERVICE_CERT_URL, null, null);
-            if (response.IsSuccessStatusCode)
+            if (response!=null && response.IsSuccessStatusCode)
             {
                 var responseData = await response.Content.ReadAsStringAsync();
                 var jsonDoc = JsonDocument.Parse(responseData);
@@ -33,8 +33,8 @@ namespace In.ProjectEKA.HipService.Common
             }
             else
             {
-                throw new Exception("Failed to initialise Public Key for Encryption from " +
-                                    Constants.ABHA_SERVICE_CERT_URL);
+                // throw new Exception("Failed to initialise Public Key for Encryption from " +
+                //                     Constants.ABHA_SERVICE_CERT_URL);
             }
         }
 
