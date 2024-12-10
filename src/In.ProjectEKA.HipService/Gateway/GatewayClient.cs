@@ -88,7 +88,7 @@ namespace In.ProjectEKA.HipService.Gateway
             await PostTo(configuration.Url + urlPath, response, cmSuffix, correlationId).ConfigureAwait(false);
         }
 
-        public virtual async Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl,string urlPath,
+        public virtual async Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl, string urlPath,
             T representation, string correlationId, string xtoken = null, string tToken = null, string transactionId = null)
         {
             var token = await Authenticate(correlationId).ConfigureAwait(false);
@@ -101,7 +101,7 @@ namespace In.ProjectEKA.HipService.Gateway
                     Log.Debug("Request Payload {@payload}", representation);
                     response = await httpClient
                         .SendAsync(CreateHttpRequest(method, baseUrl + urlPath, representation, token.ValueOr(String.Empty),
-                            null, correlationId,xtoken, tToken, transactionId))
+                            configuration.CmSuffix, correlationId, xtoken, tToken, transactionId))
                         .ConfigureAwait(false);
                     Log.Information("Response Status from ABHA Service for URI {@uri} is {@status}", baseUrl + urlPath, response.StatusCode);
                     Log.Debug("Response Payload {@payload}", response.Content.ReadAsStringAsync());
@@ -123,8 +123,11 @@ namespace In.ProjectEKA.HipService.Gateway
                 {
                     try
                     {
+                        if (string.IsNullOrEmpty(cmSuffix)) {
+                            cmSuffix = configuration.CmSuffix;
+                        }
                         await httpClient
-                            .SendAsync(CreateHttpRequest(HttpMethod.Post,gatewayUrl, representation, accessToken,
+                            .SendAsync(CreateHttpRequest(HttpMethod.Post, gatewayUrl, representation, accessToken,
                                 cmSuffix, correlationId))
                             .ConfigureAwait(false);
                     }

@@ -17,7 +17,7 @@ WORKDIR /app/src/In.ProjectEKA.HipService
 RUN dotnet publish -c Release -o /app
 
 # Build runtime image
-FROM alpine:latest
+FROM alpine:3.20.3
 
 RUN apk update
 
