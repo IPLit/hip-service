@@ -23,6 +23,7 @@ namespace In.ProjectEKA.HipService.Common
             string transactionId = null)
         {
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"));
+            ;
             if (content != null)
             {
                 var json = JsonConvert.SerializeObject(content, new JsonSerializerSettings
