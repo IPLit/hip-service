@@ -109,7 +109,7 @@ namespace In.ProjectEKA.HipService.Link
                  }
             }
             
-            var demographics = userAuthRepository.GetDemographics(healthId).Result.ValueOrDefault();
+            var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
             var requestId = Guid.NewGuid();
             if (demographics == null)
                 return;
@@ -185,7 +185,7 @@ namespace In.ProjectEKA.HipService.Link
         public async Task CallAddContext(NewContextRequest newContextRequest)
         {
             var abhaAddress = newContextRequest.HealthId;
-            await SetAccessToken(abhaAddress);
+            await SetAccessToken(abhaAddress).ConfigureAwait(false);
             if (!UserAuthMap.HealthIdToAccessToken.ContainsKey(abhaAddress))
             {
                 Log.Error("Unable to get link token for healthId: {healthId}",
