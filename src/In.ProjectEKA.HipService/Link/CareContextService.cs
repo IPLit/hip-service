@@ -108,11 +108,20 @@ namespace In.ProjectEKA.HipService.Link
                      return;
                  }
             }
-            
-            var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
+
+            // var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
+            var demographicsOpt = await userAuthRepository.GetDemographics(healthId);
             var requestId = Guid.NewGuid();
+            var demographics = demographicsOpt.Match(
+                some: demo => demo,
+                none: ()   => null
+            );
             if (demographics == null)
                 return;
+
+            Log.Information("PATH_GENERATE_TOKEN request params: HealthId {0}, Name {1}, Gender {2}, DateOfBirth {3}", 
+                demographics.HealthId, demographics.Name, demographics.Gender, demographics.DateOfBirth);
+
             var generateTokenPayload = new GenerateLinkTokenRequest(demographics.HealthId, demographics.Name,
                 demographics.Gender, demographics.DateOfBirth.Split("-").First());
             
