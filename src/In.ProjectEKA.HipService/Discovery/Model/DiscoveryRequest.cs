@@ -13,7 +13,7 @@ namespace In.ProjectEKA.HipService.Discovery.Model
         {
             TransactionId = transactionId;
             ConsentManagerUserId = consentManagerUserId;
-            PatientReferenceNumber = patientReferenceNumber;
+            PatientReferenceNumber = patientReferenceNumber.Trim();
         }
 
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

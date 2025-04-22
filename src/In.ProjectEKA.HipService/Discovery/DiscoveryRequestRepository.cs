@@ -40,7 +40,7 @@ namespace In.ProjectEKA.HipService.Discovery
             return discoveryContext.DiscoveryRequest
                 .AnyAsync(request => request.TransactionId == requestId
                                      && request.ConsentManagerUserId == consentManagerUserId
-                                     && request.PatientReferenceNumber == patientReferenceNumber);
+                                     && request.PatientReferenceNumber.Trim() == patientReferenceNumber.Trim());
         }
 
         public Task<bool> RequestExistsFor(string requestId)

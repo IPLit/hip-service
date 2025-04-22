@@ -119,7 +119,7 @@ namespace In.ProjectEKA.HipService.Link
             try
             {
                 var linkRequest = await linkPatientContext.LinkedAccounts.OrderByDescending(i => i.DateTimeStamp)
-                    .FirstOrDefaultAsync(request => request.PatientReferenceNumber.Equals(patientReferenceNumber));
+                    .FirstOrDefaultAsync(request => request.PatientReferenceNumber.Trim().Equals(patientReferenceNumber.Trim()));
                    if (linkRequest != null)
                    {
                        return new Tuple<List<string>, Exception>(linkRequest.CareContexts, null);
@@ -169,7 +169,7 @@ namespace In.ProjectEKA.HipService.Link
             try
             {
                 var linkRequest = await linkPatientContext.LinkedAccounts
-                    .FirstOrDefaultAsync(request => request.PatientReferenceNumber.Equals(patientReferenceNumber));
+                    .FirstOrDefaultAsync(request => request.PatientReferenceNumber.Trim().Equals(patientReferenceNumber.Trim()));
                 return new Tuple<string, Exception>(linkRequest.ConsentManagerUserId, null);
             }
             catch (Exception exception)

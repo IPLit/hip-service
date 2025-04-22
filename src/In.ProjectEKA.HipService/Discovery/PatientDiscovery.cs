@@ -99,7 +99,7 @@ namespace In.ProjectEKA.HipService.Discovery
             {
                 var phoneNumber = request.Patient?.VerifiedIdentifiers?
                     .FirstOrDefault(identifier => identifier.Type.Equals(IdentifierType.MOBILE))
-                    ?.Value.ToString();
+                    ?.Value.ToString().Trim();
                 var healthId = request.Patient?.Id ?? null;
                 
                 if (healthId != null) {
@@ -181,7 +181,7 @@ namespace In.ProjectEKA.HipService.Discovery
             }
 
             await discoveryRequestRepository.Add(new Model.DiscoveryRequest(request.TransactionId,
-                request.Patient.Id, patientEnquiryRepresentation.ReferenceNumber));
+                request.Patient.Id, patientEnquiryRepresentation.ReferenceNumber.Trim()));
             return (new DiscoveryRepresentation(patientEnquiryRepresentation), null);
         }
 

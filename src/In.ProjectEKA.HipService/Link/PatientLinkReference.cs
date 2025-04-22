@@ -7,7 +7,7 @@ namespace In.ProjectEKA.HipService.Link
     {
         public PatientLinkReference(string referenceNumber, IEnumerable<CareContextEnquiry> careContexts, string hiType, int count)
         {
-            ReferenceNumber = referenceNumber;
+            ReferenceNumber = referenceNumber.Trim();
             CareContexts = careContexts;
             HiType = hiType;
             Count = count;
