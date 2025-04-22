@@ -2,8 +2,8 @@ namespace In.ProjectEKA.HipService.UserAuth.Model
 {
     public class Requester
     {
-        public string type { get; }
         public string id { get; }
+        public string type { get; }
 
         public Requester(string id, string type)
         {

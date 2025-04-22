@@ -1,4 +1,5 @@
 using In.ProjectEKA.HipService.Link;
+using In.ProjectEKA.HipService.Logger;
 
 namespace In.ProjectEKA.HipService.DataFlow
 {
@@ -49,7 +50,13 @@ namespace In.ProjectEKA.HipService.DataFlow
             if (consent == null) return ConsentArtefactNotFound();
             var (patientUuid, _) =
                 await linkPatientRepository.GetPatientUuid(consent.ConsentArtefact.Patient.Id);
-
+            if (patientUuid.Equals(Guid.Empty))
+            {
+                Log.Information("Link Confirmation has not completed yet. Waiting for 5 seconds..");
+                await Task.Delay(5000);
+                (patientUuid, _) = await linkPatientRepository.GetPatientUuid(consent.ConsentArtefact.Patient.Id);
+            }
+            Log.Information("Intiating Data Request for Patient ID " + patientUuid.ToString() );
             var dataRequest = new DataRequest(consent.ConsentArtefact.CareContexts,
                 request.DateRange,
                 request.DataPushUrl,

@@ -16,7 +16,7 @@ namespace In.ProjectEKA.HipService.Gateway
 
     public interface IGatewayClient
     {
-        Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix,string correlationId);
+        Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix,string correlationId, string hipId = null, string requestId = null, string linkToken = null);
         Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl, string urlPath, T representation,
             string correlationId, string xtoken = null, string tToken = null, string transactionId = null);
     }
@@ -83,12 +83,12 @@ namespace In.ProjectEKA.HipService.Gateway
             }
         }
 
-        public virtual async Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix, string correlationId)
+        public virtual async Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix, string correlationId, string hipId = null,string requestId=null, string linkToken = null)
         {
-            await PostTo(configuration.Url + urlPath, response, cmSuffix, correlationId).ConfigureAwait(false);
+            await PostTo(configuration.Url + urlPath, response, cmSuffix, correlationId, hipId,requestId,linkToken).ConfigureAwait(false);
         }
 
-        public virtual async Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl, string urlPath,
+        public virtual async Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl,string urlPath,
             T representation, string correlationId, string xtoken = null, string tToken = null, string transactionId = null)
         {
             var token = await Authenticate(correlationId).ConfigureAwait(false);
@@ -101,7 +101,7 @@ namespace In.ProjectEKA.HipService.Gateway
                     Log.Debug("Request Payload {@payload}", representation);
                     response = await httpClient
                         .SendAsync(CreateHttpRequest(method, baseUrl + urlPath, representation, token.ValueOr(String.Empty),
-                            configuration.CmSuffix, correlationId, xtoken, tToken, transactionId))
+                            null, correlationId,xtoken, tToken, transactionId))
                         .ConfigureAwait(false);
                     Log.Information("Response Status from ABHA Service for URI {@uri} is {@status}", baseUrl + urlPath, response.StatusCode);
                     Log.Debug("Response Payload {@payload}", response.Content.ReadAsStringAsync());
@@ -114,7 +114,7 @@ namespace In.ProjectEKA.HipService.Gateway
             return response;
         }
 
-        private async Task PostTo<T>(string gatewayUrl, T representation, string cmSuffix, string correlationId)
+        private async Task PostTo<T>(string gatewayUrl, T representation, string cmSuffix, string correlationId, string hipId, string requestId, string linkToken = null)
         {
             try
             {
@@ -123,13 +123,15 @@ namespace In.ProjectEKA.HipService.Gateway
                 {
                     try
                     {
-                        if (string.IsNullOrEmpty(cmSuffix)) {
-                            cmSuffix = configuration.CmSuffix;
-                        }
-                        await httpClient
+                        Log.Information("Initiating Request to Gateway for URI {@uri}", gatewayUrl);
+                        Log.Debug("Request Payload {@payload}", representation);
+                        var responseMessage = await httpClient
                             .SendAsync(CreateHttpRequest(HttpMethod.Post, gatewayUrl, representation, accessToken,
-                                cmSuffix, correlationId))
+                                cmSuffix, correlationId, hipId: hipId,requestId:requestId,linkToken:linkToken))
                             .ConfigureAwait(false);
+                        Log.Information("Response Status from Gateway for URI {@uri} is {@status}", gatewayUrl,
+                            responseMessage.StatusCode);
+                        Log.Debug("Response Payload {@payload}", responseMessage.Content.ReadAsStringAsync());
                     }
                     catch (Exception exception)
                     {

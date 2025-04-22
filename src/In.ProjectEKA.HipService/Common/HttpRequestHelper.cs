@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Newtonsoft.Json.Converters;
+
 namespace In.ProjectEKA.HipService.Common
 {
     using System;
@@ -20,7 +23,11 @@ namespace In.ProjectEKA.HipService.Common
             string correlationId,
             string xtoken = null,
             string tToken = null,
-            string transactionId = null)
+            string transactionId = null,
+            string hipId = null,
+            string requestId = null,
+            string linkToken = null
+            )
         {
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"));
             ;
@@ -32,6 +39,10 @@ namespace In.ProjectEKA.HipService.Common
                     ContractResolver = new DefaultContractResolver
                     {
                         NamingStrategy = new CamelCaseNamingStrategy()
+                    },
+                    Converters = new List<JsonConverter>
+                    {
+                        new StringEnumConverter()
                     }
                 });
                 httpRequestMessage.Content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
@@ -49,7 +60,11 @@ namespace In.ProjectEKA.HipService.Common
                 httpRequestMessage.Headers.Add(CORRELATION_ID, correlationId);
             if (transactionId != null)
                 httpRequestMessage.Headers.Add("Transaction_Id", transactionId);
-            httpRequestMessage.Headers.Add("REQUEST-ID", Guid.NewGuid().ToString());
+            if(hipId != null)
+                httpRequestMessage.Headers.Add("X-HIP-ID", hipId);
+            if(linkToken !=null)
+                httpRequestMessage.Headers.Add("X-LINK-TOKEN", linkToken);
+            httpRequestMessage.Headers.Add("REQUEST-ID",  requestId ??  Guid.NewGuid().ToString());
             httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(TIMESTAMP_FORMAT));
             return httpRequestMessage;
         }
