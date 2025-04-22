@@ -109,7 +109,7 @@ namespace In.ProjectEKA.HipService.Link
                  }
             }
             
-            var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
+            var demographics = userAuthRepository.GetDemographics(healthId).Result.ValueOrDefault();
             var requestId = Guid.NewGuid();
             if (demographics == null)
                 return;

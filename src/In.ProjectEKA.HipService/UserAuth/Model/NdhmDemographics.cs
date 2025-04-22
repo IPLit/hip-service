@@ -14,7 +14,7 @@ namespace In.ProjectEKA.HipService.UserAuth.Model
             Name = name;
             Gender = gender;
             DateOfBirth = dateOfBirth;
-            PhoneNumber = phoneNumber;
+            PhoneNumber = phoneNumber.Trim();
         }
     }
 }
