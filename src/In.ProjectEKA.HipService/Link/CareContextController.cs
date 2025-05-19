@@ -45,7 +45,7 @@ namespace In.ProjectEKA.HipService.Link
         public async Task<ActionResult> PassContext([FromBody] NewContextRequest newContextRequest)
         {
             var (careContexts, exception) =
-                await linkPatientRepository.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber.Trim());
+                await linkPatientRepository.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber);
             foreach (var context in newContextRequest.CareContexts)
             {
                 if (careContexts != null && careContextService.IsLinkedContext(careContexts, context.ReferenceNumber))

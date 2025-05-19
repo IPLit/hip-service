@@ -15,7 +15,7 @@ namespace In.ProjectEKA.HipService.UserAuth.Model
         public NewContextRequest(string patientReferenceNumber, string patientName,
             List<CareContextRepresentation> careContexts, string healthId)
         {
-            PatientReferenceNumber = patientReferenceNumber.Trim();
+            PatientReferenceNumber = patientReferenceNumber;
             PatientName = patientName;
             CareContexts = careContexts;
             HealthId = healthId;

@@ -19,7 +19,7 @@ namespace In.ProjectEKA.HipService.Link.Model
         )
         {
             PatientUuid = patientUuid;
-            PatientReferenceNumber = patientReferenceNumber.Trim();
+            PatientReferenceNumber = patientReferenceNumber;
             LinkReferenceNumber = linkReferenceNumber;
             ConsentManagerUserId = consentManagerUserId;
             DateTimeStamp = dateTimeStamp;
