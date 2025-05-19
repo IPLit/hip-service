@@ -194,7 +194,7 @@ namespace In.ProjectEKA.HipService.Link
         public async Task CallAddContext(NewContextRequest newContextRequest)
         {
             var abhaAddress = newContextRequest.HealthId;
-            await SetAccessToken(abhaAddress).ConfigureAwait(false);
+            await SetAccessToken(abhaAddress);
             if (!UserAuthMap.HealthIdToAccessToken.ContainsKey(abhaAddress))
             {
                 Log.Error("Unable to get link token for healthId: {healthId}",

@@ -386,6 +386,8 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         public Error CheckAccessToken(string accessToken)
         {
+            logger.Log(LogLevel.Information,
+                    LogEvents.UserAuth, $"accessToken: {{accessToken}}", accessToken);
             if (accessToken != null)
             {
                 var token = new JwtSecurityTokenHandler().ReadToken(accessToken) as JwtSecurityToken;
