@@ -109,24 +109,19 @@ namespace In.ProjectEKA.HipService.Link
                  }
             }
 
-            // var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
-            var demographicsOpt = await userAuthRepository.GetDemographics(healthId);
+            var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
             var requestId = Guid.NewGuid();
-            var demographics = demographicsOpt.Match(
-                some: demo => demo,
-                none: ()   => null
-            );
             if (demographics == null)
                 return;
 
-            Log.Information("PATH_GENERATE_TOKEN request params: HealthId {0}, Name {1}, Gender {2}, DateOfBirth {3}", 
-                demographics.HealthId, demographics.Name, demographics.Gender, demographics.DateOfBirth);
+            // Log.Information("PATH_GENERATE_TOKEN request params: HealthId {0}, Name {1}, Gender {2}, DateOfBirth {3}", 
+                // demographics.HealthId, demographics.Name, demographics.Gender, demographics.DateOfBirth);
 
             var generateTokenPayload = new GenerateLinkTokenRequest(demographics.HealthId, demographics.Name,
                 demographics.Gender, demographics.DateOfBirth.Split("-").First());
             
             await gatewayClient.SendDataToGateway(PATH_GENERATE_TOKEN, generateTokenPayload, gatewayConfiguration.CmSuffix,
-                Guid.NewGuid().ToString(), bahmniConfiguration.Id, requestId.ToString() );
+                Guid.NewGuid().ToString(), hipId:bahmniConfiguration.Id, requestId.ToString() );
             var i = 0;
             do
             {

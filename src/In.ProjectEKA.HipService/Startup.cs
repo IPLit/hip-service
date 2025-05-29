@@ -265,12 +265,12 @@ namespace In.ProjectEKA.HipService
                 .UseSerilogRequestLogging()
                 .UseAuthentication()
                 .UseAuthorization()
-                // .UseHealthCheckMiddleware()
-                // .UseEndpoints(endpoints =>
-                // {
-                //     endpoints.MapControllers();
-                //     endpoints.MapHealthChecks("/health");
-                // })
+                .UseHealthCheckMiddleware()
+                .UseEndpoints(endpoints =>
+                {
+                    endpoints.MapControllers();
+                    endpoints.MapHealthChecks("/health");
+                })
                 .UseHangfireServer(new BackgroundJobServerOptions
                 {
                     CancellationCheckInterval = TimeSpan.FromMinutes(
