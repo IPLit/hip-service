@@ -20,7 +20,7 @@ namespace In.ProjectEKA.HipService.Link
     using static Common.Constants;
     using Model;
 
-    [Authorize]
+    // [Authorize]
     [ApiController]
     [Consumes("application/json")]
     [Produces("application/json")]

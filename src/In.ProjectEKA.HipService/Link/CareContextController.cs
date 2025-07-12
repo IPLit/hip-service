@@ -55,6 +55,7 @@ namespace In.ProjectEKA.HipService.Link
                 else
                 {
                     await careContextService.CallAddContext(newContextRequest);
+                    await careContextService.CallNotifyContext(newContextRequest, context);
                 }
             }
             return StatusCode(StatusCodes.Status200OK);
