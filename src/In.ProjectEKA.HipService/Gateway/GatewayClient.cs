@@ -32,7 +32,7 @@ namespace In.ProjectEKA.HipService.Gateway
             configuration = gatewayConfiguration;
         }
 
-        public virtual async Task<Option<string>> Authenticate(String correlationId)
+        public virtual async Task<Option<string>> Authenticate(String correlationId, string hipId = null)
         {
             try
             {
@@ -57,6 +57,8 @@ namespace In.ProjectEKA.HipService.Gateway
                 };
                 if (correlationId != null)
                     message.Headers.Add(Constants.CORRELATION_ID, correlationId);
+                if (hipId != null)
+                    message.Headers.Add("X-HIP-ID", hipId);
                 message.Headers.Add("REQUEST-ID", Guid.NewGuid().ToString());
                 message.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(Constants.TIMESTAMP_FORMAT));
                 message.Headers.Add("X-CM-ID", configuration.CmSuffix);
@@ -85,13 +87,13 @@ namespace In.ProjectEKA.HipService.Gateway
 
         public virtual async Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix, string correlationId, string hipId = null,string requestId=null, string linkToken = null)
         {
-            await PostTo(configuration.Url + urlPath, response, cmSuffix, correlationId, hipId,requestId,linkToken).ConfigureAwait(false);
+            await PostTo(configuration.Url + urlPath, response, cmSuffix, correlationId, hipId, requestId, linkToken).ConfigureAwait(false);
         }
 
         public virtual async Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl,string urlPath,
             T representation, string correlationId, string xtoken = null, string tToken = null, string transactionId = null)
         {
-            var token = await Authenticate(correlationId).ConfigureAwait(false);
+            var token = await Authenticate(correlationId, null).ConfigureAwait(false);
             HttpResponseMessage response = null;
             if (token.HasValue)
             {
@@ -118,7 +120,7 @@ namespace In.ProjectEKA.HipService.Gateway
         {
             try
             {
-                var token = await Authenticate(correlationId).ConfigureAwait(false);
+                var token = await Authenticate(correlationId, hipId).ConfigureAwait(false);
                 token.MatchSome(async accessToken =>
                 {
                     try

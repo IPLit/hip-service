@@ -121,7 +121,7 @@ namespace In.ProjectEKA.HipService.Link
                 demographics.Gender, demographics.DateOfBirth.Split("-").First());
             
             await gatewayClient.SendDataToGateway(PATH_GENERATE_TOKEN, generateTokenPayload, gatewayConfiguration.CmSuffix,
-                null, hipId:bahmniConfiguration.Id, requestId.ToString() );
+                Guid.NewGuid().ToString(), hipId:bahmniConfiguration.Id, requestId.ToString());
             var i = 0;
             do
             {
@@ -177,8 +177,7 @@ namespace In.ProjectEKA.HipService.Link
                     gatewayNotificationContextRepresentation.dump(gatewayNotificationContextRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_NOTIFY_PATIENT_CONTEXTS,
                     gatewayNotificationContextRepresentation,
-                    cmSuffix, null, hipId:bahmniConfiguration.Id);
-                
+                    cmSuffix, Guid.NewGuid().ToString(), hipId:bahmniConfiguration.Id);   
             }
             catch (Exception exception)
             {

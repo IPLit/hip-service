@@ -165,7 +165,7 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
 
             var client = new GatewayClient(httpClient, configuration);
 
-            var result = await client.Authenticate(correlationId);
+            var result = await client.Authenticate(correlationId, null);
 
             result.HasValue.Should().BeTrue();
             result.MatchSome(token => token.Should().BeEquivalentTo("bearer token"));
@@ -209,7 +209,7 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
 
             var client = new GatewayClient(httpClient, configuration);
 
-            var result = await client.Authenticate(correlationId);
+            var result = await client.Authenticate(correlationId, null);
 
             result.HasValue.Should().BeFalse();
             handlerMock.Protected().Verify(
@@ -228,7 +228,7 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
             var gatewayClient = new GatewayClient(httpClient, null);
             var correlationId = Uuid.Generate().ToString();
 
-            var result = await gatewayClient.Authenticate(correlationId);
+            var result = await gatewayClient.Authenticate(correlationId, null);
 
             result.HasValue.Should().BeFalse();
             handlerMock.Protected().Verify(
