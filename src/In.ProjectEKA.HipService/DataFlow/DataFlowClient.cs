@@ -6,11 +6,17 @@ namespace In.ProjectEKA.HipService.DataFlow
     using System.Collections.Generic;
     using System.Linq;
     using System.Net.Http;
+    using System.Net.Mime;
+
     using System.Threading.Tasks;
     using Gateway;
     using HipLibrary.Patient.Model;
     using Logger;
+    using Microsoft.Net.Http.Headers;
+
     using Model;
+    using RabbitMQ.Client;
+
     using static Common.HttpRequestHelper;
 
     public class DataFlowClient
@@ -19,12 +25,15 @@ namespace In.ProjectEKA.HipService.DataFlow
         private readonly GatewayConfiguration gatewayConfiguration;
         private readonly HipService.Common.Model.BahmniConfiguration bahmniConfiguration;
         private readonly HttpClient httpClient;
+        private readonly GatewayClient gatewayClient;
 
         public DataFlowClient(HttpClient httpClient,
             DataFlowNotificationClient dataFlowNotificationClient,
             GatewayConfiguration gatewayConfiguration,
-            HipService.Common.Model.BahmniConfiguration bahmniConfiguration)
+            HipService.Common.Model.BahmniConfiguration bahmniConfiguration,
+            GatewayClient gatewayClient)
         {
+            this.gatewayClient = gatewayClient;
             this.httpClient = httpClient;
             this.dataFlowNotificationClient = dataFlowNotificationClient;
             this.gatewayConfiguration = gatewayConfiguration;
@@ -58,7 +67,21 @@ namespace In.ProjectEKA.HipService.DataFlow
             {
                 // TODO: Need to handle non 2xx response also
                 httpClient.DefaultRequestHeaders.Remove("Authorization");
-                await httpClient.SendAsync(CreateHttpRequest(HttpMethod.Post, dataPushUrl, dataResponse, correlationId)).ConfigureAwait(false);
+                var token = await gatewayClient.Authenticate(correlationId, bahmniConfiguration.Id).ConfigureAwait(false);
+                if (token.HasValue)
+                {
+                    var reqDataPush = CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse, token.ValueOr(String.Empty), cmSuffix, correlationId,
+                         MediaTypeNames.Application.Json, bahmniConfiguration.Id, Guid.NewGuid().ToString(), null,
+                        null, null, null);
+                    await httpClient.SendAsync(reqDataPush).ConfigureAwait(false);
+                }
+                else
+                {
+                    hiStatus = HiStatus.ERRORED;
+                    sessionStatus = SessionStatus.FAILED;
+                    message = "Failed to deliver health information";
+                    Log.Error($"Failed to authenticate while delivering health information to {dataPushUrl}");
+                }
             }
             catch (Exception exception)
             {
@@ -76,7 +99,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                             message))
                     .ToList();
                 var dataNotificationRequest = new DataNotificationRequest(dataResponse.TransactionId,
-                    DateTime.Now.ToUniversalTime().ToString(Constants.DateTimeFormat),
+                    DateTime.Now.ToUniversalTime().ToString(Common.Constants.DateTimeFormat),
                     new Notifier(Type.HIP, bahmniConfiguration.Id),
                     new StatusNotification(sessionStatus, bahmniConfiguration.Id, statusResponses),
                     consentId,
