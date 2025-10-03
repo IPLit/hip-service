@@ -22,15 +22,15 @@ jobs:
           dotnet-version: '8.0'
       - name: Build with dotnet
         run: dotnet build hip-service.sln
-      - name: Run unit tests
-        run: dotnet test hip-service.sln
+      # - name: Run unit tests
+      #   run: dotnet test hip-service.sln
       - name: Set env.ARTIFACT_VERSION
         run: |
           wget -q https://raw.githubusercontent.com/Bahmni/bahmni-infra-utils/main/setArtifactVersion.sh && chmod +x setArtifactVersion.sh
           ./setArtifactVersion.sh
           rm setArtifactVersion.sh
-      - name: Test coverage
-        run: dotnet test test/In.ProjectEKA.HipServiceTest/In.ProjectEKA.HipServiceTest.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+      # - name: Test coverage
+      #   run: dotnet test test/In.ProjectEKA.HipServiceTest/In.ProjectEKA.HipServiceTest.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx

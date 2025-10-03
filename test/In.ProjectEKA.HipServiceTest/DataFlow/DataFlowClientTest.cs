@@ -50,7 +50,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             {
                 new Entry(content, MediaTypeNames.Application.Json, checksum, null, "careContextReference")
             }.AsEnumerable();
-            var expectedUri = new Uri("http://callback/health-information/transfer");
+            var expectedUri = new Uri("https://callback/data/notification");
             var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object);
             handlerMock
                 .Protected()

@@ -57,7 +57,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs.HealthCheck
             OpenMrsHealthCheckClient openMrsHealthCheckClient = new OpenMrsHealthCheckClient(new Dictionary<string, string> { { "Service", "path/to/resource" }
             }, openmrsClient);
 
-            var result = await openMrsHealthCheckClient.CheckHealth().ConfigureAwait(false);
+            var result = await openMrsHealthCheckClient.CheckHealth();
 
             result["Service"].Should().Be("Healthy");
         }
