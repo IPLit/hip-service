@@ -51,7 +51,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow.Builder
             const string consentManagerId = "ConsentManagerId";
             const string consentId = "ConsentId";
             var dateRange = new HipLibrary.Patient.Model.DateRange("from", "to");
-            const string callBackUrl = "http://callback/data/notification";
+            const string callBackUrl = "http://callback/health-information/transfer";
             var keyMaterial = new KeyMaterialLib(faker.Random.Word(), faker.Random.Word(),
                 new KeyStructureLib("", "", faker.Random.Hash()),
                 faker.Random.Hash());
@@ -71,7 +71,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow.Builder
             const string consentManagerId = "ConsentManagerId";
             const string consentId = "ConsentId";
             var dateRange = new HipLibrary.Patient.Model.DateRange("from", "to");
-            const string callBackUrl = "http://callback/data/notification";
+            const string callBackUrl = "http://callback/health-information/transfer";
             var keyMaterial = new KeyMaterialLib(faker.Random.Word(), faker.Random.Word(),
                 new KeyStructureLib("", "", faker.Random.Hash()),
                 faker.Random.Hash());

@@ -50,7 +50,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             {
                 new Entry(content, MediaTypeNames.Application.Json, checksum, null, "careContextReference")
             }.AsEnumerable();
-            var expectedUri = new Uri("http://callback/data/notification");
+            var expectedUri = new Uri("http://callback/health-information/transfer");
             var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object);
             handlerMock
                 .Protected()
@@ -77,7 +77,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
                         request.StatusNotification.SessionStatus);
                 });
 
-            dataFlowClient.SendDataToHiu(dataRequest, entries, null);
+            dataFlowClient.SendDataToHiu(dataRequest, entries, null).ConfigureAwait(false);
 
             handlerMock.Protected().Verify(
                 "SendAsync",
@@ -118,7 +118,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             dataFlowNotificationClient.Setup(client => client.NotifyGateway(id, It.IsAny<DataNotificationRequest>(),correlationId))
                 .Returns(Task.CompletedTask);
 
-            dataFlowClient.SendDataToHiu(dataRequest, entries, null);
+            dataFlowClient.SendDataToHiu(dataRequest, entries, null).ConfigureAwait(false);
 
             handlerMock.Protected().Verify(
                 "SendAsync",

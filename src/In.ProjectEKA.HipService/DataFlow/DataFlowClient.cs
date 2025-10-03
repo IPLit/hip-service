@@ -72,7 +72,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                 {
                     var reqDataPush = CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse, token.ValueOr(String.Empty), cmSuffix, correlationId,
                          MediaTypeNames.Application.Json, bahmniConfiguration.Id, Guid.NewGuid().ToString(), null,
-                        null, null, null);
+                        null, null, dataResponse.TransactionId);
                     await httpClient.SendAsync(reqDataPush).ConfigureAwait(false);
                 }
                 else

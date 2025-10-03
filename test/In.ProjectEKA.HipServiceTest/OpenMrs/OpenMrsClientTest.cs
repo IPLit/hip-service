@@ -41,7 +41,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
                 .Verifiable();
 
             //When
-            Func<Task> getAsyncMethod = async () => { await openmrsClient.GetAsync("path/to/resource"); };
+            Func<Task> getAsyncMethod = async () => { await openmrsClient.GetAsync("path/to/resource").ConfigureAwait(false); };
 
             //Then
             getAsyncMethod.Should().Throw<OpenMrsConnectionException>();

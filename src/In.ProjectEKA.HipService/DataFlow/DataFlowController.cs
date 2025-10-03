@@ -90,11 +90,13 @@ namespace In.ProjectEKA.HipService.DataFlow
         public AcceptedResult HealthInformationRequestFor(PatientHealthInformationRequest healthInformationRequest,
             [FromHeader(Name = CORRELATION_ID)] string correlationId,
             [FromHeader(Name = "X-GatewayID")] string gatewayId,
-            [FromHeader(Name = REQUEST_ID), Required] string requestId,
+            [FromHeader(Name = REQUEST_ID)] string requestId,
             [FromHeader(Name = TIMESTAMP)] string timestamp)
         
         {
-            logger.Log(LogLevel.Information, LogEvents.DataFlow, "Data request received");
+            logger.Log(LogLevel.Information, LogEvents.DataFlow, "Data request received from gateway for transactionId {TransactionId} and requestId {RequestId}",
+                healthInformationRequest.TransactionId, requestId);
+            requestId = string.IsNullOrWhiteSpace(requestId) ? Guid.NewGuid().ToString() : requestId;
             backgroundJob.Enqueue(() => HealthInformationOf(healthInformationRequest, gatewayId, correlationId, requestId));
             return Accepted();
         }
