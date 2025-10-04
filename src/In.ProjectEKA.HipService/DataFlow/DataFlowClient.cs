@@ -26,6 +26,7 @@ namespace In.ProjectEKA.HipService.DataFlow
         private readonly HipService.Common.Model.BahmniConfiguration bahmniConfiguration;
         private readonly HttpClient httpClient;
         private readonly GatewayClient gatewayClient;
+        private static readonly string MEDIA_APPLICATION_FHIR_JSON = "application/fhir+json";
 
         public DataFlowClient(HttpClient httpClient,
             DataFlowNotificationClient dataFlowNotificationClient,
@@ -70,8 +71,9 @@ namespace In.ProjectEKA.HipService.DataFlow
                 var token = await gatewayClient.Authenticate(correlationId, bahmniConfiguration.Id).ConfigureAwait(false);
                 if (token.HasValue)
                 {
-                    var reqDataPush = CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse, token.ValueOr(String.Empty), cmSuffix, correlationId,
-                         MediaTypeNames.Application.Json, bahmniConfiguration.Id, Guid.NewGuid().ToString(), null,
+                    var reqDataPush = CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse,
+                        token.ValueOr(String.Empty), cmSuffix, correlationId,
+                        MEDIA_APPLICATION_FHIR_JSON, bahmniConfiguration.Id, Guid.NewGuid().ToString(), null,
                         null, null, dataResponse.TransactionId);
                     await httpClient.SendAsync(reqDataPush).ConfigureAwait(false);
                 }
