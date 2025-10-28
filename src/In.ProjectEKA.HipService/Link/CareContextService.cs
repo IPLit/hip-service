@@ -177,7 +177,7 @@ namespace In.ProjectEKA.HipService.Link
                     gatewayNotificationContextRepresentation.dump(gatewayNotificationContextRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_NOTIFY_PATIENT_CONTEXTS,
                     gatewayNotificationContextRepresentation,
-                    cmSuffix, Guid.NewGuid().ToString(), hipId:bahmniConfiguration.Id);   
+                    cmSuffix, Guid.NewGuid().ToString(), hipId:bahmniConfiguration.Id);
             }
             catch (Exception exception)
             {

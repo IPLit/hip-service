@@ -113,6 +113,9 @@ namespace In.ProjectEKA.HipService.DataFlow
                     hiRequest.DateRange,
                     hiRequest.DataPushUrl,
                     hiRequest.KeyMaterial);
+                logger.Log(LogLevel.Information, LogEvents.DataFlow,
+                "Data request received with DataPushUrl {DataPushUrl} from gateway for transactionId {TransactionId} and requestId {RequestId}",
+                hiRequest.DataPushUrl, healthInformationRequest.TransactionId, requestId);
                 var (_, error) = await dataFlow.HealthInformationRequestFor(request, gatewayId, correlationId);
                 GatewayDataFlowRequestResponse gatewayResponse;
 

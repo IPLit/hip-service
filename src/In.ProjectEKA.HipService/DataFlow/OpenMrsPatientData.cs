@@ -13,7 +13,7 @@ namespace In.ProjectEKA.HipService.DataFlow
 {
     public class OpenMrsPatientData : IOpenMrsPatientData
     {
-        private readonly Dictionary<string, string> hiTypeToRootElement = new Dictionary<string, string>()
+        public static readonly Dictionary<string, string> hiTypeToRootElement = new Dictionary<string, string>()
         {
             {HiType.Prescription.ToString().ToLower(), "prescriptions"},
             {HiType.DiagnosticReport.ToString().ToLower(), "diagnosticReports"},
@@ -22,6 +22,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             {HiType.ImmunizationRecord.ToString().ToLower(), "immunizationRecord"},
             {HiType.HealthDocumentRecord.ToString().ToLower(), "healthDocumentRecord"},
             {HiType.WellnessRecord.ToString().ToLower(), "wellnessRecord"}
+            // {HiType.Invoice.ToString().ToLower(), "invoice"}
         };
 
         private readonly IOpenMrsClient openMrsClient;
@@ -58,7 +59,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             string toDate,
             string fromDate)
         {
-            var pathForVisit = $"{Constants.PATH_OPENMRS_HITYPE}{hiTypeToRootElement[hiType]}/visit/";
+            var pathForVisit = $"{Constants.PATH_OPENMRS_HITYPE}{hiTypeToRootElement[hiType]}/visit";
             var query = HttpUtility.ParseQueryString(string.Empty);
             if (
                 !string.IsNullOrEmpty(consentId) &&
@@ -83,6 +84,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             var response = await openMrsClient.GetAsync(pathForVisit);
             if (response == null) return new List<string>();
             var content = await response.Content.ReadAsStringAsync();
+            Log.Information("VISIT endpoint content: " + content);
             var jsonDoc = JsonDocument.Parse(content);
             var root = jsonDoc.RootElement;
             var entries = root.GetProperty(hiTypeToRootElement[hiType]);
@@ -93,8 +95,9 @@ namespace In.ProjectEKA.HipService.DataFlow
                 {
                     listOfData.Add(jsonElement.GetProperty("bundle").ToString());
                 }
+            } else {
+                Log.Information("No entries found for VISIT endpoint");
             }
-
             return listOfData;
         }
 
