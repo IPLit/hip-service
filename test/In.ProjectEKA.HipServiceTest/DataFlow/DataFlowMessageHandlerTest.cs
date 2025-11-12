@@ -30,7 +30,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             var checksum = TestBuilder.Faker().Random.Hash();
             var entriesList = new List<Entry>
             {
-                new Entry(content, MediaTypeNames.Application.Json, checksum, null, "careContextReference")
+                new Entry(content, MediaTypeNames.Application.Json, checksum, "careContextReference")
             };
             var requestKeyMaterial = TestBuilder.KeyMaterialLib();
             collect.Setup(c => c.CollectData(dataRequest)).ReturnsAsync(data);

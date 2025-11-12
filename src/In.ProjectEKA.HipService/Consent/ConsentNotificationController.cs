@@ -36,10 +36,12 @@ namespace In.ProjectEKA.HipService.Consent
         [HttpPost(PATH_CONSENTS_HIP)]
         public AcceptedResult ConsentNotification(
             [FromHeader(Name = CORRELATION_ID)] string correlationId,
-            [FromHeader(Name = REQUEST_ID), Required] string requestId,
+            [FromHeader(Name = REQUEST_ID)] string requestId,
             [FromHeader(Name = TIMESTAMP)] string timestamp,
             [FromBody] ConsentArtefactRepresentation consentArtefact)
         {
+            requestId = String.IsNullOrEmpty(requestId) ? Guid.NewGuid().ToString() : requestId;
+            correlationId = String.IsNullOrEmpty(correlationId) ? Guid.NewGuid().ToString() : correlationId;
             backgroundJob.Enqueue(() => StoreConsent(consentArtefact, correlationId, requestId));
             return Accepted();
         }

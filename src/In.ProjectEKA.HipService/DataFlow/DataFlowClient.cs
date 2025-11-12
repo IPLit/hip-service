@@ -64,16 +64,17 @@ namespace In.ProjectEKA.HipService.DataFlow
             var hiStatus = HiStatus.DELIVERED;
             var sessionStatus = SessionStatus.TRANSFERRED;
             var message = "Successfully delivered health information";
+            var requestId = Guid.NewGuid();
             try
             {
                 // TODO: Need to handle non 2xx response also
                 httpClient.DefaultRequestHeaders.Remove("Authorization");
-                var token = await gatewayClient.Authenticate(correlationId, bahmniConfiguration.Id).ConfigureAwait(false);
+                var token = await gatewayClient.Authenticate(correlationId).ConfigureAwait(false);
                 if (token.HasValue)
                 {
-                    var reqDataPush = CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse,
+                    var reqDataPush = HttpRequestHelper.CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse,
                         token.ValueOr(String.Empty), cmSuffix, correlationId,
-                        MediaTypeNames.Application.Json, bahmniConfiguration.Id, Guid.NewGuid().ToString(), null,
+                        MediaTypeNames.Application.Json, bahmniConfiguration.Id, requestId.ToString(), null,
                         null, null, dataResponse.TransactionId);
                     await httpClient.SendAsync(reqDataPush).ConfigureAwait(false);
                 }
@@ -105,7 +106,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                     new Notifier(Type.HIP, bahmniConfiguration.Id),
                     new StatusNotification(sessionStatus, bahmniConfiguration.Id, statusResponses),
                     consentId,
-                    Guid.NewGuid());
+                    requestId);
                 await GetDataNotificationRequest(dataNotificationRequest, cmSuffix, correlationId).ConfigureAwait(false);
             }
             catch (Exception ex)

@@ -23,6 +23,7 @@ namespace In.ProjectEKA.HipService.DataFlow.Encryptor
                 senderKeyPair,
                 receivedKeyMaterial.Curve,
                 receivedKeyMaterial.CryptoAlg));
+            Log.Information($"DhPublicKey details: {receivedKeyMaterial.DhPublicKey.Expiry}  with  {sharedKey}");
             var encryptedContent = Encrypt(sharedKey, content, randomKeySender,
                 receivedKeyMaterial.Nonce);
             return encryptedContent == string.Empty ? Option.None<string>() : Option.Some(encryptedContent);
@@ -60,7 +61,7 @@ namespace In.ProjectEKA.HipService.DataFlow.Encryptor
                 var returnLengthEncryptedData = cipher.ProcessBytes
                     (dataBytes, 0, dataBytes.Length, encryptedBytes, 0);
                 cipher.DoFinal(encryptedBytes, returnLengthEncryptedData);
-                encryptedString = Convert.ToBase64String(encryptedBytes, Base64FormattingOptions.None);
+                encryptedString = EncryptorHelper.GetBase64FromByte(encryptedBytes);
             }
             catch (Exception ex)
             {

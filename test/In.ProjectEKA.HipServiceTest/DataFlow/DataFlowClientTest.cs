@@ -48,7 +48,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             var correlationId = Uuid.Generate().ToString();
             var entries = new List<Entry>
             {
-                new Entry(content, MediaTypeNames.Application.Json, checksum, null, "careContextReference")
+                new Entry(content, MediaTypeNames.Application.Json, checksum, "careContextReference")
             }.AsEnumerable();
             var expectedUri = new Uri("https://callback/data/notification");
             var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object);

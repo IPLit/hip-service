@@ -30,7 +30,7 @@ namespace In.ProjectEKA.HipService.Common
             )
         {
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"));
-            ;
+            
             if (content != null)
             {
                 var json = JsonConvert.SerializeObject(content, new JsonSerializerSettings
@@ -93,7 +93,7 @@ namespace In.ProjectEKA.HipService.Common
             )
         {
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(method, new Uri($"{url}"));
-            ;
+            
             if (content != null)
             {
                 var json = JsonConvert.SerializeObject(content, new JsonSerializerSettings
@@ -128,7 +128,7 @@ namespace In.ProjectEKA.HipService.Common
             if (transactionId != null)
                 httpRequestMessage.Headers.Add("Transaction_Id", transactionId);
             if (hipId != null)
-                httpRequestMessage.Headers.Add("X-HIP-ID", hipId);
+                httpRequestMessage.Headers.Add("X-HIU-ID", hipId);
             if (linkToken != null)
                 httpRequestMessage.Headers.Add("X-LINK-TOKEN", linkToken);
             httpRequestMessage.Headers.Add("REQUEST-ID", requestId ?? Guid.NewGuid().ToString());

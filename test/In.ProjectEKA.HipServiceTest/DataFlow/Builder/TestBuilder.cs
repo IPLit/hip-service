@@ -145,7 +145,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow.Builder
             var media = Faker().Random.String();
             var checksum = Faker().Random.Hash();
             var careContextReference = Faker().Random.String();
-            return new Entry(content, media, checksum, null, careContextReference);
+            return new Entry(content, media, checksum, careContextReference);
         }
 
         internal static HealthInformation HealthInformation(string token, DateTime dateTime)
