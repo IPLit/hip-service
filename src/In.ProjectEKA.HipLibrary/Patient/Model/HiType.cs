@@ -8,7 +8,7 @@ namespace In.ProjectEKA.HipLibrary.Patient.Model
         DischargeSummary,
         OPConsultation,
         WellnessRecord,
-        HealthDocumentRecord
-        // Invoice
+        HealthDocumentRecord,
+        Invoice
     }
 }

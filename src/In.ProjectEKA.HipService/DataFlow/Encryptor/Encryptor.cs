@@ -61,7 +61,7 @@ namespace In.ProjectEKA.HipService.DataFlow.Encryptor
                 var returnLengthEncryptedData = cipher.ProcessBytes
                     (dataBytes, 0, dataBytes.Length, encryptedBytes, 0);
                 cipher.DoFinal(encryptedBytes, returnLengthEncryptedData);
-                encryptedString = EncryptorHelper.GetBase64FromByte(encryptedBytes);
+                encryptedString = Convert.ToBase64String(encryptedBytes, Base64FormattingOptions.None);
             }
             catch (Exception ex)
             {

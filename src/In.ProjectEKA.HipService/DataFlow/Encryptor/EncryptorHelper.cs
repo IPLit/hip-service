@@ -27,7 +27,7 @@ namespace In.ProjectEKA.HipService.DataFlow.Encryptor
 
         public static string GetPublicKey(AsymmetricCipherKeyPair senderKeyPair)
         {
-            return GetBase64FromByte(SubjectPublicKeyInfoFactory
+            return Convert.ToBase64String(SubjectPublicKeyInfoFactory
                 .CreateSubjectPublicKeyInfo(senderKeyPair.Public).GetEncoded());
         }
 

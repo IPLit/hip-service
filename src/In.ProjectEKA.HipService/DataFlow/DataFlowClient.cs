@@ -69,7 +69,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             {
                 // TODO: Need to handle non 2xx response also
                 httpClient.DefaultRequestHeaders.Remove("Authorization");
-                var token = await gatewayClient.Authenticate(correlationId).ConfigureAwait(false);
+                var token = await gatewayClient.Authenticate(correlationId, bahmniConfiguration.Id).ConfigureAwait(false);
                 if (token.HasValue)
                 {
                     var reqDataPush = HttpRequestHelper.CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse,
@@ -103,8 +103,8 @@ namespace In.ProjectEKA.HipService.DataFlow
                     .ToList();
                 var dataNotificationRequest = new DataNotificationRequest(dataResponse.TransactionId,
                     DateTime.Now.ToUniversalTime().ToString(Common.Constants.DateTimeFormat),
-                    new Notifier(Type.HIP, bahmniConfiguration.Id),
-                    new StatusNotification(sessionStatus, bahmniConfiguration.Id, statusResponses),
+                    new Notifier(Type.HIP, gatewayConfiguration.ClientId),
+                    new StatusNotification(sessionStatus, gatewayConfiguration.ClientId, statusResponses),
                     consentId,
                     requestId);
                 await GetDataNotificationRequest(dataNotificationRequest, cmSuffix, correlationId).ConfigureAwait(false);
