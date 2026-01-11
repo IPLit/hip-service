@@ -20,7 +20,7 @@ namespace In.ProjectEKA.HipService.DataFlow
     public class DataEntryFactory
     {
         private const int MbInBytes = 1000000;
-        private static readonly FhirJsonSerializer Serializer = new FhirJsonSerializer(new SerializerSettings());
+        private static readonly FhirJsonSerializer Serializer = new FhirJsonSerializer();
         private static readonly string FhirMediaType = "application/fhir+json";
         private readonly IOptions<DataFlowConfiguration> dataFlowConfiguration;
         private readonly IEncryptor encryptor;
@@ -55,16 +55,16 @@ namespace In.ProjectEKA.HipService.DataFlow
             var careBundles = entries.CareBundles;
             foreach (var careBundle in careBundles)
             {
-                var content = Serializer.SerializeToString(careBundle.BundleForThisCcr);
+                var contentBundle = careBundle.BundleForThisCcr;
                 string checksum = "";
-                if (content != null)
+                if (contentBundle != null)
                 {
-                    checksum = GenerateMD5Base64(content);
+                    checksum = "iplit-md5";
                 }
                 var encryptData =
                     encryptor.EncryptData(dataRequestKeyMaterial,
                         keyPair,
-                        content, randomKey);
+                        contentBundle, randomKey);
                 if (!encryptData.HasValue)
                     return Option.None<EncryptedEntries>();
 
@@ -85,16 +85,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                 keyStructure, randomKey);
             return Option.Some(new EncryptedEntries(processedEntries.AsEnumerable(), keyMaterial));
         }
-        
-        public static string GenerateMD5Base64(string input)
-        {
-            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-            byte[] hashBytes = System.Security.Cryptography.MD5.HashData(inputBytes);
-
-            // Convert hash bytes to Base64 string
-            return EncryptorHelper.GetBase64FromByte(hashBytes);
-        }
-
+ 
         private Entry StoreComponentAndGetLink(Entry componentEntry, string careContextReference, string checksum)
         {
             var linkId = Guid.NewGuid().ToString();
@@ -104,7 +95,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             return linkEntry;
         }
 
-        private static Entry EntryWith(string content, string link, string careContextReference, string checksum)
+        private Entry EntryWith(string content, string link, string careContextReference, string checksum)
         {
             return new Entry(content??link, FhirMediaType, checksum, careContextReference);
         }
@@ -115,7 +106,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             return EntryWith(null, link, careContextReference, checksum);
         }
 
-        private static Entry ComponentEntry(string serializedBundle, string careContextReference, string checksum)
+        private Entry ComponentEntry(string serializedBundle, string careContextReference, string checksum)
         {
             return EntryWith(serializedBundle, null, careContextReference, checksum);
         }

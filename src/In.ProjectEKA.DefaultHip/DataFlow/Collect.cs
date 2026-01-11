@@ -33,7 +33,7 @@ namespace In.ProjectEKA.DefaultHip.DataFlow
                 foreach (var result in patientData.GetOrDefault(careContextReference))
                 {
                     Log.Information($"Returning file: {result}");
-                    bundles.Add(new CareBundle(careContextReference, await FileReader.ReadJsonAsync<Bundle>(result)));
+                    bundles.Add(new CareBundle(careContextReference, result));
                 }
 
             var entries = new Entries(bundles);

@@ -32,10 +32,11 @@ namespace In.ProjectEKA.HipService.DataFlow
                 foreach (var result in patientData.GetOrDefault(careContextReference))
                 {
                     var bundle = new FhirJsonParser().Parse<Bundle>(result);
-                    bundles.Add(new CareBundle(careContextReference, bundle));
+                    string bundleJsonStr = bundle.ToJson();
+                    // Log.Information("Bundle content: " + bundleJsonStr);
+                    bundles.Add(new CareBundle(careContextReference, bundleJsonStr));
                 }
             }
-
             var entries = new Entries(bundles);
             return Option.Some(entries);
         }

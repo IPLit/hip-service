@@ -36,7 +36,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             var bundleList = new List<Bundle>();
             bundleList.Add(new Bundle());
             var careBundles = new List<CareBundle>();
-            careBundles.Add(new CareBundle("careContextReference", new Bundle()));
+            careBundles.Add(new CareBundle("careContextReference", ""));
             var dataEntries = new Entries(careBundles);
             var expectedEntries = new List<Entry>
             {
@@ -87,7 +87,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
                 It.IsAny<string>(),
                 It.IsAny<string>())).Returns(Option.Some("https://hip/health-information"));
             var careBundles = new List<CareBundle>();
-            careBundles.Add(new CareBundle("careContextReference", new Bundle()));
+            careBundles.Add(new CareBundle("careContextReference", ""));
             var dataEntries = new Entries(careBundles);
             var entries = dataEntryFactory.Process(
                 dataEntries, keyMaterialLib, transactionId);

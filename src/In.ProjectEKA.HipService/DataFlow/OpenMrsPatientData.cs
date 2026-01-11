@@ -56,9 +56,22 @@ namespace In.ProjectEKA.HipService.DataFlow
         }
 
         private async Task<List<string>> GetForVisits(string hiType, string consentId, string grantedContext,
-            string toDate,
-            string fromDate)
+            string toDate, string fromDate)
         {
+            // if (hiTypeToRootElement[hiType].Contains("prescription"))
+            // {
+            //     string prescriptionProfileContent = File.ReadAllText("/fhir/MedicationRequest-bundle-profile.json");
+            //     Log.Information("Prescription Profile Content: " + prescriptionProfileContent);
+            //     var listOfDataPr = new List<string>();
+            //     listOfDataPr.Add(prescriptionProfileContent);
+            //     return listOfDataPr;
+            // }
+            // else
+            // {
+            //     Log.Information("Not Fetching data for HI Type: " + hiType);
+            //     return new List<string>();
+            // }
+
             var pathForVisit = $"{Constants.PATH_OPENMRS_HITYPE}{hiTypeToRootElement[hiType]}/visit";
             var query = HttpUtility.ParseQueryString(string.Empty);
             if (
@@ -84,10 +97,21 @@ namespace In.ProjectEKA.HipService.DataFlow
             var response = await openMrsClient.GetAsync(pathForVisit);
             if (response == null) return new List<string>();
             var content = await response.Content.ReadAsStringAsync();
-            Log.Information("VISIT endpoint content: " + content);
+            // Log.Information("VISIT endpoint content: " + content);
+            if (string.IsNullOrEmpty(content)) {
+                Log.Information("No content found for VISIT endpoint");
+                return new List<string>();
+            }
             var jsonDoc = JsonDocument.Parse(content);
+            if (jsonDoc == null) {
+                Log.Information("No root element found for VISIT endpoint");
+                return new List<string>();
+            }
             var root = jsonDoc.RootElement;
-            var entries = root.GetProperty(hiTypeToRootElement[hiType]);
+            if (root.ValueKind == JsonValueKind.Undefined || !root.TryGetProperty(hiTypeToRootElement[hiType], out JsonElement entries)) {
+                Log.Information("No entries found for VISIT endpoint");
+                return new List<string>();
+            }
             var listOfData = new List<string>();
             if (entries.GetArrayLength() > 0)
             {
