@@ -86,7 +86,7 @@ namespace In.ProjectEKA.HipService.OpenMrs
                 query["identifier"]=patientIdentifier;
             }
             if (query.ToString() != ""){
-                path = $"{path}/?{query}";
+                path = $"{path}?{query}";
             }
 
             var response = await openMrsClient.GetAsync(path);
