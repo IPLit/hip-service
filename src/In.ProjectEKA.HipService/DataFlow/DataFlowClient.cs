@@ -11,19 +11,24 @@ namespace In.ProjectEKA.HipService.DataFlow
     using System.Threading.Tasks;
     using Gateway;
     using HipLibrary.Patient.Model;
+    using In.ProjectEKA.HipService.OpenMrs;
+
     using Logger;
     using Microsoft.Net.Http.Headers;
 
     using Model;
+    using Newtonsoft.Json.Linq;
+
     using RabbitMQ.Client;
 
     using static Common.HttpRequestHelper;
 
     public class DataFlowClient
     {
+        private readonly IOpenMrsClient openMrsClient;
         private readonly DataFlowNotificationClient dataFlowNotificationClient;
         private readonly GatewayConfiguration gatewayConfiguration;
-        private readonly HipService.Common.Model.BahmniConfiguration bahmniConfiguration;
+        private HipService.Common.Model.BahmniConfiguration bahmniConfiguration;
         private readonly HttpClient httpClient;
         private readonly GatewayClient gatewayClient;
         private static readonly string MEDIA_APPLICATION_FHIR_JSON = "application/fhir+json";
@@ -65,16 +70,44 @@ namespace In.ProjectEKA.HipService.DataFlow
             var sessionStatus = SessionStatus.TRANSFERRED;
             var message = "Successfully delivered health information";
             var requestId = Guid.NewGuid();
+            // Extract visit UUID from first care context (format: "patientId:visitUuid")
+            var visitUuid = grantedContexts.FirstOrDefault() != null 
+                ? ExtractVisitUuidFromReference(grantedContexts.First().CareContextReference)
+                : null;
             try
             {
+                var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+                if (!string.IsNullOrEmpty(visitUuid))
+                {
+                    // Attempt to set HFR ID for visit in cache if not already present
+                    var cachedHfrId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+                    if (string.IsNullOrEmpty(cachedHfrId))
+                    {
+                        Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
+                        var hfrId = await SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                        if (!string.IsNullOrEmpty(hfrId))
+                        {
+                            hipId = hfrId;
+                            Log.Information($"PostTo: Successfully set HFR ID {hfrId} for visit UUID {visitUuid}");
+                        }
+                        else
+                        {
+                            Log.Information($"PostTo: WARNING - Unable to set HFR ID for visit UUID {visitUuid}, using default Id");
+                        }
+                    }
+                    else
+                    {
+                        Log.Information($"PostTo: HFR ID for visit UUID {visitUuid} already cached: {cachedHfrId}");
+                    }
+                }
                 // TODO: Need to handle non 2xx response also
                 httpClient.DefaultRequestHeaders.Remove("Authorization");
-                var token = await gatewayClient.Authenticate(correlationId, bahmniConfiguration.Id).ConfigureAwait(false);
+                var token = await gatewayClient.Authenticate(correlationId, hipId).ConfigureAwait(false);
                 if (token.HasValue)
                 {
                     var reqDataPush = HttpRequestHelper.CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse,
                         token.ValueOr(String.Empty), cmSuffix, correlationId,
-                        MediaTypeNames.Application.Json, bahmniConfiguration.Id, requestId.ToString(), null,
+                        MediaTypeNames.Application.Json, hipId, requestId.ToString(), null,
                         null, null, dataResponse.TransactionId);
                     await httpClient.SendAsync(reqDataPush).ConfigureAwait(false);
                 }
@@ -115,11 +148,107 @@ namespace In.ProjectEKA.HipService.DataFlow
             }
         }
 
+        private async Task<string> SetHfrIdForVisitAsync(string visitUuid)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(visitUuid))
+                {
+                    Log.Error("SetHfrIdForVisitAsync: visitUuid is null or empty");
+                    return null;
+                }
+                Log.Information($"SetHfrIdForVisitAsync: Retrieving HFR ID for visit UUID: {visitUuid}");
+                // Get visit from OpenMRS with full representation to include location details
+                var visitPath = $"ws/rest/v1/visit/{visitUuid}?v=full";
+                var visitResponse = await openMrsClient.GetAsync(visitPath);
+                if (visitResponse == null || !visitResponse.IsSuccessStatusCode)
+                {
+                    Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve visit {visitUuid} from OpenMRS. Status: {visitResponse?.StatusCode}");
+                    return null;
+                }
+                var visitContent = await visitResponse.Content.ReadAsStringAsync();
+                var visitJson = JObject.Parse(visitContent);
+                // Extract location UUID from visit
+                var locationRef = visitJson["location"]?["uuid"]?.ToString();
+                if (string.IsNullOrEmpty(locationRef))
+                {
+                    Log.Error($"SetHfrIdForVisitAsync: Visit {visitUuid} does not have a location");
+                    return null;
+                }
+                Log.Information($"SetHfrIdForVisitAsync: Visit location UUID: {locationRef}");
+                // Get location details with attributes to find HFR ID
+                var locationPath = $"ws/rest/v1/location/{locationRef}?v=full";
+                var locationResponse = await openMrsClient.GetAsync(locationPath);
+                if (locationResponse == null || !locationResponse.IsSuccessStatusCode)
+                {
+                    Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve location {locationRef} from OpenMRS. Status: {locationResponse?.StatusCode}");
+                    return null;
+                }
+                var locationContent = await locationResponse.Content.ReadAsStringAsync();
+                var locationJson = JObject.Parse(locationContent);
+                // Find HFR ID from location attributes
+                string hfrId = null;
+                var attributes = locationJson["attributes"] as JArray;
+                if (attributes != null)
+                {
+                    foreach (var attribute in attributes)
+                    {
+                        var attributeType = attribute["attributeType"]?["display"]?.ToString() ?? 
+                                          attribute["attributeType"]?["name"]?.ToString();
+                        if (attributeType != null && 
+                            (attributeType.Equals("ABDM HFR ID", StringComparison.OrdinalIgnoreCase) ||
+                             attributeType.Contains("HFR ID", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            hfrId = attribute["value"]?.ToString();
+                            if (!string.IsNullOrEmpty(hfrId))
+                            {
+                                Log.Information($"SetHfrIdForVisitAsync: Found HFR ID: {hfrId} for location {locationRef}");
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (string.IsNullOrEmpty(hfrId))
+                {
+                    Log.Information($"SetHfrIdForVisitAsync: WARNING - HFR ID not found in location {locationRef} attributes");
+                    return null;
+                }
+                // Store HFR ID in cache for this visit UUID
+                bahmniConfiguration.SetHfrIdForVisit(visitUuid, hfrId);
+                Log.Information($"SetHfrIdForVisitAsync: Successfully stored HFR ID {hfrId} for visit UUID {visitUuid} in cache");
+                return hfrId;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"SetHfrIdForVisitAsync: Error processing request: {ex.Message}");
+                return null;
+            }
+        }
+
         private async Task GetDataNotificationRequest(DataNotificationRequest dataNotificationRequest,
             string cmSuffix,
             string correlationId)
         {
             await dataFlowNotificationClient.NotifyGateway(cmSuffix, dataNotificationRequest, correlationId);
+        }
+
+        /// <summary>
+        /// Extracts visit UUID from care context reference number
+        /// Care context reference format is typically "patientId:visitUuid"
+        /// </summary>
+        private string ExtractVisitUuidFromReference(string careContextReference)
+        {
+            if (string.IsNullOrEmpty(careContextReference))
+                return null;
+
+            var parts = careContextReference.Split(':');
+            // If reference contains ":", assume format is "patientId:visitUuid" and return the second part
+            if (parts.Length >= 2)
+            {
+                return parts[1];
+            }
+            // If no ":" found, the reference itself might be the visit UUID
+            return careContextReference;
         }
     }
 }

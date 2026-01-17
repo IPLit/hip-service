@@ -29,7 +29,7 @@ namespace In.ProjectEKA.HipServiceTest.Link
         public CareContextControllerTest()
         {
             careContextController =
-                new CareContextController(careContextService.Object, linkPatientRepository.Object);
+                new CareContextController(careContextService.Object, linkPatientRepository.Object, null, null);
         }
 
         [Fact]

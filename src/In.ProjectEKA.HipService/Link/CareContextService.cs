@@ -152,7 +152,9 @@ namespace In.ProjectEKA.HipService.Link
             var patientReference = notifyContextRequest.PatientReferenceNumber;
             var careContextReference = context.ReferenceNumber;
             var hiTypes = context.HiTypes.Select(hiType => hiType.ToString()).ToList();
-            var hipId = bahmniConfiguration.Id;
+            // Extract visit UUID from care context reference (format: "patientId:visitUuid")
+            var visitUuid = ExtractVisitUuidFromReference(careContextReference);
+            var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             var patient = new NotificationPatientContext(id);
             var careContext = new NotificationCareContext(patientReference, careContextReference);
             var hip = new NotificationContextHip(hipId);
@@ -170,6 +172,9 @@ namespace In.ProjectEKA.HipService.Link
                 Log.Error("Notify for Care Context failed with error: {@Error}", error);
             
             var cmSuffix = gatewayConfiguration.CmSuffix;
+            // Extract visit UUID from care context reference
+            var visitUuid = ExtractVisitUuidFromReference(context.ReferenceNumber);
+            var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             try
             {
                 Log.Information(
@@ -177,7 +182,7 @@ namespace In.ProjectEKA.HipService.Link
                     gatewayNotificationContextRepresentation.dump(gatewayNotificationContextRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_NOTIFY_PATIENT_CONTEXTS,
                     gatewayNotificationContextRepresentation,
-                    cmSuffix, Guid.NewGuid().ToString(), hipId:bahmniConfiguration.Id);
+                    cmSuffix, Guid.NewGuid().ToString(), hipId:hipId);
             }
             catch (Exception exception)
             {
@@ -202,6 +207,11 @@ namespace In.ProjectEKA.HipService.Link
                 await AddContextsResponse(newContextRequest,cmSuffix,requestId);
             if (error != null)
                 Log.Error("Linking Care Context failed with error: {@Error}", error);
+            // Extract visit UUID from first care context (if available)
+            var visitUuid = newContextRequest.CareContexts?.FirstOrDefault() != null 
+                ? ExtractVisitUuidFromReference(newContextRequest.CareContexts.First().ReferenceNumber)
+                : null;
+            var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             try
             {
                 Log.Information(
@@ -209,7 +219,7 @@ namespace In.ProjectEKA.HipService.Link
                     gatewayAddContextsRequestRepresentation.dump(gatewayAddContextsRequestRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ADD_PATIENT_CONTEXTS,
                     gatewayAddContextsRequestRepresentation,
-                    cmSuffix, null, linkToken:linkToken, requestId: requestId.ToString(), hipId:bahmniConfiguration.Id);
+                    cmSuffix, null, linkToken:linkToken, requestId: requestId.ToString(), hipId:hipId);
             }
             catch (Exception exception)
             {
@@ -220,6 +230,25 @@ namespace In.ProjectEKA.HipService.Link
         public bool IsLinkedContext(List<string> careContexts, string context)
         {
             return careContexts.Any(careContext => careContext.Equals(context));
+        }
+
+        /// <summary>
+        /// Extracts visit UUID from care context reference number
+        /// Care context reference format is typically "patientId:visitUuid"
+        /// </summary>
+        private string ExtractVisitUuidFromReference(string careContextReference)
+        {
+            if (string.IsNullOrEmpty(careContextReference))
+                return null;
+
+            var parts = careContextReference.Split(':');
+            // If reference contains ":", assume format is "patientId:visitUuid" and return the second part
+            if (parts.Length >= 2)
+            {
+                return parts[1];
+            }
+            // If no ":" found, the reference itself might be the visit UUID
+            return careContextReference;
         }
     }
 }
