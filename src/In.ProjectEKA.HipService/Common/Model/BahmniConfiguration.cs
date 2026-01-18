@@ -5,17 +5,27 @@ namespace In.ProjectEKA.HipService.Common.Model
     public class BahmniConfiguration
     {
         private string _id;
+        private string _name;
         private readonly object _lockObject = new object();
         private readonly HfrIdCache _hfrIdCache;
+        private readonly FacilityNameCache _facilityNameCache;
 
         public BahmniConfiguration()
         {
             _hfrIdCache = new HfrIdCache();
+            _facilityNameCache = new FacilityNameCache();
         }
 
         public BahmniConfiguration(HfrIdCache hfrIdCache)
         {
             _hfrIdCache = hfrIdCache ?? new HfrIdCache();
+            _facilityNameCache = new FacilityNameCache();
+        }
+
+        public BahmniConfiguration(HfrIdCache hfrIdCache, FacilityNameCache facilityNameCache)
+        {
+            _hfrIdCache = hfrIdCache ?? new HfrIdCache();
+            _facilityNameCache = facilityNameCache ?? new FacilityNameCache();
         }
 
         /// <summary>
@@ -39,7 +49,26 @@ namespace In.ProjectEKA.HipService.Common.Model
             }
         }
 
-        public string Name { get; set; }
+        /// <summary>
+        /// Default facility name (used as fallback when visit UUID is not provided or not found in cache)
+        /// </summary>
+        public string Name 
+        { 
+            get
+            {
+                lock (_lockObject)
+                {
+                    return _name;
+                }
+            }
+            set
+            {
+                lock (_lockObject)
+                {
+                    _name = value;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets HFR ID for a specific visit UUID from cache
@@ -65,8 +94,39 @@ namespace In.ProjectEKA.HipService.Common.Model
         }
 
         /// <summary>
+        /// Gets facility name for a specific visit UUID from cache
+        /// </summary>
+        /// <param name="visitUuid">Visit UUID</param>
+        /// <returns>Facility name for the visit, or default Name if not found</returns>
+        public string GetFacilityNameByVisitUuid(string visitUuid)
+        {
+            if (string.IsNullOrEmpty(visitUuid))
+                return Name;
+
+            return _facilityNameCache.GetFacilityNameOrDefault(visitUuid, Name);
+        }
+
+        /// <summary>
+        /// Sets facility name for a specific visit UUID in cache
+        /// </summary>
+        /// <param name="visitUuid">Visit UUID</param>
+        /// <param name="facilityName">Facility name to store</param>
+        public void SetFacilityNameForVisit(string visitUuid, string facilityName)
+        {
+            if (!string.IsNullOrEmpty(facilityName))
+            {
+                _facilityNameCache.SetFacilityName(visitUuid, facilityName);
+            }
+        }
+
+        /// <summary>
         /// Gets the HFR ID cache instance
         /// </summary>
         public HfrIdCache HfrIdCache => _hfrIdCache;
+
+        /// <summary>
+        /// Gets the facility name cache instance
+        /// </summary>
+        public FacilityNameCache FacilityNameCache => _facilityNameCache;
     }
 }

@@ -118,8 +118,9 @@ namespace In.ProjectEKA.HipService.Link
                 }
                 var locationContent = await locationResponse.Content.ReadAsStringAsync();
                 var locationJson = JObject.Parse(locationContent);
-                // Find HFR ID from location attributes
+                // Find HFR ID and HFR Name from location attributes
                 string hfrId = null;
+                string facilityName = null;
                 var attributes = locationJson["attributes"] as JArray;
                 if (attributes != null)
                 {
@@ -127,15 +128,27 @@ namespace In.ProjectEKA.HipService.Link
                     {
                         var attributeType = attribute["attributeType"]?["display"]?.ToString() ?? 
                                           attribute["attributeType"]?["name"]?.ToString();
-                        if (attributeType != null && 
-                            (attributeType.Equals("ABDM HFR ID", StringComparison.OrdinalIgnoreCase) ||
-                             attributeType.Contains("HFR ID", StringComparison.OrdinalIgnoreCase)))
+                        if (attributeType != null)
                         {
-                            hfrId = attribute["value"]?.ToString();
-                            if (!string.IsNullOrEmpty(hfrId))
+                            // Extract HFR ID
+                            if ((attributeType.Equals("ABDM HFR ID", StringComparison.OrdinalIgnoreCase) ||
+                                 attributeType.Contains("HFR ID", StringComparison.OrdinalIgnoreCase)))
                             {
-                                Log.Information($"SetHfrId: Found HFR ID: {hfrId} for location {locationRef}");
-                                break;
+                                hfrId = attribute["value"]?.ToString();
+                                if (!string.IsNullOrEmpty(hfrId))
+                                {
+                                    Log.Information($"SetHfrId: Found HFR ID: {hfrId} for location {locationRef}");
+                                }
+                            }
+                            // Extract ABDM HFR Name
+                            if ((attributeType.Equals("ABDM HFR Name", StringComparison.OrdinalIgnoreCase) ||
+                                attributeType.Contains("HFR Name", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                facilityName = attribute["value"]?.ToString();
+                                if (!string.IsNullOrEmpty(facilityName))
+                                {
+                                    Log.Information($"SetHfrId: Found ABDM HFR Name: {facilityName} for location {locationRef}");
+                                }
                             }
                         }
                     }
@@ -145,9 +158,13 @@ namespace In.ProjectEKA.HipService.Link
                     Log.Information($"SetHfrId: WARNING - HFR ID not found in location {locationRef} attributes");
                     return null;
                 }
-                // Store HFR ID in cache for this visit UUID
+                // Store HFR ID in cache for this visit UUID (existing behavior)
                 bahmniConfiguration.SetHfrIdForVisit(visitUuid, hfrId);
                 Log.Information($"SetHfrId: Successfully stored HFR ID {hfrId} for visit UUID {visitUuid} in cache");
+
+                // Store facility name in cache for this visit UUID
+                bahmniConfiguration.SetFacilityNameForVisit(visitUuid, facilityName);
+                Log.Information($"SetHfrId: Successfully stored location info (HFR ID: {hfrId}, Name: {facilityName}) for visit UUID {visitUuid}"); 
                 return hfrId;
             }
             catch (Exception ex)
