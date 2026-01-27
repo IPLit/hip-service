@@ -56,7 +56,7 @@ namespace In.ProjectEKA.HipService.Common
         public static readonly string PATH_HEALTH_INFORMATION_NOTIFY_GATEWAY = "/api/hiecm/data-flow/"+ VERSION_V3 +"/health-information/notify";
         public static readonly string PATH_AUTH_CONFIRM = "/" + CURRENT_VERSION + "/users/auth/confirm";
 
-        public static readonly string PATH_OPENMRS_FHIR = "ms/fhir2Servlet/metadata";
+        public static readonly string PATH_OPENMRS_FHIR = "ws/fhir2/R4/metadata";
         public static readonly string PATH_OPENMRS_REST = "images/openmrs-favicon.ico";
         public static readonly string PATH_OPENMRS_HITYPE = "ws/rest/v1/hip/";
         public static readonly string CONFIG_KEY = "OpenMrs";
@@ -72,6 +72,8 @@ namespace In.ProjectEKA.HipService.Common
         public const string PATH_NOTIFY_PATIENT_CONTEXTS = "/api/hiecm/hip/"+ VERSION_V3 +"/link/context/notify";
         public const string PATH_FETCH_MODES = "/" + CURRENT_VERSION + "/hip/fetch-modes";
         public const string PATH_NEW_CARECONTEXT = "/" + CURRENT_VERSION + "/hip/new-carecontext";
+
+        public const string PATH_SET_HFR_ID = "/" + CURRENT_VERSION + "/hip/set-hfr-id";
         public const string KYC_AND_LINK = "KYC_AND_LINK";
         public const string HIP = "HIP";
         public const string PATH_AUTH_INIT = "/" + CURRENT_VERSION + "/users/auth/init";
