@@ -64,9 +64,15 @@ namespace In.ProjectEKA.HipService.DataFlow
                         }
                     }
 
-                    careContextsAndListOfDataFiles.Add(grantedContext.CareContextReference, listOfDataFiles);
+                    if (careContextsAndListOfDataFiles.TryGetValue(grantedContext.CareContextReference, out var existingList))
+                    {
+                        existingList.AddRange(listOfDataFiles);
+                    }
+                    else
+                    {
+                        careContextsAndListOfDataFiles[grantedContext.CareContextReference] = listOfDataFiles;
+                    }
                 }
-
                 return careContextsAndListOfDataFiles;
             }
             catch (Exception e)

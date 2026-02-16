@@ -49,7 +49,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             var keyPair = EncryptorHelper.GenerateKeyPair(dataRequestKeyMaterial.Curve,
                 dataRequestKeyMaterial.CryptoAlg);
             var randomKey = EncryptorHelper.GenerateRandomKey();
-            Log.Information($"DhPublicKey randomKey details: {randomKey}");
+            // Log.Information($"DhPublicKey randomKey details: {randomKey}");
 
             var processedEntries = new List<Entry>();
             var careBundles = entries.CareBundles;
