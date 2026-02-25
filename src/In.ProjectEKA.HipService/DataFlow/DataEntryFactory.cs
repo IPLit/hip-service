@@ -126,7 +126,7 @@ namespace In.ProjectEKA.HipService.DataFlow
         {
             using var serviceScope = serviceScopeFactory.CreateScope();
             var healthInformationRepository = serviceScope.ServiceProvider.GetService<IHealthInformationRepository>();
-            healthInformationRepository.Add(new HealthInformation(linkId, entry, DateTime.Now, token));
+            healthInformationRepository.Add(new HealthInformation(linkId, entry, DateTime.Now.ToUniversalTime(), token));
         }
     }
 }
