@@ -33,7 +33,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                 {
                     var bundle = new FhirJsonParser().Parse<Bundle>(result);
                     string bundleJsonStr = bundle.ToJson();
-                    // Log.Information("Bundle content: " + bundleJsonStr);
+                    Log.Debug("Bundle content: " + bundleJsonStr);
                     bundles.Add(new CareBundle(careContextReference, bundleJsonStr));
                 }
             }
