@@ -70,12 +70,12 @@ namespace In.ProjectEKA.HipService.DataFlow
                 var careContexReference = grantedContext.Split(":");
                 query["patientId"] = consentId;
                 query["visitUuid"] = careContexReference[1];
-                query["fromDate"] = DateTime.Parse(fromDate).ToString("yyyy-MM-dd");
+                query["fromDate"] = DateTime.Parse(fromDate).AddDays(-1).ToString("yyyy-MM-dd");
                 query["toDate"] = DateTime.Parse(toDate).AddDays(1).ToString("yyyy-MM-dd");
             }
             if (query.ToString() != "")
             {
-                pathForVisit = $"{pathForVisit}?{query}";
+                pathForVisit = $"{pathForVisit}?{query.ToString()}";
             }
             Log.Information("VISIT endpoint being called: " + pathForVisit);
             var response = await openMrsClient.GetAsync(pathForVisit);
