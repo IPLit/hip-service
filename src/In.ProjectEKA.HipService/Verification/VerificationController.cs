@@ -691,15 +691,32 @@ namespace In.ProjectEKA.HipService.Verification
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
                     {
-                        var searchResponse = JsonConvert.DeserializeObject<SearchAbhaByMobileResponse>(responseContent);
-                        if (!string.IsNullOrEmpty(searchResponse?.txnId) && !string.IsNullOrEmpty(sessionId))
+                        List<AbhaSearchEntry> abhaList;
+                        string txnId = null;
+                        if (responseContent?.TrimStart().StartsWith("[") == true)
+                        {
+                            abhaList = JsonConvert.DeserializeObject<List<AbhaSearchEntry>>(responseContent) ?? new List<AbhaSearchEntry>();
+                            if (response.Headers.TryGetValues("txnId", out var txnValues))
+                                txnId = txnValues?.FirstOrDefault();
+                            else if (response.Headers.TryGetValues("X-Txn-Id", out var xTxnValues))
+                                txnId = xTxnValues?.FirstOrDefault();
+                            else if (response.Headers.TryGetValues("Transaction-Id", out var tIdValues))
+                                txnId = tIdValues?.FirstOrDefault();
+                        }
+                        else
+                        {
+                            var searchResponse = JsonConvert.DeserializeObject<SearchAbhaByMobileResponse>(responseContent);
+                            abhaList = searchResponse?.abhaList ?? new List<AbhaSearchEntry>();
+                            txnId = searchResponse?.txnId;
+                        }
+                        if (!string.IsNullOrEmpty(txnId) && !string.IsNullOrEmpty(sessionId))
                         {
                             if (TxnDictionary.ContainsKey(sessionId))
-                                TxnDictionary[sessionId] = searchResponse.txnId;
+                                TxnDictionary[sessionId] = txnId;
                             else
-                                TxnDictionary.Add(sessionId, searchResponse.txnId);
+                                TxnDictionary.Add(sessionId, txnId);
                         }
-                        return Ok(searchResponse);
+                        return Ok(new SearchAbhaByMobileResponse { txnId = txnId, abhaList = abhaList });
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
