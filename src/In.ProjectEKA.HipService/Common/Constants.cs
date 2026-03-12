@@ -26,6 +26,9 @@ namespace In.ProjectEKA.HipService.Common
         public const string APP_PATH_VERIFICATION_ABHAADDRESS_VERIFY_OTP = "/" + VERSION_V3 + "/hip/verification/abhaAddress/verifyOtp";
         public const string APP_PATH_VERIFICATION_ABHAADDRESS_PROFILE = "/" + VERSION_V3 + "/hip/verification/abhaAddress/getProfile";
         public const string APP_PATH_VERIFICATION_ABHAADDRESS_CARD = "/" + VERSION_V3 + "/hip/verification/abhaAddress/getCard";
+        public const string APP_PATH_ABHA_SEARCH_BY_MOBILE = "/" + VERSION_V3 + "/hip/verification/abha/searchByMobile";
+        public const string APP_PATH_ABHA_PROFILE_LOGIN_REQUEST_OTP = "/" + VERSION_V3 + "/hip/verification/abha/profileLoginRequestOtp";
+        public const string APP_PATH_ABHA_PROFILE_LOGIN_VERIFY = "/" + VERSION_V3 + "/hip/verification/abha/profileLoginVerify";
 
         public const string PATH_GENERATE_TOKEN = "/api/hiecm/"+ VERSION_V3 +"/token/generate-token";
         public const string PATH_ON_GENERATE_TOKEN = "/api/"+ VERSION_V3 +"/hip/token/on-generate-token";
@@ -109,6 +112,7 @@ namespace In.ProjectEKA.HipService.Common
         public const string GET_ABHA_ADDRESS_SUGGESTIONS = "/" + VERSION_V3 + "/enrollment/enrol/suggestion";
         public const string CREATE_ABHA_ADDRESS = "/" + VERSION_V3 + "/enrollment/enrol/abha-address";
         public const string GET_ABHA_CARD =  "/" + VERSION_V3 + "/profile/account/abha-card";
+        public const string ABHA_SEARCH_BY_MOBILE = "/" + VERSION_V3 + "/profile/account/abha/search";
         public const string ABHA_LOGIN_REQUEST_OTP = "/" + VERSION_V3 + "/profile/login/request/otp";
         public const string ABHA_LOGIN_VERIFY_OTP = "/" + VERSION_V3 + "/profile/login/verify";
         public const string VERIFY_ABHA_ACCOUNT = "/" + VERSION_V3 + "/profile/login/verify/user";

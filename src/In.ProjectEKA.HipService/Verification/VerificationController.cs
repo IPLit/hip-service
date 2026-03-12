@@ -663,5 +663,140 @@ namespace In.ProjectEKA.HipService.Verification
 
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
+
+        /// <summary>
+        /// V3 API 1: Find ABHA number using mobile number. Returns list of masked ABHA IDs with name and gender.
+        /// Corresponds to: POST /abha/api/v3/profile/account/abha/search
+        /// </summary>
+        [HttpPost]
+        [Route(APP_PATH_ABHA_SEARCH_BY_MOBILE)]
+        public async Task<ActionResult> SearchAbhaByMobile(
+            [FromHeader(Name = CORRELATION_ID)] string correlationId,
+            [FromBody] SearchAbhaByMobileRequest request)
+        {
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
+            try
+            {
+                if (request?.scope == null || string.IsNullOrEmpty(request.mobile))
+                    return BadRequest("scope and mobile are required.");
+                logger.Log(LogLevel.Information, LogEvents.Verification,
+                    "Request for search ABHA by mobile to gateway: correlationId: {CorrelationId}, mobile present: {HasMobile}",
+                    correlationId, !string.IsNullOrEmpty(request.mobile));
+                using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
+                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_SEARCH_BY_MOBILE, request, correlationId))
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var searchResponse = JsonConvert.DeserializeObject<SearchAbhaByMobileResponse>(responseContent);
+                        if (!string.IsNullOrEmpty(searchResponse?.txnId) && !string.IsNullOrEmpty(sessionId))
+                        {
+                            if (TxnDictionary.ContainsKey(sessionId))
+                                TxnDictionary[sessionId] = searchResponse.txnId;
+                            else
+                                TxnDictionary.Add(sessionId, searchResponse.txnId);
+                        }
+                        return Ok(searchResponse);
+                    }
+                    return StatusCode((int)response.StatusCode, responseContent);
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(LogEvents.Verification, exception,
+                    "Error in search ABHA by mobile: " + exception.StackTrace);
+            }
+            return StatusCode(StatusCodes.Status500InternalServerError);
+        }
+
+        /// <summary>
+        /// V3 API 2: Request OTP for the specific index from ABHA search list.
+        /// Corresponds to: POST /abha/api/v3/profile/login/request/otp
+        /// </summary>
+        [HttpPost]
+        [Route(APP_PATH_ABHA_PROFILE_LOGIN_REQUEST_OTP)]
+        public async Task<ActionResult> ProfileLoginRequestOtp(
+            [FromHeader(Name = CORRELATION_ID)] string correlationId,
+            [FromBody] ProfileLoginRequestOtpRequest request)
+        {
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
+            try
+            {
+                if (request == null || request.scope == null || string.IsNullOrEmpty(request.loginId))
+                    return BadRequest("scope, loginHint, loginId, otpSystem and txnId are required.");
+                logger.Log(LogLevel.Information, LogEvents.Verification,
+                    "Request for profile login request OTP to gateway: correlationId: {CorrelationId}",
+                    correlationId);
+                using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
+                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_REQUEST_OTP, request, correlationId))
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var generationResponse = JsonConvert.DeserializeObject<AadhaarOTPGenerationResponse>(responseContent);
+                        if (!string.IsNullOrEmpty(sessionId) && generationResponse != null && !string.IsNullOrEmpty(generationResponse.txnId))
+                        {
+                            if (TxnDictionary.ContainsKey(sessionId))
+                                TxnDictionary[sessionId] = generationResponse.txnId;
+                            else
+                                TxnDictionary.Add(sessionId, generationResponse.txnId);
+                        }
+                        return Accepted(new AadhaarOTPGenerationResponse(generationResponse?.message));
+                    }
+                    return StatusCode((int)response.StatusCode, responseContent);
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(LogEvents.Verification, exception,
+                    "Error in profile login request OTP: " + exception.StackTrace);
+            }
+            return StatusCode(StatusCodes.Status500InternalServerError);
+        }
+
+        /// <summary>
+        /// V3 API 3: Profile login verify OTP for particular ABHA ID. Returns user token/profile on success.
+        /// Corresponds to: POST /abha/api/v3/profile/login/verify
+        /// </summary>
+        [HttpPost]
+        [Route(APP_PATH_ABHA_PROFILE_LOGIN_VERIFY)]
+        public async Task<ActionResult> ProfileLoginVerify(
+            [FromHeader(Name = CORRELATION_ID)] string correlationId,
+            [FromBody] ProfileLoginVerifyRequest request)
+        {
+            string sessionId = HttpContext.Items[SESSION_ID] as string;
+            try
+            {
+                if (request?.authData?.otp == null || string.IsNullOrEmpty(request.authData.otp.txnId) || string.IsNullOrEmpty(request.authData.otp.otpValue))
+                    return BadRequest("scope and authData.otp (txnId, otpValue) are required.");
+                string encryptedOtp = EncryptionService.Encrypt(request.authData.otp.otpValue);
+                var verifyRequest = new ABHALoginVerifyOTPRequest(
+                    request.authData.otp.txnId,
+                    request.scope ?? new List<string>(),
+                    encryptedOtp);
+                logger.Log(LogLevel.Information, LogEvents.Verification,
+                    "Request for profile login verify to gateway: correlationId: {CorrelationId}", correlationId);
+                using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
+                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_VERIFY_OTP, verifyRequest, correlationId))
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var verifyOtpResponse = JsonConvert.DeserializeObject<ABHALoginVerifyOTPResponse>(responseContent);
+                        if (verifyOtpResponse != null && !string.IsNullOrEmpty(verifyOtpResponse.Token) && !string.IsNullOrEmpty(sessionId))
+                            HealthIdNumberTokenDictionary[sessionId] = new TokenRequest(verifyOtpResponse.Token);
+                        var profile = await abhaService.getABHAProfile(sessionId, new TokenRequest(verifyOtpResponse?.Token));
+                        return Ok(profile);
+                    }
+                    return StatusCode((int)response.StatusCode, responseContent);
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(LogEvents.Verification, exception,
+                    "Error in profile login verify: " + exception.StackTrace);
+            }
+            return StatusCode(StatusCodes.Status500InternalServerError);
+        }
     }
 }
