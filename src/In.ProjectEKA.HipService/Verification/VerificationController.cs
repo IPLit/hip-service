@@ -683,6 +683,8 @@ namespace In.ProjectEKA.HipService.Verification
                 logger.Log(LogLevel.Information, LogEvents.Verification,
                     "Request for search ABHA by mobile to gateway: correlationId: {CorrelationId}, mobile present: {HasMobile}",
                     correlationId, !string.IsNullOrEmpty(request.mobile));
+                string encryptedMobile = EncryptionService.Encrypt(request.mobile);
+                request.mobile = encryptedMobile;
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
                     gatewayConfiguration.AbhaNumberServiceUrl, ABHA_SEARCH_BY_MOBILE, request, correlationId))
                 {
@@ -701,6 +703,10 @@ namespace In.ProjectEKA.HipService.Verification
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
+            }
+            catch (ArgumentException argumentException)
+            {
+                return BadRequest(argumentException.Message);
             }
             catch (Exception exception)
             {
@@ -724,11 +730,14 @@ namespace In.ProjectEKA.HipService.Verification
             {
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
-                if (request == null || request.scope == null || string.IsNullOrEmpty(request.loginId))
+                if (request == null || request.scope == null || string.IsNullOrEmpty(request.loginId)
+                    || string.IsNullOrEmpty(request.loginHint) || string.IsNullOrEmpty(request.txnId))
                     return BadRequest("scope, loginHint, loginId, otpSystem and txnId are required.");
                 logger.Log(LogLevel.Information, LogEvents.Verification,
                     "Request for profile login request OTP to gateway: correlationId: {CorrelationId}",
                     correlationId);
+                string encryptedLoginId = EncryptionService.Encrypt(request.loginId);
+                request.loginId = encryptedLoginId;
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
                     gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_REQUEST_OTP, request, correlationId))
                 {
@@ -747,6 +756,10 @@ namespace In.ProjectEKA.HipService.Verification
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
+            }
+            catch (ArgumentException argumentException)
+            {
+                return BadRequest(argumentException.Message);
             }
             catch (Exception exception)
             {
@@ -793,6 +806,10 @@ namespace In.ProjectEKA.HipService.Verification
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
+            }
+            catch (ArgumentException argumentException)
+            {
+                return BadRequest(argumentException.Message);
             }
             catch (Exception exception)
             {
