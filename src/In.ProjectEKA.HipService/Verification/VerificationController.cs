@@ -674,9 +674,10 @@ namespace In.ProjectEKA.HipService.Verification
             [FromHeader(Name = CORRELATION_ID)] string correlationId,
             [FromBody] SearchAbhaByMobileRequest request)
         {
-            string sessionId = HttpContext.Items[SESSION_ID] as string;
             try
             {
+                string sessionId = HttpContext.Items[SESSION_ID] as string;
+                correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request?.scope == null || string.IsNullOrEmpty(request.mobile))
                     return BadRequest("scope and mobile are required.");
                 logger.Log(LogLevel.Information, LogEvents.Verification,
@@ -719,9 +720,10 @@ namespace In.ProjectEKA.HipService.Verification
             [FromHeader(Name = CORRELATION_ID)] string correlationId,
             [FromBody] ProfileLoginRequestOtpRequest request)
         {
-            string sessionId = HttpContext.Items[SESSION_ID] as string;
             try
             {
+                string sessionId = HttpContext.Items[SESSION_ID] as string;
+                correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request == null || request.scope == null || string.IsNullOrEmpty(request.loginId))
                     return BadRequest("scope, loginHint, loginId, otpSystem and txnId are required.");
                 logger.Log(LogLevel.Information, LogEvents.Verification,
@@ -764,9 +766,10 @@ namespace In.ProjectEKA.HipService.Verification
             [FromHeader(Name = CORRELATION_ID)] string correlationId,
             [FromBody] ProfileLoginVerifyRequest request)
         {
-            string sessionId = HttpContext.Items[SESSION_ID] as string;
             try
             {
+                string sessionId = HttpContext.Items[SESSION_ID] as string;
+                correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request?.authData?.otp == null || string.IsNullOrEmpty(request.authData.otp.txnId) || string.IsNullOrEmpty(request.authData.otp.otpValue))
                     return BadRequest("scope and authData.otp (txnId, otpValue) are required.");
                 string encryptedOtp = EncryptionService.Encrypt(request.authData.otp.otpValue);
