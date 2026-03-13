@@ -837,11 +837,13 @@ namespace In.ProjectEKA.HipService.Verification
                         // Store the token for this session so it can be used in subsequent calls (e.g. ABHA profile fetch).
                         if (verifyOtpResponse != null && !string.IsNullOrEmpty(verifyOtpResponse.Token) && !string.IsNullOrEmpty(sessionId))
                         {
-                            HealthIdNumberTokenDictionary[sessionId] = new TokenRequest(verifyOtpResponse.Token);
+                            if (HealthIdNumberTokenDictionary.ContainsKey(sessionId))
+                                HealthIdNumberTokenDictionary[sessionId] = new TokenRequest(verifyOtpResponse.Token);
+                            else
+                                HealthIdNumberTokenDictionary.Add(sessionId, new TokenRequest(verifyOtpResponse.Token));
+                            // As per spec, return the user token and related auth result; client can use token for further operations.
+                            return Ok(verifyOtpResponse);
                         }
-
-                        // As per spec, return the user token and related auth result; client can use token for further operations.
-                        return Ok(verifyOtpResponse);
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
