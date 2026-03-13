@@ -677,6 +677,9 @@ namespace In.ProjectEKA.HipService.Verification
         {
             try
             {
+                logger.LogDebug(LogEvents.Verification,
+                    "Request for search ABHA by mobile to gateway: correlationId: {CorrelationId}, request: {Request}",
+                    correlationId, request);
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request?.scope == null || string.IsNullOrEmpty(request.mobile))
@@ -759,9 +762,9 @@ namespace In.ProjectEKA.HipService.Verification
                 if (request == null || request.scope == null || string.IsNullOrEmpty(request.loginId)
                     || string.IsNullOrEmpty(request.loginHint) || string.IsNullOrEmpty(request.txnId))
                     return BadRequest("scope, loginHint, loginId, otpSystem and txnId are required.");
-                logger.Log(LogLevel.Information, LogEvents.Verification,
-                    "Request for profile login request OTP to gateway: correlationId: {CorrelationId}",
-                    correlationId);
+                logger.LogDebug(LogEvents.Verification,
+                    "Request for profile login request OTP to gateway: correlationId: {CorrelationId}, request: {Request}",
+                    correlationId, request);
                 string encryptedLoginId = EncryptionService.Encrypt(request.loginId);
                 request.loginId = encryptedLoginId;
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
@@ -807,7 +810,7 @@ namespace In.ProjectEKA.HipService.Verification
         {
             try
             {
-                logger.Log(LogLevel.Information, LogEvents.Verification,
+                logger.LogDebug(LogEvents.Verification,
                     "Request for profile login verify correlationId: {CorrelationId} to gateway: {Request}", correlationId, request);
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
@@ -853,5 +856,7 @@ namespace In.ProjectEKA.HipService.Verification
                     "Error in profile login verify: " + exception.StackTrace);
             }
             return StatusCode(StatusCodes.Status500InternalServerError);
+        }
     }
+
 }
