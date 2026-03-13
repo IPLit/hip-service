@@ -103,7 +103,7 @@ namespace In.ProjectEKA.HipService.Gateway
                     Log.Debug("Request Payload {@payload}", representation);
                     response = await httpClient
                         .SendAsync(CreateHttpRequest(method, baseUrl + urlPath, representation, token.ValueOr(String.Empty),
-                            null, correlationId,xtoken, tToken, transactionId))
+                            configuration.CmSuffix, correlationId, xtoken, tToken, transactionId))
                         .ConfigureAwait(false);
                     Log.Information("Response Status from ABHA Service for URI {@uri} is {@status}", baseUrl + urlPath, response.StatusCode);
                     Log.Debug("Response Payload {@payload}", response.Content.ReadAsStringAsync());

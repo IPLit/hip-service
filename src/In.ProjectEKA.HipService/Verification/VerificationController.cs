@@ -807,17 +807,22 @@ namespace In.ProjectEKA.HipService.Verification
         {
             try
             {
+                logger.Log(LogLevel.Information, LogEvents.Verification,
+                    "Request for profile login verify correlationId: {CorrelationId} to gateway: {Request}", correlationId, request);
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request?.authData?.otp == null || string.IsNullOrEmpty(request.authData.otp.txnId) || string.IsNullOrEmpty(request.authData.otp.otpValue))
                     return BadRequest("scope and authData.otp (txnId, otpValue) are required.");
+
                 string encryptedOtp = EncryptionService.Encrypt(request.authData.otp.otpValue);
                 var verifyRequest = new ABHALoginVerifyOTPRequest(
                     request.authData.otp.txnId,
                     request.scope ?? new List<string>(),
                     encryptedOtp);
+
                 logger.Log(LogLevel.Information, LogEvents.Verification,
                     "Request for profile login verify to gateway: correlationId: {CorrelationId}", correlationId);
+
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
                     gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_VERIFY_OTP, verifyRequest, correlationId))
                 {
@@ -825,10 +830,15 @@ namespace In.ProjectEKA.HipService.Verification
                     if (response.IsSuccessStatusCode)
                     {
                         var verifyOtpResponse = JsonConvert.DeserializeObject<ABHALoginVerifyOTPResponse>(responseContent);
+
+                        // Store the token for this session so it can be used in subsequent calls (e.g. ABHA profile fetch).
                         if (verifyOtpResponse != null && !string.IsNullOrEmpty(verifyOtpResponse.Token) && !string.IsNullOrEmpty(sessionId))
+                        {
                             HealthIdNumberTokenDictionary[sessionId] = new TokenRequest(verifyOtpResponse.Token);
-                        var profile = await abhaService.getABHAProfile(sessionId, new TokenRequest(verifyOtpResponse?.Token));
-                        return Ok(profile);
+                        }
+
+                        // As per spec, return the user token and related auth result; client can use token for further operations.
+                        return Ok(verifyOtpResponse);
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
@@ -843,6 +853,5 @@ namespace In.ProjectEKA.HipService.Verification
                     "Error in profile login verify: " + exception.StackTrace);
             }
             return StatusCode(StatusCodes.Status500InternalServerError);
-        }
     }
 }

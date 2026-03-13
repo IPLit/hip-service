@@ -51,7 +51,7 @@ namespace In.ProjectEKA.HipService.Common
             if (token != null)
                 httpRequestMessage.Headers.Add(HeaderNames.Authorization, token);
             if (xtoken != null)
-                httpRequestMessage.Headers.Add("X-Token", xtoken);
+                httpRequestMessage.Headers.Add("X-token", xtoken);
             if (tToken != null)
                 httpRequestMessage.Headers.Add("T-token", tToken);
             if (cmSuffix != null)
