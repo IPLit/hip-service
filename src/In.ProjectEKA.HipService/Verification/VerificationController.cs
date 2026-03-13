@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using static In.ProjectEKA.HipService.Creation.CreationMap;
 
 namespace In.ProjectEKA.HipService.Verification
@@ -691,32 +692,40 @@ namespace In.ProjectEKA.HipService.Verification
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
                     {
-                        List<AbhaSearchEntry> abhaList;
-                        string txnId = null;
-                        if (responseContent?.TrimStart().StartsWith("[") == true)
+                        // Gateway returns an array like:
+                        // [{ "txnId": "...", "ABHA": [ { "index": 1, "ABHANumber": "xx-xxxx-xxxx-6514", "name": "...", "gender": "F", ... } ] }]
+                        var rootArray = JArray.Parse(responseContent);
+                        var firstItem = rootArray.FirstOrDefault() as JObject;
+                        if (firstItem == null)
                         {
-                            abhaList = JsonConvert.DeserializeObject<List<AbhaSearchEntry>>(responseContent) ?? new List<AbhaSearchEntry>();
-                            if (response.Headers.TryGetValues("txnId", out var txnValues))
-                                txnId = txnValues?.FirstOrDefault();
-                            else if (response.Headers.TryGetValues("X-Txn-Id", out var xTxnValues))
-                                txnId = xTxnValues?.FirstOrDefault();
-                            else if (response.Headers.TryGetValues("Transaction-Id", out var tIdValues))
-                                txnId = tIdValues?.FirstOrDefault();
+                            return Ok(new SearchAbhaByMobileResponse());
                         }
-                        else
+
+                        var txnId = firstItem["txnId"]?.ToString();
+                        var abhaArray = firstItem["ABHA"] as JArray;
+
+                        var searchResponse = new SearchAbhaByMobileResponse
                         {
-                            var searchResponse = JsonConvert.DeserializeObject<SearchAbhaByMobileResponse>(responseContent);
-                            abhaList = searchResponse?.abhaList ?? new List<AbhaSearchEntry>();
-                            txnId = searchResponse?.txnId;
-                        }
-                        if (!string.IsNullOrEmpty(txnId) && !string.IsNullOrEmpty(sessionId))
+                            txnId = txnId,
+                            abhaList = abhaArray?
+                                .Select(a => new AbhaSearchEntry
+                                {
+                                    index = (int?)a["index"] ?? 0,
+                                    abhaNumber = (string)a["ABHANumber"],
+                                    name = (string)a["name"],
+                                    gender = (string)a["gender"]
+                                })
+                                .ToList()
+                        };
+
+                        if (!string.IsNullOrEmpty(searchResponse?.txnId) && !string.IsNullOrEmpty(sessionId))
                         {
                             if (TxnDictionary.ContainsKey(sessionId))
-                                TxnDictionary[sessionId] = txnId;
+                                TxnDictionary[sessionId] = searchResponse.txnId;
                             else
-                                TxnDictionary.Add(sessionId, txnId);
+                                TxnDictionary.Add(sessionId, searchResponse.txnId);
                         }
-                        return Ok(new SearchAbhaByMobileResponse { txnId = txnId, abhaList = abhaList });
+                        return Ok(searchResponse);
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
