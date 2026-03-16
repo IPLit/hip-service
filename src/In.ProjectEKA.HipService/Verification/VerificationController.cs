@@ -138,9 +138,8 @@ namespace In.ProjectEKA.HipService.Verification
             string sessionId = HttpContext.Items[SESSION_ID] as string;
             try
             {
-                TokenRequest tokenRequest = !string.IsNullOrEmpty(sessionId) && HealthIdNumberTokenDictionary.ContainsKey(sessionId)
-                    ? HealthIdNumberTokenDictionary[sessionId]
-                    : null;
+                TokenRequest tokenRequest = ((!string.IsNullOrEmpty(sessionId)) && HealthIdNumberTokenDictionary.ContainsKey(sessionId))
+                    ? HealthIdNumberTokenDictionary[sessionId] : null;
                 if (tokenRequest == null || string.IsNullOrEmpty(tokenRequest.token))
                     return Unauthorized(new { message = "Session token not found. Please complete OTP verification first." });
                 using (var response = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
