@@ -678,10 +678,10 @@ namespace In.ProjectEKA.HipService.Verification
         {
             try
             {
-                logger.LogDebug(LogEvents.Verification,
-                    "Request for search ABHA by mobile to gateway: correlationId: {CorrelationId}, request: {Request}",
-                    correlationId, request);
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
+                logger.LogDebug(LogEvents.Verification,
+                    "Request for search ABHA by mobile to gateway: correlationId: {CorrelationId}, request: {Request}, sessionId: {SessionId}",
+                    correlationId, request, sessionId);
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request?.scope == null || string.IsNullOrEmpty(request.mobile))
                     return BadRequest("scope and mobile are required.");
@@ -759,13 +759,13 @@ namespace In.ProjectEKA.HipService.Verification
             try
             {
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
+                logger.LogDebug(LogEvents.Verification,
+                    "Request for profile login request OTP to gateway: correlationId: {CorrelationId}, request: {Request}, sessionId: {SessionId}",
+                    correlationId, request, sessionId);
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request == null || request.scope == null || string.IsNullOrEmpty(request.loginId)
                     || string.IsNullOrEmpty(request.loginHint) || string.IsNullOrEmpty(request.txnId))
                     return BadRequest("scope, loginHint, loginId, otpSystem and txnId are required.");
-                logger.LogDebug(LogEvents.Verification,
-                    "Request for profile login request OTP to gateway: correlationId: {CorrelationId}, request: {Request}",
-                    correlationId, request);
                 string encryptedLoginId = EncryptionService.Encrypt(request.loginId);
                 request.loginId = encryptedLoginId;
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
@@ -811,39 +811,44 @@ namespace In.ProjectEKA.HipService.Verification
         {
             try
             {
-                logger.LogDebug(LogEvents.Verification,
-                    "Request for profile login verify correlationId: {CorrelationId} to gateway: {Request}", correlationId, request);
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
+                logger.LogDebug(LogEvents.Verification,
+                    "Request for profile login verify correlationId: {CorrelationId} to gateway, request: {Request}, sessionId: {SessionId}",
+                     correlationId, request, sessionId);
+
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
-                if (request?.authData?.otp == null || string.IsNullOrEmpty(request.authData.otp.txnId) || string.IsNullOrEmpty(request.authData.otp.otpValue))
+                if (request?.scope == null || request?.authData?.otp == null || string.IsNullOrEmpty(request.authData.otp.txnId)
+                    || string.IsNullOrEmpty(request.authData.otp.otpValue))
                     return BadRequest("scope and authData.otp (txnId, otpValue) are required.");
 
                 string encryptedOtp = EncryptionService.Encrypt(request.authData.otp.otpValue);
-                var verifyRequest = new ABHALoginVerifyOTPRequest(
-                    request.authData.otp.txnId,
-                    request.scope ?? new List<string>(),
-                    encryptedOtp);
+                request.authData.otp.otpValue = encryptedOtp;
 
                 logger.Log(LogLevel.Information, LogEvents.Verification,
                     "Request for profile login verify to gateway: correlationId: {CorrelationId}", correlationId);
 
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
-                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_VERIFY_OTP, verifyRequest, correlationId))
+                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_VERIFY_OTP, request, correlationId))
                 {
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (response.IsSuccessStatusCode)
+                    if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(responseContent))
                     {
+                        logger.LogDebug(LogEvents.Verification,
+                            "Profile login verify response from gateway: correlationId: {CorrelationId}, responseContent: {ResponseContent}",
+                            correlationId, responseContent);
                         var verifyOtpResponse = JsonConvert.DeserializeObject<ABHALoginVerifyOTPResponse>(responseContent);
 
                         // Store the token for this session so it can be used in subsequent calls (e.g. ABHA profile fetch).
-                        if (verifyOtpResponse != null && !string.IsNullOrEmpty(verifyOtpResponse.Token) && !string.IsNullOrEmpty(sessionId))
+                        if (verifyOtpResponse != null && !verifyOtpResponse.AuthResult.Equals("failed", StringComparison.OrdinalIgnoreCase)
+                            && !string.IsNullOrEmpty(verifyOtpResponse.Token) && !string.IsNullOrEmpty(sessionId))
                         {
                             if (HealthIdNumberTokenDictionary.ContainsKey(sessionId))
                                 HealthIdNumberTokenDictionary[sessionId] = new TokenRequest(verifyOtpResponse.Token);
                             else
                                 HealthIdNumberTokenDictionary.Add(sessionId, new TokenRequest(verifyOtpResponse.Token));
                             // As per spec, return the user token and related auth result; client can use token for further operations.
-                            return Ok(verifyOtpResponse);
+                            var profile = await abhaService.getABHAProfile(sessionId, new TokenRequest(verifyOtpResponse.Token));
+                            return Accepted(profile);
                         }
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
