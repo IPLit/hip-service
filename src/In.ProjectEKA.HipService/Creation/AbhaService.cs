@@ -40,7 +40,7 @@ namespace In.ProjectEKA.HipService.Creation
             try
             {
                 logger.Log(LogLevel.Information,
-                    LogEvents.Creation, "Request for ABHA-patient-profile to gateway");
+                    LogEvents.Creation, "Request for ABHA-patient-profile to gateway: sessionId: {SessionId}", sessionId);
                 if (HealthIdNumberTokenDictionary.ContainsKey(sessionId))
                 {
                     HealthIdNumberTokenDictionary[sessionId] = tokenRequest;

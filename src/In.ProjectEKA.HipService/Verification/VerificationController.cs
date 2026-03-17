@@ -8,6 +8,7 @@ using In.ProjectEKA.HipService.Common;
 using In.ProjectEKA.HipService.Creation;
 using In.ProjectEKA.HipService.Creation.Model;
 using In.ProjectEKA.HipService.Gateway;
+using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.OpenMrs;
 using In.ProjectEKA.HipService.Verification.Model;
 using Microsoft.AspNetCore.Authorization;
@@ -679,9 +680,9 @@ namespace In.ProjectEKA.HipService.Verification
             try
             {
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
-                logger.LogDebug(LogEvents.Verification,
+                Log.Debug(
                     "Request for search ABHA by mobile to gateway: correlationId: {CorrelationId}, request: {Request}, sessionId: {SessionId}",
-                    correlationId, request, sessionId);
+                    correlationId, JsonConvert.SerializeObject(request), sessionId);
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request?.scope == null || string.IsNullOrEmpty(request.mobile))
                     return BadRequest("scope and mobile are required.");
@@ -759,9 +760,9 @@ namespace In.ProjectEKA.HipService.Verification
             try
             {
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
-                logger.LogDebug(LogEvents.Verification,
+                Log.Debug(
                     "Request for profile login request OTP to gateway: correlationId: {CorrelationId}, request: {Request}, sessionId: {SessionId}",
-                    correlationId, request, sessionId);
+                    correlationId, JsonConvert.SerializeObject(request), sessionId);
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request == null || request.scope == null || string.IsNullOrEmpty(request.loginId)
                     || string.IsNullOrEmpty(request.loginHint) || string.IsNullOrEmpty(request.txnId))
@@ -812,9 +813,9 @@ namespace In.ProjectEKA.HipService.Verification
             try
             {
                 string sessionId = HttpContext.Items[SESSION_ID] as string;
-                logger.LogDebug(LogEvents.Verification,
-                    "Request for profile login verify correlationId: {CorrelationId} to gateway, request: {Request}, sessionId: {SessionId}",
-                     correlationId, request, sessionId);
+                Log.Debug(
+                    "Request for profile login verify correlationId: {@CorrelationId} to gateway, request: {@request}, sessionId: {@SessionId}",
+                     correlationId, JsonConvert.SerializeObject(request), sessionId);
 
                 correlationId = correlationId ?? Guid.NewGuid().ToString();
                 if (request?.scope == null || request?.authData?.otp == null || string.IsNullOrEmpty(request.authData.otp.txnId)
@@ -824,17 +825,16 @@ namespace In.ProjectEKA.HipService.Verification
                 string encryptedOtp = EncryptionService.Encrypt(request.authData.otp.otpValue);
                 request.authData.otp.otpValue = encryptedOtp;
 
-                logger.Log(LogLevel.Information, LogEvents.Verification,
-                    "Request for profile login verify to gateway: correlationId: {CorrelationId}", correlationId);
+                Log.Information(
+                    "Request for profile login verify to gateway: correlationId: {@CorrelationId}", correlationId);
 
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
-                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_VERIFY_OTP, request, correlationId))
+                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_VERIFY_OTP, request, null, null, null, request.authData.otp.txnId))
                 {
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(responseContent))
                     {
-                        logger.LogDebug(LogEvents.Verification,
-                            "Profile login verify response from gateway: correlationId: {CorrelationId}, responseContent: {ResponseContent}",
+                        Log.Debug("Profile login verify response from gateway: correlationId: {@CorrelationId}, responseContent: {@ResponseContent}",
                             correlationId, responseContent);
                         var verifyOtpResponse = JsonConvert.DeserializeObject<ABHALoginVerifyOTPResponse>(responseContent);
 
@@ -842,15 +842,30 @@ namespace In.ProjectEKA.HipService.Verification
                         if (verifyOtpResponse != null && !verifyOtpResponse.AuthResult.Equals("failed", StringComparison.OrdinalIgnoreCase)
                             && !string.IsNullOrEmpty(verifyOtpResponse.Token) && !string.IsNullOrEmpty(sessionId))
                         {
+                            TokenRequest tokenRequest = new TokenRequest(verifyOtpResponse.Token);
                             if (HealthIdNumberTokenDictionary.ContainsKey(sessionId))
-                                HealthIdNumberTokenDictionary[sessionId] = new TokenRequest(verifyOtpResponse.Token);
+                                HealthIdNumberTokenDictionary[sessionId] = tokenRequest;
                             else
-                                HealthIdNumberTokenDictionary.Add(sessionId, new TokenRequest(verifyOtpResponse.Token));
+                                HealthIdNumberTokenDictionary.Add(sessionId, tokenRequest);
                             // As per spec, return the user token and related auth result; client can use token for further operations.
-                            var profile = await abhaService.getABHAProfile(sessionId, new TokenRequest(verifyOtpResponse.Token));
-                            return Accepted(profile);
+                            using (var responseAbha = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
+                                gatewayConfiguration.AbhaNumberServiceUrl, ABHA_ACCOUNT, null, null,
+                                $"{tokenRequest.tokenType} {tokenRequest.token}", null, request.authData.otp.txnId))
+                            {
+                                var responseContentAbha = await responseAbha?.Content.ReadAsStringAsync();
+                                if (responseAbha.IsSuccessStatusCode)
+                                {
+                                    ABHAProfileResponse abhaProfileResponse = JsonConvert.DeserializeObject<ABHAProfileResponse>(responseContentAbha);
+                                    return Ok(abhaProfileResponse);
+                                }
+                                logger.LogError(LogEvents.Verification, "Error happened for ABHA patient profile with error response " +
+                                                                    responseContentAbha);
+                                return StatusCode((int)response.StatusCode, responseContentAbha);
+                            }
                         }
                     }
+                    logger.LogError(LogEvents.Verification, "Profile login verify failed at gateway: correlationId: {CorrelationId}, responseContent: {ResponseContent}",
+                        correlationId, responseContent);
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
             }
