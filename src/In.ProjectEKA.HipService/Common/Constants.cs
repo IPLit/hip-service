@@ -146,7 +146,7 @@ namespace In.ProjectEKA.HipService.Common
         public const string AUTHORIZATION = "Authorization";
         public const string BAHMNI_AUTH = "bahmni";
         public const string GATEWAY_AUTH = "gateway";
-        public const string TIMESTAMP_FORMAT = "yyyy-MM-ddTHH:mm:ss.fffZ";
+        public const string TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
 
     }
 }

@@ -51,7 +51,7 @@ namespace In.ProjectEKA.HipService.Common
             if (token != null)
                 httpRequestMessage.Headers.Add(HeaderNames.Authorization, token);
             if (xtoken != null)
-                httpRequestMessage.Headers.Add("X-token", xtoken);
+                httpRequestMessage.Headers.Add("X-Token", xtoken);
             if (tToken != null)
                 httpRequestMessage.Headers.Add("T-token", tToken);
             if (cmSuffix != null)
@@ -65,7 +65,7 @@ namespace In.ProjectEKA.HipService.Common
             if (linkToken != null)
                 httpRequestMessage.Headers.Add("X-LINK-TOKEN", linkToken);
             httpRequestMessage.Headers.Add("REQUEST-ID", requestId ?? Guid.NewGuid().ToString());
-            httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(TIMESTAMP_FORMAT));
+            httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(Constants.TIMESTAMP_FORMAT));
             return httpRequestMessage;
         }
 
@@ -132,7 +132,7 @@ namespace In.ProjectEKA.HipService.Common
             if (linkToken != null)
                 httpRequestMessage.Headers.Add("X-LINK-TOKEN", linkToken);
             httpRequestMessage.Headers.Add("REQUEST-ID", requestId ?? Guid.NewGuid().ToString());
-            httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(TIMESTAMP_FORMAT));
+            httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(Constants.TIMESTAMP_FORMAT));
             return httpRequestMessage;
         }
 

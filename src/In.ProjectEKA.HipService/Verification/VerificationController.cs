@@ -683,7 +683,7 @@ namespace In.ProjectEKA.HipService.Verification
                 Log.Debug(
                     "Request for search ABHA by mobile to gateway: correlationId: {CorrelationId}, request: {Request}, sessionId: {SessionId}",
                     correlationId, JsonConvert.SerializeObject(request), sessionId);
-                correlationId = correlationId ?? Guid.NewGuid().ToString();
+                correlationId = correlationId ?? sessionId;
                 if (request?.scope == null || string.IsNullOrEmpty(request.mobile))
                     return BadRequest("scope and mobile are required.");
                 logger.Log(LogLevel.Information, LogEvents.Verification,
@@ -763,7 +763,7 @@ namespace In.ProjectEKA.HipService.Verification
                 Log.Debug(
                     "Request for profile login request OTP to gateway: correlationId: {CorrelationId}, request: {Request}, sessionId: {SessionId}",
                     correlationId, JsonConvert.SerializeObject(request), sessionId);
-                correlationId = correlationId ?? Guid.NewGuid().ToString();
+                correlationId = correlationId ?? sessionId;
                 if (request == null || request.scope == null || string.IsNullOrEmpty(request.loginId)
                     || string.IsNullOrEmpty(request.loginHint) || string.IsNullOrEmpty(request.txnId))
                     return BadRequest("scope, loginHint, loginId, otpSystem and txnId are required.");
@@ -782,8 +782,8 @@ namespace In.ProjectEKA.HipService.Verification
                                 TxnDictionary[sessionId] = generationResponse.txnId;
                             else
                                 TxnDictionary.Add(sessionId, generationResponse.txnId);
+                            return Accepted(new MobileOTPGenerationResponse(generationResponse.txnId, generationResponse.message));
                         }
-                        return Accepted(new AadhaarOTPGenerationResponse(generationResponse?.message));
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
                 }
@@ -817,7 +817,7 @@ namespace In.ProjectEKA.HipService.Verification
                     "Request for profile login verify correlationId: {@CorrelationId} to gateway, request: {@request}, sessionId: {@SessionId}",
                      correlationId, JsonConvert.SerializeObject(request), sessionId);
 
-                correlationId = correlationId ?? Guid.NewGuid().ToString();
+                correlationId = correlationId ?? sessionId;
                 if (request?.scope == null || request?.authData?.otp == null || string.IsNullOrEmpty(request.authData.otp.txnId)
                     || string.IsNullOrEmpty(request.authData.otp.otpValue))
                     return BadRequest("scope and authData.otp (txnId, otpValue) are required.");
@@ -829,7 +829,7 @@ namespace In.ProjectEKA.HipService.Verification
                     "Request for profile login verify to gateway: correlationId: {@CorrelationId}", correlationId);
 
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
-                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_VERIFY_OTP, request, null, null, null, request.authData.otp.txnId))
+                    gatewayConfiguration.AbhaNumberServiceUrl, ABHA_LOGIN_VERIFY_OTP, request, correlationId, null, null, request.authData.otp.txnId))
                 {
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(responseContent))
@@ -849,11 +849,11 @@ namespace In.ProjectEKA.HipService.Verification
                                 HealthIdNumberTokenDictionary.Add(sessionId, tokenRequest);
                             // As per spec, return the user token and related auth result; client can use token for further operations.
                             using (var responseAbha = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
-                                gatewayConfiguration.AbhaNumberServiceUrl, ABHA_ACCOUNT, null, null,
+                                gatewayConfiguration.AbhaNumberServiceUrl, ABHA_ACCOUNT, null, correlationId,
                                 $"{tokenRequest.tokenType} {tokenRequest.token}", null, request.authData.otp.txnId))
                             {
-                                var responseContentAbha = await responseAbha?.Content.ReadAsStringAsync();
-                                if (responseAbha.IsSuccessStatusCode)
+                                var responseContentAbha = await responseAbha.Content.ReadAsStringAsync().ConfigureAwait(false);
+                                if (responseAbha.IsSuccessStatusCode && !string.IsNullOrEmpty(responseContentAbha))
                                 {
                                     ABHAProfileResponse abhaProfileResponse = JsonConvert.DeserializeObject<ABHAProfileResponse>(responseContentAbha);
                                     return Ok(abhaProfileResponse);
