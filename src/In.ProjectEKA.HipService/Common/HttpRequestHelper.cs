@@ -65,7 +65,7 @@ namespace In.ProjectEKA.HipService.Common
             if (linkToken != null)
                 httpRequestMessage.Headers.Add("X-LINK-TOKEN", linkToken);
             httpRequestMessage.Headers.Add("REQUEST-ID", requestId ?? Guid.NewGuid().ToString());
-            httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(TIMESTAMP_FORMAT));
+            httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(Constants.TIMESTAMP_FORMAT));
             return httpRequestMessage;
         }
 
@@ -132,7 +132,7 @@ namespace In.ProjectEKA.HipService.Common
             if (linkToken != null)
                 httpRequestMessage.Headers.Add("X-LINK-TOKEN", linkToken);
             httpRequestMessage.Headers.Add("REQUEST-ID", requestId ?? Guid.NewGuid().ToString());
-            httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(TIMESTAMP_FORMAT));
+            httpRequestMessage.Headers.Add("TIMESTAMP", DateTime.UtcNow.ToString(Constants.TIMESTAMP_FORMAT));
             return httpRequestMessage;
         }
 

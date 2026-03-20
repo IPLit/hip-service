@@ -33,7 +33,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                 {
                     var bundle = new FhirJsonParser().Parse<Bundle>(result);
                     string bundleJsonStr = bundle.ToJson();
-                    Log.Information("Bundle content: " + bundleJsonStr);
+                    Log.Debug("Bundle content: " + bundleJsonStr);
                     bundles.Add(new CareBundle(careContextReference, bundleJsonStr));
                 }
             }
@@ -64,9 +64,15 @@ namespace In.ProjectEKA.HipService.DataFlow
                         }
                     }
 
-                    careContextsAndListOfDataFiles.Add(grantedContext.CareContextReference, listOfDataFiles);
+                    if (careContextsAndListOfDataFiles.TryGetValue(grantedContext.CareContextReference, out var existingList))
+                    {
+                        existingList.AddRange(listOfDataFiles);
+                    }
+                    else
+                    {
+                        careContextsAndListOfDataFiles[grantedContext.CareContextReference] = listOfDataFiles;
+                    }
                 }
-
                 return careContextsAndListOfDataFiles;
             }
             catch (Exception e)
