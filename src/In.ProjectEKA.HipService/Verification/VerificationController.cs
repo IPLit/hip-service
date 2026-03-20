@@ -843,25 +843,30 @@ namespace In.ProjectEKA.HipService.Verification
                             && !string.IsNullOrEmpty(verifyOtpResponse.Token) && !string.IsNullOrEmpty(sessionId))
                         {
                             TokenRequest tokenRequest = new TokenRequest(verifyOtpResponse.Token);
+                            // As per spec, return the user token and related auth result; client can use token for further operations.
+                            // var profile = await abhaService.getABHAProfile(sessionId, tokenRequest);
+                            // return Accepted(profile);
+
                             if (HealthIdNumberTokenDictionary.ContainsKey(sessionId))
                                 HealthIdNumberTokenDictionary[sessionId] = tokenRequest;
                             else
                                 HealthIdNumberTokenDictionary.Add(sessionId, tokenRequest);
-                            // As per spec, return the user token and related auth result; client can use token for further operations.
-                            using (var responseAbha = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
-                                gatewayConfiguration.AbhaNumberServiceUrl, ABHA_ACCOUNT, null, correlationId,
-                                $"{tokenRequest.tokenType} {tokenRequest.token}", null, request.authData.otp.txnId))
-                            {
-                                var responseContentAbha = await responseAbha.Content.ReadAsStringAsync().ConfigureAwait(false);
-                                if (responseAbha.IsSuccessStatusCode && !string.IsNullOrEmpty(responseContentAbha))
-                                {
-                                    ABHAProfileResponse abhaProfileResponse = JsonConvert.DeserializeObject<ABHAProfileResponse>(responseContentAbha);
-                                    return Ok(abhaProfileResponse);
-                                }
-                                logger.LogError(LogEvents.Verification, "Error happened for ABHA patient profile with error response " +
-                                                                    responseContentAbha);
-                                return StatusCode((int)response.StatusCode, responseContentAbha);
-                            }
+                            return Accepted(verifyOtpResponse);
+
+                            // using (var responseAbha = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
+                            //     gatewayConfiguration.AbhaNumberServiceUrl, ABHA_ACCOUNT, null, correlationId,
+                            //     $"{tokenRequest.tokenType} {tokenRequest.token}", null, request.authData.otp.txnId))
+                            // {
+                            //     var responseContentAbha = await responseAbha.Content.ReadAsStringAsync().ConfigureAwait(false);
+                            //     if (responseAbha.IsSuccessStatusCode && !string.IsNullOrEmpty(responseContentAbha))
+                            //     {
+                            //         ABHAProfileResponse abhaProfileResponse = JsonConvert.DeserializeObject<ABHAProfileResponse>(responseContentAbha);
+                            //         return Ok(abhaProfileResponse);
+                            //     }
+                            //     logger.LogError(LogEvents.Verification, "Error happened for ABHA patient profile with error response " +
+                            //                                         responseContentAbha);
+                            //     return StatusCode((int)response.StatusCode, responseContentAbha);
+                            // }
                         }
                     }
                     logger.LogError(LogEvents.Verification, "Profile login verify failed at gateway: correlationId: {CorrelationId}, responseContent: {ResponseContent}",
