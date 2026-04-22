@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - trialsv3-hfrid
       - trialsv3
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
