@@ -71,38 +71,30 @@ namespace In.ProjectEKA.HipService.DataFlow
             var message = "Successfully delivered health information";
             var requestId = Guid.NewGuid();
             // Extract visit UUID from first care context (format: "patientId:visitUuid")
-            var visitUuid = grantedContexts.FirstOrDefault() != null 
+            var visitUuid = grantedContexts.First() != null 
                 ? ExtractVisitUuidFromReference(grantedContexts.First().CareContextReference)
                 : null;
             try
             {
-                var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
-                if (!string.IsNullOrEmpty(visitUuid))
+                string hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+                if (string.IsNullOrEmpty(hipId))
                 {
-                    // Attempt to set HFR ID for visit in cache if not already present
-                    var cachedHfrId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
-                    if (string.IsNullOrEmpty(cachedHfrId))
+                    Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
+                    var hfrId = await SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(hfrId))
                     {
-                        Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
-                        var hfrId = await SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
-                        if (!string.IsNullOrEmpty(hfrId))
-                        {
-                            hipId = hfrId;
-                            Log.Information($"PostTo: Successfully set HFR ID {hfrId} for visit UUID {visitUuid}");
-                        }
-                        else
-                        {
-                            Log.Information($"PostTo: WARNING - Unable to set HFR ID for visit UUID {visitUuid}, using default Id");
-                        }
+                        hipId = hfrId;
+                        Log.Information($"PostTo: Successfully set HFR ID {hfrId} for visit UUID {visitUuid}");
                     }
                     else
                     {
-                        Log.Information($"PostTo: HFR ID for visit UUID {visitUuid} already cached: {cachedHfrId}");
+                        hipId = bahmniConfiguration.GetDefaultHfrId();
                     }
                 }
+
                 // TODO: Need to handle non 2xx response also
                 httpClient.DefaultRequestHeaders.Remove("Authorization");
-                var token = await gatewayClient.Authenticate(correlationId, hipId).ConfigureAwait(false);
+                var token = await gatewayClient.Authenticate(correlationId).ConfigureAwait(false);
                 if (token.HasValue)
                 {
                     var reqDataPush = HttpRequestHelper.CreateHttpRequestWithContentType(HttpMethod.Post, dataPushUrl, dataResponse,

@@ -4,9 +4,6 @@ namespace In.ProjectEKA.HipService.Common.Model
 {
     public class BahmniConfiguration
     {
-        private string _id;
-        private string _name;
-        private readonly object _lockObject = new object();
         private readonly HfrIdCache _hfrIdCache;
         private readonly FacilityNameCache _facilityNameCache;
 
@@ -16,59 +13,9 @@ namespace In.ProjectEKA.HipService.Common.Model
             _facilityNameCache = new FacilityNameCache();
         }
 
-        public BahmniConfiguration(HfrIdCache hfrIdCache)
-        {
-            _hfrIdCache = hfrIdCache ?? new HfrIdCache();
-            _facilityNameCache = new FacilityNameCache();
-        }
+        public string Id { get; set; }
 
-        public BahmniConfiguration(HfrIdCache hfrIdCache, FacilityNameCache facilityNameCache)
-        {
-            _hfrIdCache = hfrIdCache ?? new HfrIdCache();
-            _facilityNameCache = facilityNameCache ?? new FacilityNameCache();
-        }
-
-        /// <summary>
-        /// Default HFR ID (used as fallback when visit UUID is not provided or not found in cache)
-        /// </summary>
-        public string Id 
-        { 
-            get
-            {
-                lock (_lockObject)
-                {
-                    return _id;
-                }
-            }
-            set
-            {
-                lock (_lockObject)
-                {
-                    _id = value;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Default facility name (used as fallback when visit UUID is not provided or not found in cache)
-        /// </summary>
-        public string Name 
-        { 
-            get
-            {
-                lock (_lockObject)
-                {
-                    return _name;
-                }
-            }
-            set
-            {
-                lock (_lockObject)
-                {
-                    _name = value;
-                }
-            }
-        }
+        public string Name { get; set; }
 
         /// <summary>
         /// Gets HFR ID for a specific visit UUID from cache
@@ -80,7 +27,12 @@ namespace In.ProjectEKA.HipService.Common.Model
             if (string.IsNullOrEmpty(visitUuid))
                 return Id;
 
-            return _hfrIdCache.GetHfrIdOrDefault(visitUuid, Id);
+            return _hfrIdCache.GetHfrId(visitUuid);
+        }
+
+        public string GetDefaultHfrId()
+        {
+            return Id;
         }
 
         /// <summary>
@@ -103,7 +55,12 @@ namespace In.ProjectEKA.HipService.Common.Model
             if (string.IsNullOrEmpty(visitUuid))
                 return Name;
 
-            return _facilityNameCache.GetFacilityNameOrDefault(visitUuid, Name);
+            return _facilityNameCache.GetFacilityName(visitUuid);
+        }
+
+        public string GetDefaultFacilityName()
+        {
+                return Name;
         }
 
         /// <summary>
