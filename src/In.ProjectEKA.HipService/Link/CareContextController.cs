@@ -64,7 +64,8 @@ namespace In.ProjectEKA.HipService.Link
                 if (isFirstTime)
                 {
                     isFirstTime = false;
-                    var visitUuid = context.ReferenceNumber;
+                    var visitUuid = context.ReferenceNumber!=null && context.ReferenceNumber.Split(":").Length >= 2
+                        ? context.ReferenceNumber.Split(":")[1] : null;
                     await SetHfrId(visitUuid).ConfigureAwait(false);
                 }
                 if (careContexts != null && careContextService.IsLinkedContext(careContexts, context.ReferenceNumber))

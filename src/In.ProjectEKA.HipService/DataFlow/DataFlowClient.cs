@@ -249,7 +249,7 @@ namespace In.ProjectEKA.HipService.DataFlow
         {
             if (string.IsNullOrEmpty(careContextReference))
                 return null;
-
+            Log.Information($"ExtractVisitUuidFromReference: Care context reference: {careContextReference}");
             var parts = careContextReference.Split(':');
             // If reference contains ":", assume format is "patientId:visitUuid" and return the second part
             if (parts.Length >= 2)
