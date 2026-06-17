@@ -74,9 +74,9 @@ namespace In.ProjectEKA.HipService.DataFlow
             var visitUuid = grantedContexts.First() != null 
                 ? ExtractVisitUuidFromReference(grantedContexts.First().CareContextReference)
                 : null;
+            string hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             try
             {
-                string hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
                 if (string.IsNullOrEmpty(hipId))
                 {
                     Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
@@ -128,8 +128,8 @@ namespace In.ProjectEKA.HipService.DataFlow
                     .ToList();
                 var dataNotificationRequest = new DataNotificationRequest(dataResponse.TransactionId,
                     DateTime.Now.ToUniversalTime().ToString(Common.Constants.DateTimeFormat),
-                    new Notifier(Type.HIP, gatewayConfiguration.ClientId),
-                    new StatusNotification(sessionStatus, gatewayConfiguration.ClientId, statusResponses),
+                    new Notifier(Type.HIP, hipId),
+                    new StatusNotification(sessionStatus, hipId, statusResponses),
                     consentId,
                     requestId);
                 await GetDataNotificationRequest(dataNotificationRequest, cmSuffix, correlationId).ConfigureAwait(false);
