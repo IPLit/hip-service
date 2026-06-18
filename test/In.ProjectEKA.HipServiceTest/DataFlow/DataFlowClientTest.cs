@@ -15,6 +15,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
     using FluentAssertions;
     using HipService.Gateway;
     using In.ProjectEKA.HipService.DataFlow.Model;
+    using In.ProjectEKA.HipService.OpenMrs;
     using Moq;
     using Moq.Protected;
     using Xunit;
@@ -51,7 +52,8 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
                 new Entry(content, MediaTypeNames.Application.Json, checksum, "careContextReference")
             }.AsEnumerable();
             var expectedUri = new Uri("https://callback/data/notification");
-            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object);
+            var openMrsClient = new Mock<IOpenMrsClient>();
+            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object, openMrsClient.Object);
             handlerMock
                 .Protected()
                 .Setup<Task<HttpResponseMessage>>(
@@ -105,7 +107,8 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             Mock<GatewayClient> gatewayClient = new Mock<GatewayClient>(MockBehavior.Strict, null, null);
             var dataRequest = TestBuilder.TraceableDataRequest(TestBuilder.Faker().Random.Hash());
             var entries = new List<Entry>().AsEnumerable();
-            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object);
+            var openMrsClient = new Mock<IOpenMrsClient>();
+            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object, openMrsClient.Object);
             var correlationId = Uuid.Generate().ToString();
             handlerMock
                 .Protected()

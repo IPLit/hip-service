@@ -37,13 +37,15 @@ namespace In.ProjectEKA.HipService.DataFlow
             DataFlowNotificationClient dataFlowNotificationClient,
             GatewayConfiguration gatewayConfiguration,
             HipService.Common.Model.BahmniConfiguration bahmniConfiguration,
-            GatewayClient gatewayClient)
+            GatewayClient gatewayClient,
+            IOpenMrsClient openMrsClient)
         {
             this.gatewayClient = gatewayClient;
             this.httpClient = httpClient;
             this.dataFlowNotificationClient = dataFlowNotificationClient;
             this.gatewayConfiguration = gatewayConfiguration;
             this.bahmniConfiguration = bahmniConfiguration;
+            this.openMrsClient = openMrsClient;
         }
 
         public virtual async Task SendDataToHiu(TraceableDataRequest dataRequest,
@@ -151,7 +153,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                 }
                 Log.Information($"SetHfrIdForVisitAsync: Retrieving HFR ID for visit UUID: {visitUuid}");
                 // Get visit from OpenMRS with full representation to include location details
-                var visitPath = $"ws/rest/v1/visit/{visitUuid}?v=full";
+                var visitPath = $"ws/rest/v1/visit/{visitUuid}";
                 var visitResponse = await openMrsClient.GetAsync(visitPath);
                 if (visitResponse == null || !visitResponse.IsSuccessStatusCode)
                 {
