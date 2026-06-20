@@ -120,7 +120,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                     .ToList();
                 var dataNotificationRequest = new DataNotificationRequest(dataResponse.TransactionId,
                     DateTime.Now.ToUniversalTime().ToString(Common.Constants.DateTimeFormat),
-                    new Notifier(Type.HIU, gatewayConfiguration.ClientId),
+                    new Notifier(Type.HIP, gatewayConfiguration.ClientId),
                     new StatusNotification(sessionStatus, hipId, statusResponses),
                     consentId,
                     requestId);

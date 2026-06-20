@@ -53,8 +53,9 @@ namespace In.ProjectEKA.HipService.Link
         {
             var careContexts = addContextsRequest.CareContexts;
             var abhaAddress = addContextsRequest.HealthId;
+            var linkReferenceNumber = Guid.NewGuid().ToString();
             
-            if (!await linkPatient.SaveInitiatedLinkRequest(requestId.ToString(), null, requestId.ToString())
+            if (!await linkPatient.SaveInitiatedLinkRequest(requestId.ToString(), null, linkReferenceNumber)
                 .ConfigureAwait(false))
                 return new Tuple<GatewayAddContextsRequestRepresentation, ErrorRepresentation>
                     (null, new ErrorRepresentation(new Error(ErrorCode.DuplicateRequestId, ErrorMessage.DuplicateRequestId)));
@@ -73,7 +74,7 @@ namespace In.ProjectEKA.HipService.Link
                     group.Count()))
                 .ToList();
             var (_, exception1) = await linkPatientRepository.SaveRequestWith(
-                    requestId.ToString(),
+                    linkReferenceNumber,
                     cmSuffix,
                     abhaAddress,
                     addContextsRequest.PatientReferenceNumber,
