@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Common;
@@ -16,10 +13,8 @@ using In.ProjectEKA.HipService.OpenMrs;
 using In.ProjectEKA.HipService.UserAuth;
 using In.ProjectEKA.HipService.UserAuth.Model;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Optional.Unsafe;
-using HiType = In.ProjectEKA.HipLibrary.Patient.Model.HiType;
 
 namespace In.ProjectEKA.HipService.Link
 {
@@ -148,7 +143,7 @@ namespace In.ProjectEKA.HipService.Link
             } while (i < gatewayConfiguration.Counter);
         }
 
-        public Tuple<GatewayNotificationContextRepresentation, ErrorRepresentation> NotificationContextResponse(
+        public async Task<Tuple<GatewayNotificationContextRepresentation, ErrorRepresentation>> NotificationContextResponse(
             NewContextRequest notifyContextRequest, CareContextRepresentation context)
         {
             var id = notifyContextRequest.HealthId;
@@ -160,7 +155,17 @@ namespace In.ProjectEKA.HipService.Link
             var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             if (string.IsNullOrEmpty(hipId))
             {
-                hipId = bahmniConfiguration.GetDefaultHfrId();
+                Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
+                var hfrId = await SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(hfrId))
+                {
+                    hipId = hfrId;
+                    Log.Information($"PostTo: Successfully set HFR ID {hfrId} for visit UUID {visitUuid}");
+                }
+                else
+                {
+                    hipId = bahmniConfiguration.GetDefaultHfrId();
+                }
             }
             var patient = new NotificationPatientContext(id);
             var careContext = new NotificationCareContext(patientReference, careContextReference);
@@ -174,7 +179,7 @@ namespace In.ProjectEKA.HipService.Link
         public async Task CallNotifyContext(NewContextRequest newContextRequest, CareContextRepresentation context)
         {
             var (gatewayNotificationContextRepresentation, error) =
-                NotificationContextResponse(newContextRequest, context);
+                await NotificationContextResponse(newContextRequest, context).ConfigureAwait(false);
             if (error != null)
                 Log.Error("Notify for Care Context failed with error: {@Error}", error);
             
@@ -184,7 +189,17 @@ namespace In.ProjectEKA.HipService.Link
             var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             if (string.IsNullOrEmpty(hipId))
             {
-                hipId = bahmniConfiguration.GetDefaultHfrId();
+                Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
+                var hfrId = await SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(hfrId))
+                {
+                    hipId = hfrId;
+                    Log.Information($"PostTo: Successfully set HFR ID {hfrId} for visit UUID {visitUuid}");
+                }
+                else
+                {
+                    hipId = bahmniConfiguration.GetDefaultHfrId();
+                }
             }
             try
             {
@@ -287,7 +302,7 @@ namespace In.ProjectEKA.HipService.Link
                 }
                 Log.Information($"SetHfrIdForVisitAsync: Retrieving HFR ID for visit UUID: {visitUuid}");
                 // Get visit from OpenMRS with full representation to include location details
-                var visitPath = $"ws/rest/v1/visit/{visitUuid}?v=full";
+                var visitPath = $"ws/rest/v1/visit/{visitUuid}";
                 var visitResponse = await openMrsClient.GetAsync(visitPath);
                 if (visitResponse == null || !visitResponse.IsSuccessStatusCode)
                 {

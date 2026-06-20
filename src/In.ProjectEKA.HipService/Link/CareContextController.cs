@@ -92,7 +92,7 @@ namespace In.ProjectEKA.HipService.Link
                 }
                 Log.Information($"SetHfrId: Retrieving HFR ID for visit UUID: {visitUuid}");
                 // Get visit from OpenMRS with full representation to include location details
-                var visitPath = $"ws/rest/v1/visit/{visitUuid}?v=full";
+                var visitPath = $"ws/rest/v1/visit/{visitUuid}";
                 var visitResponse = await openMrsClient.GetAsync(visitPath);
                 if (visitResponse == null || !visitResponse.IsSuccessStatusCode)
                 {
@@ -132,8 +132,8 @@ namespace In.ProjectEKA.HipService.Link
                         if (attributeType != null)
                         {
                             // Extract HFR ID
-                            if ((attributeType.Equals("ABDM HFR ID", StringComparison.OrdinalIgnoreCase) ||
-                                 attributeType.Contains("HFR ID", StringComparison.OrdinalIgnoreCase)))
+                            if (attributeType.Equals("ABDM HFR ID", StringComparison.OrdinalIgnoreCase) ||
+                                 attributeType.Contains("HFR ID", StringComparison.OrdinalIgnoreCase))
                             {
                                 hfrId = attribute["value"]?.ToString();
                                 if (!string.IsNullOrEmpty(hfrId))
@@ -142,8 +142,8 @@ namespace In.ProjectEKA.HipService.Link
                                 }
                             }
                             // Extract ABDM HFR Name
-                            if ((attributeType.Equals("ABDM HFR Name", StringComparison.OrdinalIgnoreCase) ||
-                                attributeType.Contains("HFR Name", StringComparison.OrdinalIgnoreCase)))
+                            if (attributeType.Equals("ABDM HFR Name", StringComparison.OrdinalIgnoreCase) ||
+                                attributeType.Contains("HFR Name", StringComparison.OrdinalIgnoreCase))
                             {
                                 facilityName = attribute["value"]?.ToString();
                                 if (!string.IsNullOrEmpty(facilityName))

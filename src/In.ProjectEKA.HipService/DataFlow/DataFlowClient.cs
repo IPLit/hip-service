@@ -1,28 +1,18 @@
 using In.ProjectEKA.HipService.Common;
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Mime;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using In.ProjectEKA.HipService.Gateway;
+using In.ProjectEKA.HipLibrary.Patient.Model;
+using In.ProjectEKA.HipService.OpenMrs;
+using In.ProjectEKA.HipService.Logger;
+using In.ProjectEKA.HipService.DataFlow.Model;
 namespace In.ProjectEKA.HipService.DataFlow
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Net.Http;
-    using System.Net.Mime;
-
-    using System.Threading.Tasks;
-    using Gateway;
-    using HipLibrary.Patient.Model;
-    using In.ProjectEKA.HipService.OpenMrs;
-
-    using Logger;
-    using Microsoft.Net.Http.Headers;
-
-    using Model;
-    using Newtonsoft.Json.Linq;
-
-    using RabbitMQ.Client;
-
-    using static Common.HttpRequestHelper;
-
     public class DataFlowClient
     {
         private readonly IOpenMrsClient openMrsClient;
