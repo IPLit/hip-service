@@ -201,13 +201,21 @@ namespace In.ProjectEKA.HipService.Link
             }
             try
             {
+                var compositeKey = newContextRequest.HealthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
+                if (!UserAuthMap.HealthIdToAccessToken.ContainsKey(compositeKey))
+                {
+                    Log.Error("Unable to get link token for healthId: {healthId} and hipId: {hipId}",
+                        newContextRequest.HealthId, hipId);
+                    throw new Exception("Unable to get link token");
+                }
+                var linkToken = UserAuthMap.HealthIdToAccessToken[compositeKey];
                 UserAuthMap.UpdateHealthIdToLatestVisitUuid(newContextRequest.HealthId, visitUuid);
                 Log.Information(
                     "Request for notification-contexts to gateway: {@GatewayResponse}",
                     gatewayNotificationContextRepresentation.dump(gatewayNotificationContextRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_NOTIFY_PATIENT_CONTEXTS,
                     gatewayNotificationContextRepresentation,
-                    cmSuffix, Guid.NewGuid().ToString(), hipId:hipId);
+                    cmSuffix, Guid.NewGuid().ToString(), hipId:hipId, linkToken:linkToken, requestId: Guid.NewGuid().ToString());
             }
             catch (Exception exception)
             {
@@ -239,13 +247,13 @@ namespace In.ProjectEKA.HipService.Link
                 }
             }
             await SetAccessToken(abhaAddress, hipId);
-            if (!UserAuthMap.HealthIdToAccessToken.ContainsKey(abhaAddress))
+            var compositeKey = abhaAddress + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
+            if (!UserAuthMap.HealthIdToAccessToken.ContainsKey(compositeKey))
             {
-                Log.Error("Unable to get link token for healthId: {healthId}",
-                    abhaAddress);
+                Log.Error("Unable to get link token for healthId: {healthId} and hipId: {hipId}", abhaAddress, hipId);
                 throw new Exception("Unable to get link token");
             }
-            var linkToken = UserAuthMap.HealthIdToAccessToken[abhaAddress];
+            var linkToken = UserAuthMap.HealthIdToAccessToken[compositeKey];
             var cmSuffix = gatewayConfiguration.CmSuffix;
             var requestId = Guid.NewGuid();
             var (gatewayAddContextsRequestRepresentation, error) =
