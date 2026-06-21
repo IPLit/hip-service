@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Http;
 namespace In.ProjectEKA.HipService.UserAuth
 {
     public static class UserAuthMap{
+        public const string PhoneTimestampSeparator = "###";
+
         public static Dictionary<Guid, List<Mode>> RequestIdToAuthModes = new Dictionary<Guid, List<Mode>>();
         public static Dictionary<Guid, string> RequestIdToTransactionIdMap = new Dictionary<Guid, string>();
         public static Dictionary<Guid, string> RequestIdToAccessToken = new Dictionary<Guid, string>();
@@ -18,7 +20,7 @@ namespace In.ProjectEKA.HipService.UserAuth
         public static Dictionary<Guid, Error> RequestIdToErrorMessage = new Dictionary<Guid, Error>();
         public static Dictionary<string, string> HealthIdToAccessToken = new Dictionary<string, string>();
         public static Dictionary<string, string> HealthIdToLatestVisitUuid = new Dictionary<string, string>();
-        public static Dictionary<string, string> PhoneNumberToHealthId = new Dictionary<string, string>();
+        public static Dictionary<string, List<string>> HealthIdToPhoneNumber = new Dictionary<string, List<string>>();
         public static Dictionary<Guid, AuthNotifyStatus> TransactionIdToAuthNotifyStatus = new Dictionary<Guid, AuthNotifyStatus>();
         public static Dictionary<Guid, AuthConfirmPatient> TransactionIdToPatientDetails = new Dictionary<Guid, AuthConfirmPatient>();
         public static Dictionary<string, int> ErrorCodeToStatusCode = new Dictionary<string, int>()
@@ -40,16 +42,78 @@ namespace In.ProjectEKA.HipService.UserAuth
                 HealthIdToLatestVisitUuid.Add(healthId, visitUuid);
         }
 
-        public static void UpdatePhoneNumberToHealthId(string phoneNumber, string healthId)
+        public static void UpdateHealthIdToPhoneNumber(string phoneNumber, string healthId)
         {
             if (string.IsNullOrEmpty(phoneNumber) || string.IsNullOrEmpty(healthId))
                 return;
 
             var normalizedPhone = NormalizePhoneNumber(phoneNumber);
-            if (PhoneNumberToHealthId.ContainsKey(normalizedPhone))
-                PhoneNumberToHealthId[normalizedPhone] = healthId;
-            else
-                PhoneNumberToHealthId.Add(normalizedPhone, healthId);
+            var compositeEntry = CreatePhoneEntry(normalizedPhone);
+
+            if (!HealthIdToPhoneNumber.TryGetValue(healthId, out var phoneEntries))
+            {
+                phoneEntries = new List<string>();
+                HealthIdToPhoneNumber[healthId] = phoneEntries;
+            }
+
+            phoneEntries.Add(compositeEntry);
+        }
+
+        public static string GetHealthIdByPhoneNumber(string phoneNumber)
+        {
+            if (string.IsNullOrEmpty(phoneNumber))
+                return null;
+
+            var normalizedPhone = NormalizePhoneNumber(phoneNumber);
+
+            return HealthIdToPhoneNumber
+                .SelectMany(kvp => kvp.Value.Select(entry => new { HealthId = kvp.Key, Entry = entry }))
+                .Where(x => ExtractPhoneNumber(x.Entry) == normalizedPhone)
+                .OrderByDescending(x => ExtractTimestamp(x.Entry))
+                .Select(x => x.HealthId)
+                .FirstOrDefault();
+        }
+
+        public static string GetLatestPhoneNumber(string healthId)
+        {
+            if (string.IsNullOrEmpty(healthId)
+                || !HealthIdToPhoneNumber.TryGetValue(healthId, out var phoneEntries)
+                || phoneEntries.Count == 0)
+                return null;
+
+            return phoneEntries
+                .OrderByDescending(ExtractTimestamp)
+                .Select(ExtractPhoneNumber)
+                .FirstOrDefault();
+        }
+
+        public static string CreatePhoneEntry(string normalizedPhone)
+        {
+            return $"{normalizedPhone}{PhoneTimestampSeparator}{DateTime.UtcNow:O}";
+        }
+
+        public static string ExtractPhoneNumber(string compositeEntry)
+        {
+            if (string.IsNullOrEmpty(compositeEntry))
+                return compositeEntry;
+
+            var separatorIndex = compositeEntry.LastIndexOf(PhoneTimestampSeparator, StringComparison.Ordinal);
+            return separatorIndex < 0 ? compositeEntry : compositeEntry.Substring(0, separatorIndex);
+        }
+
+        public static DateTime ExtractTimestamp(string compositeEntry)
+        {
+            if (string.IsNullOrEmpty(compositeEntry))
+                return DateTime.MinValue;
+
+            var separatorIndex = compositeEntry.LastIndexOf(PhoneTimestampSeparator, StringComparison.Ordinal);
+            if (separatorIndex < 0 || separatorIndex + PhoneTimestampSeparator.Length > compositeEntry.Length)
+                return DateTime.MinValue;
+
+            return DateTime.Parse(
+                compositeEntry.Substring(separatorIndex + PhoneTimestampSeparator.Length),
+                null,
+                System.Globalization.DateTimeStyles.RoundtripKind);
         }
 
         public static string NormalizePhoneNumber(string phoneNumber)
@@ -57,8 +121,12 @@ namespace In.ProjectEKA.HipService.UserAuth
             if (string.IsNullOrEmpty(phoneNumber))
                 return phoneNumber;
 
-            var digitsOnly = new string(phoneNumber.Where(char.IsDigit).ToArray());
-            return digitsOnly.Length >= 10 ? digitsOnly[^10..] : digitsOnly;
+            phoneNumber = phoneNumber.Trim();
+            if (phoneNumber.StartsWith("+91"))
+                phoneNumber = phoneNumber.Substring(3);
+            else if (phoneNumber.StartsWith("91"))
+                phoneNumber = phoneNumber.Substring(2);
+            return phoneNumber;
         }
     }
 }

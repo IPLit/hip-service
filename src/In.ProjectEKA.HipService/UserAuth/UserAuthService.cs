@@ -357,7 +357,7 @@ namespace In.ProjectEKA.HipService.UserAuth
         public async Task Dump(NdhmDemographics ndhmDemographics)
         {
             await userAuthRepository.AddDemographics(ndhmDemographics).ConfigureAwait(false);
-            UserAuthMap.UpdatePhoneNumberToHealthId(ndhmDemographics.PhoneNumber, ndhmDemographics.HealthId);
+            UserAuthMap.UpdateHealthIdToPhoneNumber(ndhmDemographics.PhoneNumber, ndhmDemographics.HealthId);
         }
 
         public async Task<Tuple<AuthConfirm, ErrorRepresentation>> HandleOnGenerateLinkToken(OnGenerateTokenRequest onGenerateTokenRequest)

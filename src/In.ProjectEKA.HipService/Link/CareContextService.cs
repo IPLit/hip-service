@@ -86,6 +86,9 @@ namespace In.ProjectEKA.HipService.Link
         
         public async Task SetAccessToken(string healthId, string hipId)
         {
+            var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
+            if (demographics != null)
+                UserAuthMap.UpdateHealthIdToPhoneNumber(demographics.PhoneNumber, healthId);
             if (UserAuthMap.HealthIdToAccessToken.ContainsKey(healthId))
             {
                 var linkToken = UserAuthMap.HealthIdToAccessToken[healthId];
@@ -103,17 +106,9 @@ namespace In.ProjectEKA.HipService.Link
                      return;
                  }
             }
-
-            var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
             var requestId = Guid.NewGuid();
             if (demographics == null)
                 return;
-
-            UserAuthMap.UpdatePhoneNumberToHealthId(demographics.PhoneNumber, healthId);
-
-            // Log.Information("PATH_GENERATE_TOKEN request params: HealthId {0}, Name {1}, Gender {2}, DateOfBirth {3}", 
-                // demographics.HealthId, demographics.Name, demographics.Gender, demographics.DateOfBirth);
-
             var generateTokenPayload = new GenerateLinkTokenRequest(demographics.HealthId, demographics.Name,
                 demographics.Gender, demographics.DateOfBirth.Split("-").First());
             

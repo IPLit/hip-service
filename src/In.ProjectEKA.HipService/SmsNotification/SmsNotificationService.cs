@@ -1,13 +1,12 @@
 using System;
 using In.ProjectEKA.HipLibrary.Patient.Model;
-using In.ProjectEKA.HipService.Common;
+using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.SmsNotification.Model;
 using In.ProjectEKA.HipService.UserAuth;
 
 namespace In.ProjectEKA.HipService.SmsNotification
 {
-    using static Constants;
     public class SmsNotificationService : ISmsNotificationService
     {
         public Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation> SmsNotifyRequest(
@@ -16,8 +15,8 @@ namespace In.ProjectEKA.HipService.SmsNotification
             var hipId = bahmniConfiguration.GetDefaultHfrId();
             var hipName = bahmniConfiguration.GetDefaultFacilityName();
 
-            var normalizedPhone = UserAuthMap.NormalizePhoneNumber(smsNotifyRequest.phoneNo);
-            if (UserAuthMap.PhoneNumberToHealthId.TryGetValue(normalizedPhone, out var healthId)
+            var healthId = UserAuthMap.GetHealthIdByPhoneNumber(smsNotifyRequest.phoneNo);
+            if (!string.IsNullOrEmpty(healthId)
                 && UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid))
             {
                 var visitHipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
@@ -27,9 +26,9 @@ namespace In.ProjectEKA.HipService.SmsNotification
                 if (!string.IsNullOrEmpty(visitHipName))
                     hipName = visitHipName;
             }
-
             var hip = new SmsNotifyHip(hipName, hipId);
             var notification = new Model.SmsNotification(smsNotifyRequest.phoneNo, hip);
+            Log.Information($"SmsNotify for hip: {notification} of abha address {healthId}");
 
             return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(
                 new GatewaySmsNotifyRequestRepresentation(notification), null);
