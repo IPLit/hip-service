@@ -11,7 +11,6 @@ namespace In.ProjectEKA.HipService.UserAuth
 {
     public static class UserAuthMap{
         public const string PhoneTimestampSeparator = "###";
-
         public static Dictionary<Guid, List<Mode>> RequestIdToAuthModes = new Dictionary<Guid, List<Mode>>();
         public static Dictionary<Guid, string> RequestIdToTransactionIdMap = new Dictionary<Guid, string>();
         public static Dictionary<Guid, string> RequestIdToAccessToken = new Dictionary<Guid, string>();
@@ -19,6 +18,7 @@ namespace In.ProjectEKA.HipService.UserAuth
         public static Dictionary<Guid, AuthConfirmPatient> RequestIdToPatientDetails = new Dictionary<Guid, AuthConfirmPatient>();
         public static Dictionary<Guid, Error> RequestIdToErrorMessage = new Dictionary<Guid, Error>();
         public static Dictionary<string, string> HealthIdToAccessToken = new Dictionary<string, string>();
+        public static Dictionary<string, string> RequestIdToHipId = new Dictionary<string, string>();
         public static Dictionary<string, string> HealthIdToLatestVisitUuid = new Dictionary<string, string>();
         public static Dictionary<string, List<string>> HealthIdToPhoneNumber = new Dictionary<string, List<string>>();
         public static Dictionary<Guid, AuthNotifyStatus> TransactionIdToAuthNotifyStatus = new Dictionary<Guid, AuthNotifyStatus>();
@@ -30,6 +30,19 @@ namespace In.ProjectEKA.HipService.UserAuth
             {ErrorCode.ServerInternalError, StatusCodes.Status500InternalServerError},
             {ErrorCode.ConsentNotGranted, StatusCodes.Status504GatewayTimeout}
         };
+
+        // public static string ResolveHipIdForHealthId(string healthId, BahmniConfiguration bahmniConfiguration)
+        // {
+        //     var hipId = bahmniConfiguration.GetDefaultHfrId();
+        //     if (!string.IsNullOrEmpty(healthId)
+        //         && HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid))
+        //     {
+        //         var visitHipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+        //         if (!string.IsNullOrEmpty(visitHipId))
+        //             hipId = visitHipId;
+        //     }
+        //     return hipId;
+        // }
 
         public static void UpdateHealthIdToLatestVisitUuid(string healthId, string visitUuid)
         {
@@ -53,10 +66,9 @@ namespace In.ProjectEKA.HipService.UserAuth
             if (!HealthIdToPhoneNumber.TryGetValue(healthId, out var phoneEntries))
             {
                 phoneEntries = new List<string>();
-                HealthIdToPhoneNumber[healthId] = phoneEntries;
             }
-
             phoneEntries.Add(compositeEntry);
+            HealthIdToPhoneNumber[healthId] = phoneEntries;
         }
 
         public static string GetHealthIdByPhoneNumber(string phoneNumber)

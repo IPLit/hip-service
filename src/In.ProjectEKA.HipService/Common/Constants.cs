@@ -148,5 +148,6 @@ namespace In.ProjectEKA.HipService.Common
         public const string GATEWAY_AUTH = "gateway";
         public const string TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
 
+        public const string COMPOSITE_AUTH_KEY_SEPARATOR = "##:##";
     }
 }

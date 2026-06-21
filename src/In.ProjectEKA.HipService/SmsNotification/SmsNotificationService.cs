@@ -28,7 +28,7 @@ namespace In.ProjectEKA.HipService.SmsNotification
                     hipName = visitHipName;
             }
             var hip = new SmsNotifyHip(UrlEncoder.Default.Encode(hipName), UrlEncoder.Default.Encode(hipId));
-            var notification = new Model.SmsNotification(UrlEncoder.Default.Encode(smsNotifyRequest.phoneNo), hip);
+            var notification = new Model.SmsNotification(smsNotifyRequest.phoneNo, hip);
             Log.Information("SmsNotify hip: {name}, {id} of abha address {healthId}", hip.name, hip.id, healthId);
 
             return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(

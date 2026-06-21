@@ -91,26 +91,28 @@ namespace In.ProjectEKA.HipService.Link
             var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
             if (demographics != null)
                 UserAuthMap.UpdateHealthIdToPhoneNumber(demographics.PhoneNumber, healthId);
-            if (UserAuthMap.HealthIdToAccessToken.ContainsKey(healthId))
+            var compositeKey = healthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
+            if (UserAuthMap.HealthIdToAccessToken.ContainsKey(compositeKey))
             {
-                var linkToken = UserAuthMap.HealthIdToAccessToken[healthId];
+                var linkToken = UserAuthMap.HealthIdToAccessToken[compositeKey];
                 var error = userAuthService.CheckAccessToken(linkToken);
                 if (error == null)
                     return;
             }
-            var (linkTokenFromDb,exception) = await userAuthRepository.GetAccessToken(healthId);
+            var (linkTokenFromDb,exception) = await userAuthRepository.GetAccessToken(healthId, hipId);
             if (linkTokenFromDb != null)
             {
                  var error = userAuthService.CheckAccessToken(linkTokenFromDb);
                  if (error == null)
                  {
-                     UserAuthMap.HealthIdToAccessToken.Add(healthId, linkTokenFromDb);
+                     UserAuthMap.HealthIdToAccessToken.Add(compositeKey, linkTokenFromDb);
                      return;
                  }
             }
             var requestId = Guid.NewGuid();
             if (demographics == null)
                 return;
+            UserAuthMap.RequestIdToHipId.Add(requestId.ToString(), hipId);
             var generateTokenPayload = new GenerateLinkTokenRequest(demographics.HealthId, demographics.Name,
                 demographics.Gender, demographics.DateOfBirth.Split("-").First());
             
