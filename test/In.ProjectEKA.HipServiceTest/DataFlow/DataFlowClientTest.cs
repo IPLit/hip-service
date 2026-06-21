@@ -34,7 +34,8 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
                 ClientId = "IN0410000183",
                 ClientSecret = TestBuilder.RandomString()
             };
-            var bahmniConfiguration = new HipService.Common.Model.BahmniConfiguration
+            var openMrsClient = new Mock<IOpenMrsClient>();
+            var bahmniConfiguration = new HipService.Common.Model.BahmniConfiguration(openMrsClient.Object)
             {
                 Id = "HIP_ID_123"
             };
@@ -52,8 +53,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
                 new Entry(content, MediaTypeNames.Application.Json, checksum, "careContextReference")
             }.AsEnumerable();
             var expectedUri = new Uri("https://callback/data/notification");
-            var openMrsClient = new Mock<IOpenMrsClient>();
-            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object, openMrsClient.Object);
+            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object);
             handlerMock
                 .Protected()
                 .Setup<Task<HttpResponseMessage>>(
@@ -98,7 +98,8 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             {
                 ClientId = id
             };
-            var bahmniConfiguration = new HipService.Common.Model.BahmniConfiguration
+            var openMrsClient = new Mock<IOpenMrsClient>();
+            var bahmniConfiguration = new HipService.Common.Model.BahmniConfiguration(openMrsClient.Object)
             {
                 Id = "HIP_ID_123"
             };
@@ -107,8 +108,7 @@ namespace In.ProjectEKA.HipServiceTest.DataFlow
             Mock<GatewayClient> gatewayClient = new Mock<GatewayClient>(MockBehavior.Strict, null, null);
             var dataRequest = TestBuilder.TraceableDataRequest(TestBuilder.Faker().Random.Hash());
             var entries = new List<Entry>().AsEnumerable();
-            var openMrsClient = new Mock<IOpenMrsClient>();
-            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object, openMrsClient.Object);
+            var dataFlowClient = new DataFlowClient(httpClient, dataFlowNotificationClient.Object, configuration, bahmniConfiguration, gatewayClient.Object);
             var correlationId = Uuid.Generate().ToString();
             handlerMock
                 .Protected()

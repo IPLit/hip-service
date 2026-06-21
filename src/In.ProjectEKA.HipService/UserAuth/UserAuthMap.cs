@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.Link.Model;
@@ -16,6 +17,8 @@ namespace In.ProjectEKA.HipService.UserAuth
         public static Dictionary<Guid, AuthConfirmPatient> RequestIdToPatientDetails = new Dictionary<Guid, AuthConfirmPatient>();
         public static Dictionary<Guid, Error> RequestIdToErrorMessage = new Dictionary<Guid, Error>();
         public static Dictionary<string, string> HealthIdToAccessToken = new Dictionary<string, string>();
+        public static Dictionary<string, string> HealthIdToLatestVisitUuid = new Dictionary<string, string>();
+        public static Dictionary<string, string> PhoneNumberToHealthId = new Dictionary<string, string>();
         public static Dictionary<Guid, AuthNotifyStatus> TransactionIdToAuthNotifyStatus = new Dictionary<Guid, AuthNotifyStatus>();
         public static Dictionary<Guid, AuthConfirmPatient> TransactionIdToPatientDetails = new Dictionary<Guid, AuthConfirmPatient>();
         public static Dictionary<string, int> ErrorCodeToStatusCode = new Dictionary<string, int>()
@@ -25,5 +28,37 @@ namespace In.ProjectEKA.HipService.UserAuth
             {ErrorCode.ServerInternalError, StatusCodes.Status500InternalServerError},
             {ErrorCode.ConsentNotGranted, StatusCodes.Status504GatewayTimeout}
         };
+
+        public static void UpdateHealthIdToLatestVisitUuid(string healthId, string visitUuid)
+        {
+            if (string.IsNullOrEmpty(healthId) || string.IsNullOrEmpty(visitUuid))
+                return;
+
+            if (HealthIdToLatestVisitUuid.ContainsKey(healthId))
+                HealthIdToLatestVisitUuid[healthId] = visitUuid;
+            else
+                HealthIdToLatestVisitUuid.Add(healthId, visitUuid);
+        }
+
+        public static void UpdatePhoneNumberToHealthId(string phoneNumber, string healthId)
+        {
+            if (string.IsNullOrEmpty(phoneNumber) || string.IsNullOrEmpty(healthId))
+                return;
+
+            var normalizedPhone = NormalizePhoneNumber(phoneNumber);
+            if (PhoneNumberToHealthId.ContainsKey(normalizedPhone))
+                PhoneNumberToHealthId[normalizedPhone] = healthId;
+            else
+                PhoneNumberToHealthId.Add(normalizedPhone, healthId);
+        }
+
+        public static string NormalizePhoneNumber(string phoneNumber)
+        {
+            if (string.IsNullOrEmpty(phoneNumber))
+                return phoneNumber;
+
+            var digitsOnly = new string(phoneNumber.Where(char.IsDigit).ToArray());
+            return digitsOnly.Length >= 10 ? digitsOnly[^10..] : digitsOnly;
+        }
     }
 }

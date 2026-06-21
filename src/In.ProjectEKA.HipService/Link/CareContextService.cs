@@ -9,11 +9,9 @@ using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.Gateway;
 using In.ProjectEKA.HipService.Link.Model;
 using In.ProjectEKA.HipService.Logger;
-using In.ProjectEKA.HipService.OpenMrs;
 using In.ProjectEKA.HipService.UserAuth;
 using In.ProjectEKA.HipService.UserAuth.Model;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
 using Optional.Unsafe;
 
 namespace In.ProjectEKA.HipService.Link
@@ -31,10 +29,9 @@ namespace In.ProjectEKA.HipService.Link
         private readonly IOptions<HipConfiguration> hipConfiguration;
         private readonly IGatewayClient gatewayClient;
         private readonly GatewayConfiguration gatewayConfiguration;
-        private readonly IOpenMrsClient openMrsClient;
         public CareContextService(HttpClient httpClient, IUserAuthRepository userAuthRepository,
             BahmniConfiguration bahmniConfiguration, ILinkPatientRepository linkPatientRepository, LinkPatient linkPatient, IOptions<HipConfiguration> hipConfiguration, IGatewayClient gatewayClient, GatewayConfiguration gatewayConfiguration,
-            IUserAuthService userAuthService, IOpenMrsClient openMrsClient)
+            IUserAuthService userAuthService)
         {
             this.httpClient = httpClient;
             this.userAuthRepository = userAuthRepository;
@@ -45,7 +42,6 @@ namespace In.ProjectEKA.HipService.Link
             this.gatewayClient = gatewayClient;
             this.gatewayConfiguration = gatewayConfiguration;
             this.userAuthService = userAuthService;
-            this.openMrsClient = openMrsClient;
         }
 
         public async Task<Tuple<GatewayAddContextsRequestRepresentation, ErrorRepresentation>> AddContextsResponse(
@@ -113,6 +109,8 @@ namespace In.ProjectEKA.HipService.Link
             if (demographics == null)
                 return;
 
+            UserAuthMap.UpdatePhoneNumberToHealthId(demographics.PhoneNumber, healthId);
+
             // Log.Information("PATH_GENERATE_TOKEN request params: HealthId {0}, Name {1}, Gender {2}, DateOfBirth {3}", 
                 // demographics.HealthId, demographics.Name, demographics.Gender, demographics.DateOfBirth);
 
@@ -152,12 +150,12 @@ namespace In.ProjectEKA.HipService.Link
             var careContextReference = context.ReferenceNumber;
             var hiTypes = context.HiTypes.Select(hiType => hiType.ToString()).ToList();
             // Extract visit UUID from care context reference (format: "patientId:visitUuid")
-            var visitUuid = ExtractVisitUuidFromReference(careContextReference);
+            var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(careContextReference);
             var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             if (string.IsNullOrEmpty(hipId))
             {
                 Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
-                var hfrId = await SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                var hfrId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(hfrId))
                 {
                     hipId = hfrId;
@@ -186,12 +184,12 @@ namespace In.ProjectEKA.HipService.Link
             
             var cmSuffix = gatewayConfiguration.CmSuffix;
             // Extract visit UUID from care context reference
-            var visitUuid = ExtractVisitUuidFromReference(context.ReferenceNumber);
+            var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(context.ReferenceNumber);
             var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             if (string.IsNullOrEmpty(hipId))
             {
                 Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
-                var hfrId = await SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                var hfrId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(hfrId))
                 {
                     hipId = hfrId;
@@ -204,6 +202,7 @@ namespace In.ProjectEKA.HipService.Link
             }
             try
             {
+                UserAuthMap.UpdateHealthIdToLatestVisitUuid(newContextRequest.HealthId, visitUuid);
                 Log.Information(
                     "Request for notification-contexts to gateway: {@GatewayResponse}",
                     gatewayNotificationContextRepresentation.dump(gatewayNotificationContextRepresentation));
@@ -222,13 +221,14 @@ namespace In.ProjectEKA.HipService.Link
             var abhaAddress = newContextRequest.HealthId;
             // Extract visit UUID from first care context (if available)
             var visitUuid = newContextRequest.CareContexts?.First() != null 
-                ? ExtractVisitUuidFromReference(newContextRequest.CareContexts.First().ReferenceNumber)
+                ? bahmniConfiguration.ExtractVisitUuidFromReference(newContextRequest.CareContexts.First().ReferenceNumber)
                 : null;
+            UserAuthMap.UpdateHealthIdToLatestVisitUuid(abhaAddress, visitUuid);
             string hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             if (string.IsNullOrEmpty(hipId))
             {
                 Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
-                var hfrId = await SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                var hfrId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(hfrId))
                 {
                     hipId = hfrId;
@@ -271,119 +271,6 @@ namespace In.ProjectEKA.HipService.Link
         public bool IsLinkedContext(List<string> careContexts, string context)
         {
             return careContexts.Any(careContext => careContext.Equals(context));
-        }
-
-        /// <summary>
-        /// Extracts visit UUID from care context reference number
-        /// Care context reference format is typically "patientId:visitUuid"
-        /// </summary>
-        private string ExtractVisitUuidFromReference(string careContextReference)
-        {
-            if (string.IsNullOrEmpty(careContextReference))
-                return null;
-
-            var parts = careContextReference.Split(':');
-            // If reference contains ":", assume format is "patientId:visitUuid" and return the second part
-            if (parts.Length >= 2)
-            {
-                return parts[1];
-            }
-            // If no ":" found, the reference itself might be the visit UUID
-            return careContextReference;
-        }
-        
-        private async Task<string> SetHfrIdForVisitAsync(string visitUuid)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(visitUuid))
-                {
-                    Log.Error("SetHfrIdForVisitAsync: visitUuid is null or empty");
-                    return null;
-                }
-                Log.Information($"SetHfrIdForVisitAsync: Retrieving HFR ID for visit UUID: {visitUuid}");
-                // Get visit from OpenMRS with full representation to include location details
-                var visitPath = $"ws/rest/v1/visit/{visitUuid}";
-                var visitResponse = await openMrsClient.GetAsync(visitPath);
-                if (visitResponse == null || !visitResponse.IsSuccessStatusCode)
-                {
-                    Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve visit {visitUuid} from OpenMRS. Status: {visitResponse?.StatusCode}");
-                    return null;
-                }
-                var visitContent = await visitResponse.Content.ReadAsStringAsync();
-                var visitJson = JObject.Parse(visitContent);
-                // Extract location UUID from visit
-                var locationRef = visitJson["location"]?["uuid"]?.ToString();
-                if (string.IsNullOrEmpty(locationRef))
-                {
-                    Log.Error($"SetHfrIdForVisitAsync: Visit {visitUuid} does not have a location");
-                    return null;
-                }
-                Log.Information($"SetHfrIdForVisitAsync: Visit location UUID: {locationRef}");
-                // Get location details with attributes to find HFR ID
-                var locationPath = $"ws/rest/v1/location/{locationRef}?v=full";
-                var locationResponse = await openMrsClient.GetAsync(locationPath);
-                if (locationResponse == null || !locationResponse.IsSuccessStatusCode)
-                {
-                    Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve location {locationRef} from OpenMRS. Status: {locationResponse?.StatusCode}");
-                    return null;
-                }
-                var locationContent = await locationResponse.Content.ReadAsStringAsync();
-                var locationJson = JObject.Parse(locationContent);
-                // Find HFR ID and HFR Name from location attributes
-                string hfrId = null;
-                string facilityName = null;
-                var attributes = locationJson["attributes"] as JArray;
-                if (attributes != null)
-                {
-                    foreach (var attribute in attributes)
-                    {
-                        var attributeType = attribute["attributeType"]?["display"]?.ToString() ?? 
-                                          attribute["attributeType"]?["name"]?.ToString();
-                        if (attributeType != null)
-                        {
-                            // Extract HFR ID
-                            if ((attributeType.Equals("ABDM HFR ID", StringComparison.OrdinalIgnoreCase) ||
-                                 attributeType.Contains("HFR ID", StringComparison.OrdinalIgnoreCase)))
-                            {
-                                hfrId = attribute["value"]?.ToString();
-                                if (!string.IsNullOrEmpty(hfrId))
-                                {
-                                    Log.Information($"SetHfrIdForVisitAsync: Found HFR ID: {hfrId} for location {locationRef}");
-                                }
-                            }
-                            // Extract ABDM HFR Name
-                            if ((attributeType.Equals("ABDM HFR Name", StringComparison.OrdinalIgnoreCase) ||
-                                attributeType.Contains("HFR Name", StringComparison.OrdinalIgnoreCase)))
-                            {
-                                facilityName = attribute["value"]?.ToString();
-                                if (!string.IsNullOrEmpty(facilityName))
-                                {
-                                    Log.Information($"SetHfrIdForVisitAsync: Found ABDM HFR Name: {facilityName} for location {locationRef}");
-                                }
-                            }
-                        }
-                    }
-                }
-                if (string.IsNullOrEmpty(hfrId))
-                {
-                    Log.Information($"SetHfrIdForVisitAsync: WARNING - HFR ID not found in location {locationRef} attributes");
-                    return null;
-                }
-                // Store HFR ID in cache for this visit UUID
-                bahmniConfiguration.SetHfrIdForVisit(visitUuid, hfrId);
-                Log.Information($"SetHfrIdForVisitAsync: Successfully stored HFR ID {hfrId} for visit UUID {visitUuid}");
-                
-                // Store facility name in cache for this visit UUID
-                bahmniConfiguration.SetFacilityNameForVisit(visitUuid, facilityName);
-                Log.Information($"SetHfrIdForVisitAsync: Successfully stored facility name {facilityName} for visit UUID {visitUuid}");
-                return hfrId;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, $"SetHfrIdForVisitAsync: Error processing request: {ex.Message}");
-                return null;
-            }
         }
 
     }
