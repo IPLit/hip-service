@@ -44,17 +44,21 @@ namespace In.ProjectEKA.HipServiceTest.Link
             var resp = new Resp("123");
             var correlationId = Uuid.Generate().ToString();
             var linkConfirmationRepresentation =
-                new LinkConfirmationRepresentation("1234", "qwqwqw", careContexts, "Prescription", 1);
+                new CareContextLinkRequest("anc", "xyz", "Prescription");
 
             var gatewayAddContextsRequestRepresentation =
-                new GatewayAddContextsRequestRepresentation("doctest@sbx",new List<LinkConfirmationRepresentation>(){linkConfirmationRepresentation});
+                new GatewayAddContextsRequestRepresentation(
+                    requestId.ToString(),
+                    "1212",
+                    "doctest@sbx",
+                    new List<CareContextLinkRequest> { linkConfirmationRepresentation });
 
             var onAddContextRequest =
                 new HipLinkContextConfirmation( "doctest@sbx","Successfully Linked care context", error,
                     resp);
             var addContextRequest = new NewContextRequest("abc", "pqr", careContexts, "abcd@sbx");
 
-            careContextService.Setup(a => a.AddContextsResponse(addContextRequest,"sbx",requestId))
+            careContextService.Setup(a => a.AddContextsResponse(addContextRequest,"sbx",requestId, "1212"))
                 .Returns(Task.FromResult(new Tuple<GatewayAddContextsRequestRepresentation, ErrorRepresentation>
                     (gatewayAddContextsRequestRepresentation, null)));
 
