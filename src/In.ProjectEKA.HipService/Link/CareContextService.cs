@@ -150,8 +150,8 @@ namespace In.ProjectEKA.HipService.Link
                 if (UserAuthMap.RequestIdToAccessToken.ContainsKey(requestId))
                 {
                     Log.Information(
-                        "Response about to be send for requestId: {RequestId} with accessToken: {AccessToken}",
-                        requestId, UserAuthMap.RequestIdToAccessToken[requestId]
+                        "Response about to be send for requestId: {RequestId} and HealthId: {HealthId}",
+                        requestId, demographics.HealthId
                     );
                     break;
                 }

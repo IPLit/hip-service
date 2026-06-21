@@ -28,7 +28,7 @@ namespace In.ProjectEKA.HipService.SmsNotification
             }
             var hip = new SmsNotifyHip(hipName, hipId);
             var notification = new Model.SmsNotification(smsNotifyRequest.phoneNo, hip);
-            Log.Information($"SmsNotify for hip: {notification} of abha address {healthId}");
+            Log.Information("SmsNotify hip: {hip} of abha address {healthId}", hip.ToString(), healthId);
 
             return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(
                 new GatewaySmsNotifyRequestRepresentation(notification), null);
