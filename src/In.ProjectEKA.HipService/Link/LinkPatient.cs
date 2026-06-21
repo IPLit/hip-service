@@ -1,4 +1,5 @@
 using In.ProjectEKA.HipService.Common.Model;
+using System.Text.Encodings.Web;
 using In.ProjectEKA.HipService.OpenMrs;
 using In.ProjectEKA.HipService.UserAuth;
 using In.ProjectEKA.HipService.UserAuth.Model;
@@ -102,6 +103,7 @@ namespace In.ProjectEKA.HipService.Link
                 {
                     hipName = bahmniConfiguration.GetDefaultFacilityName();
                 }
+                hipName = UrlEncoder.Default.Encode(hipName);
 
                 var (_, exception) = await linkPatientRepository.SaveRequestWith(
                     linkRefNumber,

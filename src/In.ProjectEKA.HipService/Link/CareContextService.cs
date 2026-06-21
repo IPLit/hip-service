@@ -280,7 +280,7 @@ namespace In.ProjectEKA.HipService.Link
                     gatewayAddContextsRequestRepresentation.dump(gatewayAddContextsRequestRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ADD_PATIENT_CONTEXTS,
                     gatewayAddContextsRequestRepresentation,
-                    cmSuffix, null, hipId:hipId, linkToken:linkToken, requestId: requestId.ToString());
+                    cmSuffix, Guid.NewGuid().ToString(), hipId:hipId, linkToken:linkToken, requestId: requestId.ToString());
             }
             catch (Exception exception)
             {

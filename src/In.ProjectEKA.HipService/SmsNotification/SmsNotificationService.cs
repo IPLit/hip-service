@@ -1,4 +1,5 @@
 using System;
+using System.Text.Encodings.Web;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.Common.Model;
@@ -26,9 +27,9 @@ namespace In.ProjectEKA.HipService.SmsNotification
                 if (!string.IsNullOrEmpty(visitHipName))
                     hipName = visitHipName;
             }
-            var hip = new SmsNotifyHip(hipName, hipId);
-            var notification = new Model.SmsNotification(smsNotifyRequest.phoneNo, hip);
-            Log.Information("SmsNotify hip: {hip} of abha address {healthId}", hip.ToString(), healthId);
+            var hip = new SmsNotifyHip(UrlEncoder.Default.Encode(hipName), UrlEncoder.Default.Encode(hipId));
+            var notification = new Model.SmsNotification(UrlEncoder.Default.Encode(smsNotifyRequest.phoneNo), hip);
+            Log.Information("SmsNotify hip: {name}, {id} of abha address {healthId}", hip.name, hip.id, healthId);
 
             return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(
                 new GatewaySmsNotifyRequestRepresentation(notification), null);

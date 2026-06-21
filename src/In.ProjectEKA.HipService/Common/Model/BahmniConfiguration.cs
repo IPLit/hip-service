@@ -106,7 +106,6 @@ namespace In.ProjectEKA.HipService.Common.Model
             {
                 return parts[1];
             }
-
             return careContextReference;
         }
 
