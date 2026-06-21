@@ -1,26 +1,19 @@
 using System;
 using System.Collections.Generic;
+using In.ProjectEKA.HipLibrary.Patient.Model;
 using Newtonsoft.Json;
 
 namespace In.ProjectEKA.HipService.Link.Model
 {
     public class GatewayAddContextsRequestRepresentation
     {
-        public string RequestId { get; }
-        public string RequesterId { get; }
         public string AbhaAddress { get; }
-        public IEnumerable<CareContextLinkRequest> CareContexts { get; }
-
-        public GatewayAddContextsRequestRepresentation(
-            string requestId,
-            string requesterId,
-            string abhaAddress,
-            IEnumerable<CareContextLinkRequest> careContexts)
+        public IEnumerable<LinkConfirmationRepresentation> Patient { get; }
+        
+        public GatewayAddContextsRequestRepresentation(string abhaAddress, IEnumerable <LinkConfirmationRepresentation> patient)
         {
-            RequestId = requestId;
-            RequesterId = requesterId;
             AbhaAddress = abhaAddress;
-            CareContexts = careContexts;
+            Patient = patient;
         }
 
         public string dump(Object o)

@@ -45,8 +45,9 @@ namespace In.ProjectEKA.HipService.Link
         }
 
         public async Task<Tuple<GatewayAddContextsRequestRepresentation, ErrorRepresentation>> AddContextsResponse(
-            NewContextRequest addContextsRequest, string cmSuffix, Guid requestId, string hipId)
+            NewContextRequest addContextsRequest, string cmSuffix, Guid requestId)
         {
+            var careContexts = addContextsRequest.CareContexts;
             var abhaAddress = addContextsRequest.HealthId;
             var linkReferenceNumber = Guid.NewGuid().ToString();
             
@@ -57,11 +58,17 @@ namespace In.ProjectEKA.HipService.Link
             var careContextReferenceNumbers = addContextsRequest.CareContexts
                 .Select(context => context.ReferenceNumber)
                 .ToArray();
-            var careContextLinks = BuildCareContextLinkRequests(addContextsRequest.CareContexts);
-            if (!careContextLinks.Any())
-                return new Tuple<GatewayAddContextsRequestRepresentation, ErrorRepresentation>
-                    (null, new ErrorRepresentation(new Error(ErrorCode.CareContextNotFound,
-                        ErrorMessage.CareContextNotFound)));
+            var linkConfirmationRepresentations = careContexts
+                .Where(cc => cc.HiTypes != null && cc.HiTypes.Any())
+                .SelectMany(cc => cc.HiTypes.Select(hiType => new { HiType = hiType, CareContext = cc }))
+                .GroupBy(x => x.HiType)
+                .Select(group => new LinkConfirmationRepresentation(addContextsRequest.PatientReferenceNumber,
+                    addContextsRequest.PatientName,
+                    group.Select(x => new CareContextRepresentation(x.CareContext.ReferenceNumber, x.CareContext.Display))
+                        .ToList(),
+                    group.Key.ToString(),
+                    group.Count()))
+                .ToList();
             var (_, exception1) = await linkPatientRepository.SaveRequestWith(
                     linkReferenceNumber,
                     cmSuffix,
@@ -75,35 +82,8 @@ namespace In.ProjectEKA.HipService.Link
                     ErrorMessage.DatabaseStorageError)));
             return new Tuple<GatewayAddContextsRequestRepresentation, ErrorRepresentation>
                 (new GatewayAddContextsRequestRepresentation(
-                    requestId.ToString(),
-                    hipId,
                     abhaAddress,
-                    careContextLinks), null);
-        }
-
-        private List<CareContextLinkRequest> BuildCareContextLinkRequests(
-            IEnumerable<CareContextRepresentation> careContexts)
-        {
-            var careContextLinks = new List<CareContextLinkRequest>();
-            foreach (var careContext in careContexts)
-            {
-                if (careContext.HiTypes != null && careContext.HiTypes.Any())
-                {
-                    careContextLinks.AddRange(careContext.HiTypes.Select(hiType =>
-                        new CareContextLinkRequest(
-                            careContext.ReferenceNumber,
-                            careContext.Display,
-                            hiType.ToString())));
-                }
-                else
-                {
-                    careContextLinks.Add(new CareContextLinkRequest(
-                        careContext.ReferenceNumber,
-                        careContext.Display,
-                        HiType.OPConsultation.ToString()));
-                }
-            }
-            return careContextLinks;
+                    linkConfirmationRepresentations), null);
         }
         
         public async Task SetAccessToken(string healthId, string hipId)
@@ -267,7 +247,7 @@ namespace In.ProjectEKA.HipService.Link
             var cmSuffix = gatewayConfiguration.CmSuffix;
             var requestId = Guid.NewGuid();
             var (gatewayAddContextsRequestRepresentation, error) =
-                await AddContextsResponse(newContextRequest, cmSuffix, requestId, hipId);
+                await AddContextsResponse(newContextRequest, cmSuffix, requestId);
             if (error != null)
             {
                 Log.Error("Linking Care Context failed with error: {@Error}", error);
