@@ -50,7 +50,6 @@ namespace In.ProjectEKA.HipService.Consent
         public async Task StoreConsent(ConsentArtefactRepresentation consentArtefact, String correlationId, String requestId)
         {
             var notification = consentArtefact.Notification;
-
             if (notification.Status == ConsentStatus.GRANTED)
             {
                 var consent = new Consent(notification.ConsentDetail.ConsentId,
@@ -69,8 +68,6 @@ namespace In.ProjectEKA.HipService.Consent
             else
             {
                 await consentRepository.UpdateAsync(notification.ConsentId, notification.Status);
-                if (notification.Status == ConsentStatus.REVOKED)
-                {
                     var consent = await consentRepository.GetFor(notification.ConsentId);
                     if (consent != null)
                     {
@@ -81,7 +78,6 @@ namespace In.ProjectEKA.HipService.Consent
                             new Resp(requestId));
                         await gatewayClient.SendDataToGateway(PATH_CONSENT_ON_NOTIFY, gatewayResponse, cmSuffix, correlationId);
                     }
-                }
             }
         }
     }
