@@ -1,3 +1,4 @@
+using In.ProjectEKA.HipService.Logger;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -101,6 +102,8 @@ namespace In.ProjectEKA.HipService.Creation
                     {
                         EnrollByAadhaarResponse enrollByAadhaarResponse =
                             JsonConvert.DeserializeObject<EnrollByAadhaarResponse>(responseContent);
+                        Log.Debug("EnrollByAadhaarResponse {@response}", enrollByAadhaarResponse);
+                        TxnDictionary[sessionId] = enrollByAadhaarResponse?.TxnId;
                         HealthIdNumberTokenDictionary[sessionId] =
                             new TokenRequest(enrollByAadhaarResponse?.Tokens.Token);
                         return Ok(new AadhaarOTPVerifyAndCreateABHAResponse(enrollByAadhaarResponse.Message,
