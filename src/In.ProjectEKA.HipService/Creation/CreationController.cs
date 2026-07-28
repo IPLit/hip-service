@@ -222,6 +222,7 @@ namespace In.ProjectEKA.HipService.Creation
                     {
                         var addressSuggestionsResponse =
                             JsonConvert.DeserializeObject<ABHAAddressSuggestionResponse>(responseContent);
+                        TxnDictionary[sessionId] = addressSuggestionsResponse?.txnId;
                         return Ok(new ABHAAddressSuggestionResponse(addressSuggestionsResponse.abhaAddressList));
                     }
 
@@ -282,7 +283,7 @@ namespace In.ProjectEKA.HipService.Creation
                     gatewayConfiguration.AbhaNumberServiceUrl, GET_ABHA_CARD,
                     null, correlationId,
                     $"{HealthIdNumberTokenDictionary[sessionId].tokenType} {HealthIdNumberTokenDictionary[sessionId].token}");
-                var stream = await response.Content.ReadAsStreamAsync();
+                var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 return File(stream, "image/png");
             }
             catch (Exception exception)
