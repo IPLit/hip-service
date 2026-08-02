@@ -15,7 +15,7 @@ namespace In.ProjectEKA.HipService.DataFlow
     {
         private readonly DataFlowNotificationClient dataFlowNotificationClient;
         private readonly GatewayConfiguration gatewayConfiguration;
-        private HipService.Common.Model.BahmniConfiguration bahmniConfiguration;
+        private readonly HipService.Common.Model.BahmniConfiguration bahmniConfiguration;
         private readonly HttpClient httpClient;
         private readonly GatewayClient gatewayClient;
         private static readonly string MEDIA_APPLICATION_FHIR_JSON = "application/fhir+json";

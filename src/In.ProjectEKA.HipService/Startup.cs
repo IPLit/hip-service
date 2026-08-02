@@ -80,6 +80,7 @@ namespace In.ProjectEKA.HipService
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddHttpClient();
             services
                 .AddDbContext<LinkPatientContext>(options =>
                     options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection"),

@@ -97,7 +97,9 @@ namespace In.ProjectEKA.HipService.Creation
                            gatewayConfiguration.AbhaNumberServiceUrl, ENROLLMENT_BY_AADHAAR,
                            new ABHAEnrollByAadhaarRequest(txnId, encryptedOTP, mobile), correlationId))
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var responseContent = response.Content == null
+                        ? null
+                        : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
                     {
                         EnrollByAadhaarResponse enrollByAadhaarResponse =
@@ -286,12 +288,15 @@ namespace In.ProjectEKA.HipService.Creation
                     gatewayConfiguration.AbhaNumberServiceUrl, GET_ABHA_CARD,
                     null, correlationId,
                     $"{HealthIdNumberTokenDictionary[sessionId].tokenType} {HealthIdNumberTokenDictionary[sessionId].token}");
-                var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var stream = response?.Content == null
+                    ? null
+                    : await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                logger.LogDebug(LogEvents.Creation, $"Info for Abha-card generation with user token {HealthIdNumberTokenDictionary[sessionId].token} ");
                 return File(stream, "image/png");
             }
             catch (Exception exception)
             {
-                logger.LogError(LogEvents.Creation, exception, "Error happened for Abha-card generation");
+                logger.LogError(LogEvents.Creation, exception, $"Error happened for Abha-card generation with user token {HealthIdNumberTokenDictionary[sessionId].token}");
             }
 
             return StatusCode(StatusCodes.Status500InternalServerError);
