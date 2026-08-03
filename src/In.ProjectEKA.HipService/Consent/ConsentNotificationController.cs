@@ -36,12 +36,10 @@ namespace In.ProjectEKA.HipService.Consent
         [HttpPost(PATH_CONSENTS_HIP)]
         public AcceptedResult ConsentNotification(
             [FromHeader(Name = CORRELATION_ID)] string correlationId,
-            [FromHeader(Name = REQUEST_ID)] string requestId,
+            [FromHeader(Name = REQUEST_ID), Required] string requestId,
             [FromHeader(Name = TIMESTAMP)] string timestamp,
             [FromBody] ConsentArtefactRepresentation consentArtefact)
         {
-            requestId = String.IsNullOrEmpty(requestId) ? Guid.NewGuid().ToString() : requestId;
-            correlationId = String.IsNullOrEmpty(correlationId) ? Guid.NewGuid().ToString() : correlationId;
             backgroundJob.Enqueue(() => StoreConsent(consentArtefact, correlationId, requestId));
             return Accepted();
         }
@@ -68,6 +66,8 @@ namespace In.ProjectEKA.HipService.Consent
             else
             {
                 await consentRepository.UpdateAsync(notification.ConsentId, notification.Status);
+                if (notification.Status == ConsentStatus.REVOKED)
+                {
                     var consent = await consentRepository.GetFor(notification.ConsentId);
                     if (consent != null)
                     {
@@ -78,6 +78,7 @@ namespace In.ProjectEKA.HipService.Consent
                             new Resp(requestId));
                         await gatewayClient.SendDataToGateway(PATH_CONSENT_ON_NOTIFY, gatewayResponse, cmSuffix, correlationId);
                     }
+                }
             }
         }
     }
