@@ -181,8 +181,8 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
             };
             var patient = new AuthConfirmPatient("hinapatel@sbx", "Hina Patel", "F", 1998,1,1,
                 address, identifiers);
-            UserAuthMap.RequestIdToAccessToken.Add(requestId, "12");
-            UserAuthMap.RequestIdToPatientDetails.Add(requestId, patient);
+            UserAuthMap.RequestIdToAccessToken[requestId] = "12";
+            UserAuthMap.RequestIdToPatientDetails[requestId] = patient;
             var correlationId = Uuid.Generate().ToString();
 
             userAuthService.Setup(a => a.AuthConfirm(authConfirmRequest, correlationId,gatewayConfiguration))

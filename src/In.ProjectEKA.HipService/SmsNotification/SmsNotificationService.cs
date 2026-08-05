@@ -18,7 +18,7 @@ namespace In.ProjectEKA.HipService.SmsNotification
 
             var healthId = UserAuthMap.GetHealthIdByPhoneNumber(smsNotifyRequest.phoneNo);
             if (!string.IsNullOrEmpty(healthId)
-                && UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid))
+                && UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid) && !string.IsNullOrEmpty(visitUuid))
             {
                 var visitHipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
                 var visitHipName = bahmniConfiguration.GetFacilityNameByVisitUuid(visitUuid);
@@ -26,13 +26,16 @@ namespace In.ProjectEKA.HipService.SmsNotification
                     hipId = visitHipId;
                 if (!string.IsNullOrEmpty(visitHipName))
                     hipName = visitHipName;
-            }
-            var hip = new SmsNotifyHip(UrlEncoder.Default.Encode(hipName), UrlEncoder.Default.Encode(hipId));
-            var notification = new Model.SmsNotification(smsNotifyRequest.phoneNo, hip);
-            Log.Information("SmsNotify hip: {name}, {id} of abha address {healthId}", hip.name, hip.id, healthId);
+            
+                var hip = new SmsNotifyHip(UrlEncoder.Default.Encode(hipName), UrlEncoder.Default.Encode(hipId));
+                var notification = new Model.SmsNotification(smsNotifyRequest.phoneNo, hip);
+                Log.Information("SmsNotify hip: {name}, {id} of abha address {healthId}", hip.name, hip.id, healthId);
 
-            return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(
+                return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(
                 new GatewaySmsNotifyRequestRepresentation(notification), null);
+            }
+            return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(null,
+                new ErrorRepresentation(new Error(ErrorCode.BadRequest, "No details found for the given phone number " + smsNotifyRequest.phoneNo)));
 
         }
     }

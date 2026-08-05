@@ -98,15 +98,7 @@ namespace In.ProjectEKA.HipService.UserAuth
                             "Response about to be send for requestId: {RequestId} with transactionId: {TransactionId}",
                             requestId, UserAuthMap.RequestIdToTransactionIdMap[requestId]
                         );
-                        if (UserAuthMap.HealthIdToTransactionId.ContainsKey(authInitRequest.healthId))
-                        {
-                            UserAuthMap.HealthIdToTransactionId[authInitRequest.healthId] = UserAuthMap.RequestIdToTransactionIdMap[requestId];
-                        }
-                        else
-                        {
-                            UserAuthMap.HealthIdToTransactionId.Add(authInitRequest.healthId,
-                                UserAuthMap.RequestIdToTransactionIdMap[requestId]);
-                        }
+                        UserAuthMap.HealthIdToTransactionId[authInitRequest.healthId] = UserAuthMap.RequestIdToTransactionIdMap[requestId];
                         return null;
                     }
 
@@ -303,19 +295,18 @@ namespace In.ProjectEKA.HipService.UserAuth
                 return authConfirmResponse;
             var authConfirm = authConfirmResponse.Item1;
 
-            UserAuthMap.HealthIdToTransactionId.Remove(healthId);
+            UserAuthMap.HealthIdToTransactionId.TryRemove(healthId, out _);
             var requestId = Guid.Parse(onAuthConfirmRequest.resp.RequestId);
-            UserAuthMap.RequestIdToAccessToken.Add(requestId, accessToken);
-            if (UserAuthMap.HealthIdToAccessToken.ContainsKey(healthId))
+            UserAuthMap.RequestIdToAccessToken[requestId] = accessToken;
+            var hipId = bahmniConfiguration.GetDefaultHfrId();
+            if (UserAuthMap.RequestIdToHipId.ContainsKey(requestId.ToString()))
             {
-                UserAuthMap.HealthIdToAccessToken[healthId] = accessToken;
+                hipId = UserAuthMap.RequestIdToHipId[requestId.ToString()];
             }
-            else
-            {
-                UserAuthMap.HealthIdToAccessToken.Add(healthId, accessToken);
-            }
+            var compositeKey = healthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
+            UserAuthMap.HealthIdToAccessToken[compositeKey] = accessToken;
 
-            UserAuthMap.RequestIdToPatientDetails.Add(requestId, onAuthConfirmRequest.auth.patient);
+            UserAuthMap.RequestIdToPatientDetails[requestId] = onAuthConfirmRequest.auth.patient;
             return new Tuple<AuthConfirm, ErrorRepresentation>(authConfirm, null);
         }
 
@@ -328,7 +319,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             UserAuthMap.TransactionIdToAuthNotifyStatus.Add(Guid.Parse(request.auth.transactionId),request.auth.status);
             if (request.auth.status == AuthNotifyStatus.GRANTED)
             {
-                UserAuthMap.TransactionIdToPatientDetails.Add(Guid.Parse(request.auth.transactionId), request.auth.patient);
+                UserAuthMap.TransactionIdToPatientDetails[Guid.Parse(request.auth.transactionId)] = request.auth.patient;
                 var healthId = request.auth.patient.id;
                 await SaveAuthConfirm(healthId, request.auth.accessToken).ConfigureAwait(false);
             }
@@ -405,15 +396,8 @@ namespace In.ProjectEKA.HipService.UserAuth
                 }
             }
             var compositeKey = healthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
-            UserAuthMap.RequestIdToAccessToken.Add(requestId, accessToken);
-            if (UserAuthMap.HealthIdToAccessToken.ContainsKey(compositeKey))
-            {
-                UserAuthMap.HealthIdToAccessToken[compositeKey] = accessToken;
-            }
-            else
-            {
-                UserAuthMap.HealthIdToAccessToken.Add(compositeKey, accessToken);
-            }
+            UserAuthMap.RequestIdToAccessToken[requestId] = accessToken;
+            UserAuthMap.HealthIdToAccessToken[compositeKey] = accessToken;
         }
 
         private async Task<Tuple<AuthConfirm, ErrorRepresentation>> updateAuthConfirmRepository(string healthId, string accessToken, string hipId)

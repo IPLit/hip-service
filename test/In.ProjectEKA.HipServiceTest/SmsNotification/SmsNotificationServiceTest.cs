@@ -13,7 +13,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
     {
         public SmsNotificationServiceTest()
         {
-            UserAuthMap.HealthIdToPhoneNumber.Clear();
+            UserAuthMap.PhoneNumberToHealthId.Clear();
             UserAuthMap.HealthIdToLatestVisitUuid.Clear();
         }
 

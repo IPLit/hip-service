@@ -105,14 +105,14 @@ namespace In.ProjectEKA.HipService.Link
                  var error = userAuthService.CheckAccessToken(linkTokenFromDb);
                  if (error == null)
                  {
-                     UserAuthMap.HealthIdToAccessToken.Add(compositeKey, linkTokenFromDb);
+                     UserAuthMap.HealthIdToAccessToken[compositeKey] = linkTokenFromDb;
                      return;
                  }
             }
             var requestId = Guid.NewGuid();
             if (demographics == null)
                 return;
-            UserAuthMap.RequestIdToHipId.Add(requestId.ToString(), hipId);
+            UserAuthMap.RequestIdToHipId[requestId.ToString()] = hipId;
             var generateTokenPayload = new GenerateLinkTokenRequest(demographics.HealthId, demographics.Name,
                 demographics.Gender, demographics.DateOfBirth.Split("-").First());
             

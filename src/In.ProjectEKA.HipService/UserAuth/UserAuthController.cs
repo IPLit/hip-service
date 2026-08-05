@@ -170,7 +170,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             else if (request.Auth != null)
             {
                 string transactionId = request.Auth.TransactionId;
-                RequestIdToTransactionIdMap.Add(Guid.Parse(request.Resp.RequestId), transactionId);
+                RequestIdToTransactionIdMap[Guid.Parse(request.Resp.RequestId)] = transactionId;
             }
 
             logger.Log(LogLevel.Information,
