@@ -29,16 +29,16 @@ namespace In.ProjectEKA.HipService.OpenMrs
                     $"Getting the data from OpenMrs url {responseMessage.RequestMessage.RequestUri}");
             if (!responseMessage.IsSuccessStatusCode)
             {
-                if (!responseMessage.StatusCode.Equals(HttpStatusCode.BadRequest))
+                if (responseMessage.StatusCode.Equals(HttpStatusCode.BadRequest) || responseMessage.StatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    var error = await responseMessage.Content.ReadAsStringAsync();
-                    Log.Error($"Failure in getting the data from OpenMrs url {responseMessage.RequestMessage.RequestUri} with status code {responseMessage.StatusCode}" +
-                    $" {error}");
+                    // var error = await responseMessage.Content.ReadAsStringAsync();
+                    Log.Error($"Failure in getting the data from OpenMrs url {responseMessage.RequestMessage.RequestUri} with status code {responseMessage.StatusCode}");
+                }
+                else {
+                    Log.Error($"Failure in getting the data from OpenMrs url {responseMessage.RequestMessage.RequestUri} with status code {responseMessage.StatusCode}");
                     throw new OpenMrsConnectionException();
                 }
-                Log.Error($"Failure in getting the data from OpenMrs url {responseMessage.RequestMessage.RequestUri} with status code {responseMessage.StatusCode}");
             }
-
             return responseMessage;
         }
         
