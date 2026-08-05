@@ -190,7 +190,8 @@ namespace In.ProjectEKA.HipService.Common.Model
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"SetHfrIdForVisitAsync: Error processing request: {ex.Message}");
+                Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve visit {visitUuid} from OpenMRS.");
+                Log.Error($"SetHfrIdForVisitAsync: Error processing request: {ex.Message}");
                 return null;
             }
         }
