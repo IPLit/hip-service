@@ -1,9 +1,9 @@
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace In.ProjectEKA.HipService.Verification
 {
     public static class VerificationMap
     {
-        public static Dictionary<string, string> TxnDictionary = new Dictionary<string, string>();
+        public static ConcurrentDictionary<string, string> TxnDictionary = new ConcurrentDictionary<string, string>();
     }
 }

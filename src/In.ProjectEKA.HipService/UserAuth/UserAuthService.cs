@@ -85,20 +85,18 @@ namespace In.ProjectEKA.HipService.UserAuth
                 do
                 {
                     Thread.Sleep(gatewayConfiguration.TimeOut);
-                    if (UserAuthMap.RequestIdToErrorMessage.ContainsKey(requestId))
+                    if (UserAuthMap.RequestIdToErrorMessage.TryRemove(requestId, out var gatewayError))
                     {
-                        var gatewayError = UserAuthMap.RequestIdToErrorMessage[requestId];
-                        UserAuthMap.RequestIdToErrorMessage.Remove(requestId);
                         return new ErrorRepresentation(gatewayError);
                     }
 
-                    if (UserAuthMap.RequestIdToTransactionIdMap.ContainsKey(requestId))
+                    if (UserAuthMap.RequestIdToTransactionIdMap.TryGetValue(requestId, out var transactionId))
                     {
                         logger.LogInformation(LogEvents.UserAuth,
                             "Response about to be send for requestId: {RequestId} with transactionId: {TransactionId}",
-                            requestId, UserAuthMap.RequestIdToTransactionIdMap[requestId]
+                            requestId, transactionId
                         );
-                        UserAuthMap.HealthIdToTransactionId[authInitRequest.healthId] = UserAuthMap.RequestIdToTransactionIdMap[requestId];
+                        UserAuthMap.HealthIdToTransactionId[authInitRequest.healthId] = transactionId;
                         return null;
                     }
 
@@ -120,20 +118,17 @@ namespace In.ProjectEKA.HipService.UserAuth
                 do
                 {
                     Thread.Sleep(gatewayConfiguration.TimeOut);
-                    if (UserAuthMap.HealthIdToTransactionId.ContainsKey(healthId))
+                    if (UserAuthMap.HealthIdToTransactionId.TryGetValue(healthId, out var transactionIdValue)
+                        && Guid.TryParse(transactionIdValue, out var transactionId))
                     {
-                        var transactionId =
-                            Guid.Parse(UserAuthMap.HealthIdToTransactionId[healthId]);
-                        if (UserAuthMap.TransactionIdToAuthNotifyStatus.ContainsKey(transactionId))
+                        if (UserAuthMap.TransactionIdToAuthNotifyStatus.TryGetValue(transactionId, out var notifyStatus))
                         {
-                            if (UserAuthMap.TransactionIdToAuthNotifyStatus[transactionId] ==
-                                AuthNotifyStatus.GRANTED)
+                            if (notifyStatus == AuthNotifyStatus.GRANTED)
                             {
-                                var patient = UserAuthMap.TransactionIdToPatientDetails[transactionId];
+                                UserAuthMap.TransactionIdToPatientDetails.TryGetValue(transactionId, out var patient);
                                 return new Tuple<AuthConfirmPatient, ErrorRepresentation>(patient, null);
                             }
-                            if (UserAuthMap.TransactionIdToAuthNotifyStatus[transactionId] ==
-                                AuthNotifyStatus.DENIED)
+                            if (notifyStatus == AuthNotifyStatus.DENIED)
                             {
                                 return new Tuple<AuthConfirmPatient, ErrorRepresentation>(null,
                                     new ErrorRepresentation(new Error(ErrorCode.ConsentNotGranted, "Consent Denied")));
@@ -195,10 +190,8 @@ namespace In.ProjectEKA.HipService.UserAuth
                 do
                 {
                     Thread.Sleep(gatewayConfiguration.TimeOut + 8000);
-                    if (UserAuthMap.RequestIdToErrorMessage.ContainsKey(requestId))
+                    if (UserAuthMap.RequestIdToErrorMessage.TryRemove(requestId, out var gatewayError))
                     {
-                        var gatewayError = UserAuthMap.RequestIdToErrorMessage[requestId];
-                        UserAuthMap.RequestIdToErrorMessage.Remove(requestId);
                         return new Tuple<AuthConfirmResponse, ErrorRepresentation>(null, new ErrorRepresentation(gatewayError));
                     }
 
@@ -312,14 +305,14 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         public async Task<ErrorRepresentation> AuthNotify(AuthNotifyRequest request)
         {
-            if (UserAuthMap.TransactionIdToAuthNotifyStatus.ContainsKey(Guid.Parse(request.auth.transactionId)))
+            var transactionId = Guid.Parse(request.auth.transactionId);
+            if (!UserAuthMap.TransactionIdToAuthNotifyStatus.TryAdd(transactionId, request.auth.status))
             {
                 return new ErrorRepresentation(new Error(ErrorCode.BadRequest, "Duplicate Transaction Id"));
             }
-            UserAuthMap.TransactionIdToAuthNotifyStatus.Add(Guid.Parse(request.auth.transactionId),request.auth.status);
             if (request.auth.status == AuthNotifyStatus.GRANTED)
             {
-                UserAuthMap.TransactionIdToPatientDetails[Guid.Parse(request.auth.transactionId)] = request.auth.patient;
+                UserAuthMap.TransactionIdToPatientDetails[transactionId] = request.auth.patient;
                 var healthId = request.auth.patient.id;
                 await SaveAuthConfirm(healthId, request.auth.accessToken).ConfigureAwait(false);
             }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.Link.Model;
@@ -11,17 +10,17 @@ using Microsoft.AspNetCore.Http;
 namespace In.ProjectEKA.HipService.UserAuth
 {
     public static class UserAuthMap{
-        public static Dictionary<Guid, List<Mode>> RequestIdToAuthModes = new Dictionary<Guid, List<Mode>>();
+        public static ConcurrentDictionary<Guid, List<Mode>> RequestIdToAuthModes = new ConcurrentDictionary<Guid, List<Mode>>();
         public static ConcurrentDictionary<Guid, string> RequestIdToTransactionIdMap = new ConcurrentDictionary<Guid, string>();
         public static ConcurrentDictionary<Guid, string> RequestIdToAccessToken = new ConcurrentDictionary<Guid, string>();
         public static ConcurrentDictionary<string, string> HealthIdToTransactionId = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<Guid, AuthConfirmPatient> RequestIdToPatientDetails = new ConcurrentDictionary<Guid, AuthConfirmPatient>();
-        public static Dictionary<Guid, Error> RequestIdToErrorMessage = new Dictionary<Guid, Error>();
+        public static ConcurrentDictionary<Guid, Error> RequestIdToErrorMessage = new ConcurrentDictionary<Guid, Error>();
         public static ConcurrentDictionary<string, string> HealthIdToAccessToken = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, string> RequestIdToHipId = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, string> HealthIdToLatestVisitUuid = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, string> PhoneNumberToHealthId = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        public static Dictionary<Guid, AuthNotifyStatus> TransactionIdToAuthNotifyStatus = new Dictionary<Guid, AuthNotifyStatus>();
+        public static ConcurrentDictionary<Guid, AuthNotifyStatus> TransactionIdToAuthNotifyStatus = new ConcurrentDictionary<Guid, AuthNotifyStatus>();
         public static ConcurrentDictionary<Guid, AuthConfirmPatient> TransactionIdToPatientDetails = new ConcurrentDictionary<Guid, AuthConfirmPatient>();
         public static Dictionary<string, int> ErrorCodeToStatusCode = new Dictionary<string, int>()
         {

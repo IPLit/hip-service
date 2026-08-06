@@ -104,7 +104,11 @@ namespace In.ProjectEKA.HipService.Gateway
                             configuration.CmSuffix, correlationId, xtoken, tToken, transactionId))
                         .ConfigureAwait(false);
                     Log.Information("Response Status from ABHA Service for URI {@uri} is {@status}", baseUrl + urlPath, response.StatusCode);
-                    Log.Debug("Response Payload {@payload}", response.Content.ReadAsStringAsync());
+                    if (response?.Content != null)
+                    {
+                        var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        Log.Debug("Response Payload {@payload}", responseBody);
+                    }
                 }
                 catch (Exception exception)
                 {
@@ -119,26 +123,36 @@ namespace In.ProjectEKA.HipService.Gateway
             try
             {
                 var token = await Authenticate(correlationId).ConfigureAwait(false);
-                token.MatchSome(async accessToken =>
+                if (!token.HasValue)
                 {
-                    try
+                    Log.Information("Data transfer notification to Gateway failed");
+                    return;
+                }
+
+                try
+                {
+                    var accessToken = token.ValueOr(String.Empty);
+                    Log.Information("Initiating Request to Gateway for URI {@uri}", gatewayUrl);
+                    Log.Debug("Request Payload {@payload}", representation);
+                    var responseMessage = await httpClient
+                        .SendAsync(CreateHttpRequest(HttpMethod.Post, gatewayUrl, representation, accessToken,
+                            cmSuffix, correlationId, hipId: hipId, requestId: requestId, linkToken: linkToken))
+                        .ConfigureAwait(false);
+                    Log.Information("Response Status from Gateway for URI {@uri} is {@status}", gatewayUrl,
+                        responseMessage.StatusCode);
+                    var responseBody = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    Log.Debug("Response Payload {@payload}", responseBody);
+                    if (!responseMessage.IsSuccessStatusCode)
                     {
-                        Log.Information("Initiating Request to Gateway for URI {@uri}", gatewayUrl);
-                        Log.Debug("Request Payload {@payload}", representation);
-                        var responseMessage = await httpClient
-                            .SendAsync(CreateHttpRequest(HttpMethod.Post, gatewayUrl, representation, accessToken,
-                                cmSuffix, correlationId, hipId: hipId,requestId:requestId,linkToken:linkToken))
-                            .ConfigureAwait(false);
-                        Log.Information("Response Status from Gateway for URI {@uri} is {@status}", gatewayUrl,
-                            responseMessage.StatusCode);
-                        Log.Debug("Response Payload {@payload}", responseMessage.Content.ReadAsStringAsync());
+                        Log.Error(
+                            "Gateway returned non-success status {@status} for URI {@uri}. Body: {@body}",
+                            responseMessage.StatusCode, gatewayUrl, responseBody);
                     }
-                    catch (Exception exception)
-                    {
-                        Log.Error(exception, exception.StackTrace);
-                    }
-                });
-                token.MatchNone(() => Log.Information("Data transfer notification to Gateway failed"));
+                }
+                catch (Exception exception)
+                {
+                    Log.Error(exception, exception.StackTrace);
+                }
             }
             catch (Exception exception)
             {

@@ -52,30 +52,42 @@ namespace In.ProjectEKA.HipService.Link
         [Route(PATH_NEW_CARECONTEXT)]
         public async Task<ActionResult> PassContext([FromBody] NewContextRequest newContextRequest)
         {
-            bool isFirstTime = true;
-            var (careContexts, exception) =
-                await linkPatientRepository.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber);
-            foreach (var context in newContextRequest.CareContexts)
+            try
             {
-                Log.Information("Processing care context for patient: " + newContextRequest.PatientReferenceNumber);
-                Log.Information($"context.ReferenceNumber: {context.ReferenceNumber} context.display: {context.Display}");
-                if (isFirstTime)
+                bool isFirstTime = true;
+                var (careContexts, exception) =
+                    await linkPatientRepository.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber);
+                foreach (var context in newContextRequest.CareContexts)
                 {
-                    isFirstTime = false;
-                    var visitUuid = context.ReferenceNumber!=null && context.ReferenceNumber.Split(":").Length >= 2
-                        ? context.ReferenceNumber.Split(":")[1] : null;
-                    await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                    Log.Information("Processing care context for patient: " + newContextRequest.PatientReferenceNumber);
+                    Log.Information($"context.ReferenceNumber: {context.ReferenceNumber} context.display: {context.Display}");
+                    if (isFirstTime)
+                    {
+                        isFirstTime = false;
+                        var visitUuid = context.ReferenceNumber!=null && context.ReferenceNumber.Split(":").Length >= 2
+                            ? context.ReferenceNumber.Split(":")[1] : null;
+                        if (!string.IsNullOrEmpty(visitUuid) && bahmniConfiguration != null)
+                        {
+                            await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                        }
+                    }
+                    if (careContexts != null && careContextService.IsLinkedContext(careContexts, context.ReferenceNumber))
+                    {
+                        await careContextService.CallNotifyContext(newContextRequest, context);
+                    }
+                    else
+                    {
+                        await careContextService.CallAddContext(newContextRequest);
+                    }
                 }
-                if (careContexts != null && careContextService.IsLinkedContext(careContexts, context.ReferenceNumber))
-                {
-                    await careContextService.CallNotifyContext(newContextRequest, context);
-                }
-                else
-                {
-                    await careContextService.CallAddContext(newContextRequest);
-                }
+                return StatusCode(StatusCodes.Status200OK);
             }
-            return StatusCode(StatusCodes.Status200OK);
+            catch (Exception ex)
+            {
+                Log.Error(ex, "PassContext failed for patient {PatientReferenceNumber}",
+                    newContextRequest?.PatientReferenceNumber);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
         }
     }
 }

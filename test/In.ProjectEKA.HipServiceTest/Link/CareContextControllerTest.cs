@@ -107,7 +107,7 @@ namespace In.ProjectEKA.HipServiceTest.Link
         }
 
         [Fact]
-        private void ShouldCallAddContextApi()
+        private async Task ShouldCallAddContextApi()
         {
             var careContexts = new List<CareContextRepresentation>
             {
@@ -119,9 +119,9 @@ namespace In.ProjectEKA.HipServiceTest.Link
 
             linkPatientRepository.Setup(e => e.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber))
                 .ReturnsAsync(new Tuple<List<string>, Exception>(linkedCareContexts, null));
-            careContextService.Setup(e => e.IsLinkedContext(linkedCareContexts, careContexts[0].Display))
+            careContextService.Setup(e => e.IsLinkedContext(linkedCareContexts, careContexts[0].ReferenceNumber))
                 .Returns(false);
-            careContextController.PassContext(newContextRequest);
+            await careContextController.PassContext(newContextRequest);
 
             careContextService.Verify(a => a.CallAddContext(newContextRequest), Times.Exactly(1));
         }

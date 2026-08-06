@@ -28,7 +28,11 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             UserAuthMap.HealthIdToLatestVisitUuid[healthId] = visitUuid;
 
             var openMrsClient = new Mock<IOpenMrsClient>();
-            var bahmniConfiguration = new BahmniConfiguration(openMrsClient.Object);
+            var bahmniConfiguration = new BahmniConfiguration(openMrsClient.Object)
+            {
+                Id = "IN0000000001",
+                Name = "Default Facility"
+            };
             var smsNotificationService = new SmsNotificationService();
 
             var result = smsNotificationService.SmsNotifyRequest(
@@ -39,5 +43,33 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             result.Item2.Should().BeNull();
             result.Item1.notification.phoneNo.Should().Be(phoneNo);
         }
+
+        [Fact]
+        public void SmsNotifyRequest_should_fall_back_to_default_facility_when_visit_mapping_missing()
+        {
+            var healthId = "patient-fallback@sbx";
+            var phoneNo = "+919999988877";
+
+            UserAuthMap.UpdateHealthIdToPhoneNumber(phoneNo, healthId);
+            UserAuthMap.HealthIdToLatestVisitUuid.TryRemove(healthId, out _);
+
+            var openMrsClient = new Mock<IOpenMrsClient>();
+            var bahmniConfiguration = new BahmniConfiguration(openMrsClient.Object)
+            {
+                Id = "IN0000000001",
+                Name = "Default Facility"
+            };
+            var smsNotificationService = new SmsNotificationService();
+
+            var result = smsNotificationService.SmsNotifyRequest(
+                new SmsNotifyRequest(phoneNo),
+                bahmniConfiguration);
+
+            result.Item1.Should().NotBeNull();
+            result.Item2.Should().BeNull();
+            result.Item1.notification.hip.id.Should().Be("IN0000000001");
+            result.Item1.notification.hip.name.Should().Be("Default%20Facility");
+        }
+
     }
 }

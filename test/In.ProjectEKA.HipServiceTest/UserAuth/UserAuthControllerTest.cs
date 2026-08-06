@@ -255,7 +255,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
             var transactionId = TestBuilder.Faker().Random.Hash();
             Guid requestId = Guid.NewGuid();
             Error error = new Error(ErrorCode.OtpInValid, "Invalid OTP");
-            UserAuthMap.RequestIdToErrorMessage.Add(requestId, error);
+            UserAuthMap.RequestIdToErrorMessage[requestId] = error;
             GatewayAuthConfirmRequestRepresentation gatewayAuthConfirmRequestRepresentation =
                 new GatewayAuthConfirmRequestRepresentation(requestId, timeStamp, transactionId, credential);
             var correlationId = Uuid.Generate().ToString();
@@ -279,7 +279,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
             var requestId = Guid.NewGuid();
             var correlationId = Uuid.Generate().ToString();
             Error error = new Error(ErrorCode.GatewayTimedOut, "Timeout Error");
-            UserAuthMap.RequestIdToErrorMessage.Add(requestId, error);
+            UserAuthMap.RequestIdToErrorMessage[requestId] = error;
             userAuthService.Setup(a => a.AuthInit(request, correlationId, bahmniConfiguration,gatewayConfiguration))
                 .ReturnsAsync(new ErrorRepresentation(error));
             
@@ -299,7 +299,7 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
                 new GatewayFetchModesRequestRepresentation(requestId, timeStamp, query);
             var correlationId = Uuid.Generate().ToString();
             Error error = new Error(ErrorCode.GatewayTimedOut, "Timeout Error");
-            UserAuthMap.RequestIdToErrorMessage.Add(requestId, error);
+            UserAuthMap.RequestIdToErrorMessage[requestId] = error;
 
             userAuthService.Setup(a => a.FetchModeResponse(request, bahmniConfiguration))
                 .Returns(new Tuple<GatewayFetchModesRequestRepresentation, ErrorRepresentation>

@@ -1,29 +1,20 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using In.ProjectEKA.HipService.OpenMrs.HealthCheck;
 
 public class HealthCheckStatus : IHealthCheckStatus
 {
-    Dictionary<string, Dictionary<string, string>> statusData = new Dictionary<string, Dictionary<string, string>>();
+    private readonly ConcurrentDictionary<string, Dictionary<string, string>> statusData =
+        new ConcurrentDictionary<string, Dictionary<string, string>>();
+
     public void AddStatus(string key, Dictionary<string, string> value)
     {
-        if (statusData.ContainsKey(key))
-        {
-            statusData[key] = value;
-        }
-        else
-        {
-            statusData.Add(key, value);
-        }
+        statusData[key] = value;
     }
 
     public Dictionary<string, string> GetStatus(string key)
     {
-        if (statusData.ContainsKey(key))
-        {
-            return statusData[key];
-        }
-        return null;
+        statusData.TryGetValue(key, out var value);
+        return value;
     }
-
 }
-

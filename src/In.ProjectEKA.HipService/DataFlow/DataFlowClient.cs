@@ -80,7 +80,7 @@ namespace In.ProjectEKA.HipService.DataFlow
                 }
 
                 // TODO: Need to handle non 2xx response also
-                httpClient.DefaultRequestHeaders.Remove("Authorization");
+                // Do not mutate shared HttpClient.DefaultRequestHeaders — Authorization is set per-request.
                 var token = await gatewayClient.Authenticate(correlationId).ConfigureAwait(false);
                 if (token.HasValue)
                 {

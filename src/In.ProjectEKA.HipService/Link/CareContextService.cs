@@ -88,14 +88,14 @@ namespace In.ProjectEKA.HipService.Link
         
         public async Task SetAccessToken(string healthId, string hipId)
         {
-            var demographics = (userAuthRepository.GetDemographics(healthId).Result).ValueOrDefault();
+            var demographics = (await userAuthRepository.GetDemographics(healthId).ConfigureAwait(false)).ValueOrDefault();
             if (demographics != null)
                 UserAuthMap.UpdateHealthIdToPhoneNumber(demographics.PhoneNumber, healthId);
             var compositeKey = healthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
-            if (UserAuthMap.HealthIdToAccessToken.ContainsKey(compositeKey))
+            if (UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var existingLinkToken)
+                && !string.IsNullOrEmpty(existingLinkToken))
             {
-                var linkToken = UserAuthMap.HealthIdToAccessToken[compositeKey];
-                var error = userAuthService.CheckAccessToken(linkToken);
+                var error = userAuthService.CheckAccessToken(existingLinkToken);
                 if (error == null)
                     return;
             }
@@ -122,10 +122,8 @@ namespace In.ProjectEKA.HipService.Link
             do
             {
                 await Task.Delay(gatewayConfiguration.TimeOut + 8000);
-                if (UserAuthMap.RequestIdToErrorMessage.ContainsKey(requestId))
+                if (UserAuthMap.RequestIdToErrorMessage.TryRemove(requestId, out _))
                 {
-                    var gatewayError = UserAuthMap.RequestIdToErrorMessage[requestId];
-                    UserAuthMap.RequestIdToErrorMessage.Remove(requestId);
                     break;
                 }
 
@@ -202,13 +200,13 @@ namespace In.ProjectEKA.HipService.Link
             try
             {
                 var compositeKey = newContextRequest.HealthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
-                if (!UserAuthMap.HealthIdToAccessToken.ContainsKey(compositeKey))
+                if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)
+                    || string.IsNullOrEmpty(linkToken))
                 {
                     Log.Error("Unable to get link token for healthId: {healthId} and hipId: {hipId}",
                         newContextRequest.HealthId, hipId);
                     throw new Exception("Unable to get link token");
                 }
-                var linkToken = UserAuthMap.HealthIdToAccessToken[compositeKey];
                 UserAuthMap.UpdateHealthIdToLatestVisitUuid(newContextRequest.HealthId, visitUuid);
                 Log.Information(
                     "Request for notification-contexts to gateway: {@GatewayResponse}",
@@ -231,6 +229,10 @@ namespace In.ProjectEKA.HipService.Link
                 ? bahmniConfiguration.ExtractVisitUuidFromReference(newContextRequest.CareContexts.First().ReferenceNumber)
                 : null;
             UserAuthMap.UpdateHealthIdToLatestVisitUuid(abhaAddress, visitUuid);
+            // Seed phone→healthId early so concurrent SMS notify can resolve facility without racing SetAccessToken.
+            var demographics = (await userAuthRepository.GetDemographics(abhaAddress).ConfigureAwait(false)).ValueOrDefault();
+            if (demographics != null)
+                UserAuthMap.UpdateHealthIdToPhoneNumber(demographics.PhoneNumber, abhaAddress);
             string hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
             if (string.IsNullOrEmpty(hipId))
             {
@@ -248,12 +250,12 @@ namespace In.ProjectEKA.HipService.Link
             }
             await SetAccessToken(abhaAddress, hipId);
             var compositeKey = abhaAddress + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
-            if (!UserAuthMap.HealthIdToAccessToken.ContainsKey(compositeKey))
+            if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)
+                || string.IsNullOrEmpty(linkToken))
             {
                 Log.Error("Unable to get link token for healthId: {healthId} and hipId: {hipId}", abhaAddress, hipId);
                 throw new Exception("Unable to get link token");
             }
-            var linkToken = UserAuthMap.HealthIdToAccessToken[compositeKey];
             var cmSuffix = gatewayConfiguration.CmSuffix;
             var requestId = Guid.NewGuid();
             var (gatewayAddContextsRequestRepresentation, error) =
