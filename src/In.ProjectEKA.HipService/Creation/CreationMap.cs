@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using In.ProjectEKA.HipService.Creation.Model;
 
@@ -5,16 +6,16 @@ namespace In.ProjectEKA.HipService.Creation
 {
     public static class CreationMap
     {
-        public static Dictionary<string, string> TxnDictionary = new Dictionary<string, string>();
+        public static ConcurrentDictionary<string, string> TxnDictionary = new ConcurrentDictionary<string, string>();
         
-        public static Dictionary<string, string> HealthIdNumberDictionary = new Dictionary<string, string>();
+        public static ConcurrentDictionary<string, string> HealthIdNumberDictionary = new ConcurrentDictionary<string, string>();
         
-        public static Dictionary<string, TokenRequest> HealthIdNumberTokenDictionary = new Dictionary<string, TokenRequest>();
+        public static ConcurrentDictionary<string, TokenRequest> HealthIdNumberTokenDictionary = new ConcurrentDictionary<string, TokenRequest>();
         
-        public static Dictionary<string, string> HealthIdTokenDictionary = new Dictionary<string, string>();
+        public static ConcurrentDictionary<string, string> HealthIdTokenDictionary = new ConcurrentDictionary<string, string>();
         
-        public static Dictionary<string, string> VerifiedMobileTokenDictionary = new Dictionary<string, string>();
+        public static ConcurrentDictionary<string, string> VerifiedMobileTokenDictionary = new ConcurrentDictionary<string, string>();
         
-        public static Dictionary<string, List<string>> HealthIdLoginScopeDictionary = new Dictionary<string, List<string>>();
+        public static ConcurrentDictionary<string, List<string>> HealthIdLoginScopeDictionary = new ConcurrentDictionary<string, List<string>>();
     }
 }

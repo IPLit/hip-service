@@ -41,14 +41,7 @@ namespace In.ProjectEKA.HipService.Creation
             {
                 logger.Log(LogLevel.Information,
                     LogEvents.Creation, "Request for ABHA-patient-profile to gateway: sessionId: {SessionId}", sessionId);
-                if (HealthIdNumberTokenDictionary.ContainsKey(sessionId))
-                {
-                    HealthIdNumberTokenDictionary[sessionId] = tokenRequest;
-                }
-                else
-                {
-                    HealthIdNumberTokenDictionary.Add(sessionId, tokenRequest);
-                }
+                HealthIdNumberTokenDictionary.AddOrUpdate(sessionId, tokenRequest, (key, existing) => tokenRequest);
                 using (var response = await gatewayClient.CallABHAService<string>(HttpMethod.Get, gatewayConfiguration.AbhaNumberServiceUrl, ABHA_ACCOUNT,
                     null, null, $"{tokenRequest.tokenType} {tokenRequest.token}" ))
                 {

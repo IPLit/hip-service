@@ -63,7 +63,7 @@ namespace In.ProjectEKA.HipService.Creation
                     {
                         AadhaarOTPGenerationResponse generationResponse =
                             JsonConvert.DeserializeObject<AadhaarOTPGenerationResponse>(responseContent);
-                        TxnDictionary[sessionId] = generationResponse?.txnId;
+                        TxnDictionary.AddOrUpdate(sessionId, generationResponse?.txnId, (key, existing) => generationResponse?.txnId);
                         return Accepted(new AadhaarOTPGenerationResponse(generationResponse?.message));
                     }
 
@@ -87,7 +87,7 @@ namespace In.ProjectEKA.HipService.Creation
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
             try
             {
                 string encryptedOTP = EncryptionService.Encrypt(appVerifyAadhaarOtpRequest.otp);
@@ -105,9 +105,10 @@ namespace In.ProjectEKA.HipService.Creation
                         EnrollByAadhaarResponse enrollByAadhaarResponse =
                             JsonConvert.DeserializeObject<EnrollByAadhaarResponse>(responseContent);
                         Log.Debug("EnrollByAadhaarResponse {@response}", enrollByAadhaarResponse);
-                        TxnDictionary[sessionId] = enrollByAadhaarResponse?.TxnId;
-                        HealthIdNumberTokenDictionary[sessionId] =
-                            new TokenRequest(enrollByAadhaarResponse?.Tokens.Token);
+                        TxnDictionary.AddOrUpdate(sessionId, enrollByAadhaarResponse?.TxnId, (key, existing) => enrollByAadhaarResponse?.TxnId);
+                        HealthIdNumberTokenDictionary.AddOrUpdate(sessionId,
+                            new TokenRequest(enrollByAadhaarResponse?.Tokens.Token),
+                            (key, existing) => new TokenRequest(enrollByAadhaarResponse?.Tokens.Token));
                         return Ok(new AadhaarOTPVerifyAndCreateABHAResponse(enrollByAadhaarResponse.Message,
                             enrollByAadhaarResponse.ABHAProfile, enrollByAadhaarResponse.IsNew));
                     }
@@ -132,7 +133,7 @@ namespace In.ProjectEKA.HipService.Creation
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
             var mobileNumber = mobileOtpGenerationRequest.mobile;
             try
             {
@@ -152,7 +153,7 @@ namespace In.ProjectEKA.HipService.Creation
                         logger.LogError(responseContent);
                         var generationResponse =
                             JsonConvert.DeserializeObject<MobileOTPGenerationResponse>(responseContent);
-                        TxnDictionary[sessionId] = generationResponse?.txnId;
+                        TxnDictionary.AddOrUpdate(sessionId, generationResponse?.txnId, (key, existing) => generationResponse?.txnId);
                         return Accepted(new MobileOTPGenerationResponse(generationResponse?.message));
                     }
 
@@ -175,7 +176,7 @@ namespace In.ProjectEKA.HipService.Creation
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
             try
             {
                 string encryptedOTP = EncryptionService.Encrypt(otpVerifyRequest.otp);
@@ -214,7 +215,7 @@ namespace In.ProjectEKA.HipService.Creation
         public async Task<ActionResult> GetAbhaAddressSuggestions()
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
             try
             {
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Get,
@@ -227,7 +228,7 @@ namespace In.ProjectEKA.HipService.Creation
                     {
                         var addressSuggestionsResponse =
                             JsonConvert.DeserializeObject<ABHAAddressSuggestionResponse>(responseContent);
-                        TxnDictionary[sessionId] = addressSuggestionsResponse?.txnId;
+                        TxnDictionary.AddOrUpdate(sessionId, addressSuggestionsResponse?.txnId, (key, existing) => addressSuggestionsResponse?.txnId);
                         return Ok(new ABHAAddressSuggestionResponse(addressSuggestionsResponse.abhaAddressList));
                     }
 
@@ -250,7 +251,7 @@ namespace In.ProjectEKA.HipService.Creation
             AppCreateABHAAddressRequest appCreateAbhaAddressRequest)
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
 
             try
             {
@@ -284,19 +285,21 @@ namespace In.ProjectEKA.HipService.Creation
 
             try
             {
+                HealthIdNumberTokenDictionary.TryGetValue(sessionId, out var tokenRequest);
                 var response = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
                     gatewayConfiguration.AbhaNumberServiceUrl, GET_ABHA_CARD,
                     null, correlationId,
-                    $"{HealthIdNumberTokenDictionary[sessionId].tokenType} {HealthIdNumberTokenDictionary[sessionId].token}");
+                    $"{tokenRequest.tokenType} {tokenRequest.token}");
                 var stream = response?.Content == null
                     ? null
                     : await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                logger.LogDebug(LogEvents.Creation, $"Info for Abha-card generation with user token {HealthIdNumberTokenDictionary[sessionId].token} ");
+                logger.LogDebug(LogEvents.Creation, $"Info for Abha-card generation with user token {tokenRequest.token} ");
                 return File(stream, "image/png");
             }
             catch (Exception exception)
             {
-                logger.LogError(LogEvents.Creation, exception, $"Error happened for Abha-card generation with user token {HealthIdNumberTokenDictionary[sessionId].token}");
+                HealthIdNumberTokenDictionary.TryGetValue(sessionId, out var tokenRequest);
+                logger.LogError(LogEvents.Creation, exception, $"Error happened for Abha-card generation with user token {tokenRequest?.token}");
             }
 
             return StatusCode(StatusCodes.Status500InternalServerError);

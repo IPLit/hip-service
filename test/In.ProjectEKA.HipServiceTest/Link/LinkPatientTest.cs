@@ -233,7 +233,7 @@ namespace In.ProjectEKA.HipServiceTest.Link
                         new Identifier(IdentifierType.ABHA_NUMBER, "123456718910")
                     }, unverifiedIdentifiers: null,
                     "name", HipLibrary.Patient.Model.Gender.M, 2000);
-            DiscoveryReqMap.PatientInfoMap.Add(testLinkRequest.ConsentManagerUserId, patientEnquiry);
+            DiscoveryReqMap.PatientInfoMap.TryAdd(testLinkRequest.ConsentManagerUserId, patientEnquiry);
             patientVerification.Setup(e => e.Verify(sessionId, otpToken))
                 .ReturnsAsync((OtpMessage) null);
             linkRepository.Setup(e => e.GetPatientFor(sessionId))

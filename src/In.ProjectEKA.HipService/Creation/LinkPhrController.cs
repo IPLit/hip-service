@@ -64,14 +64,7 @@ namespace In.ProjectEKA.HipService.Creation
                     {
                         var generationResponse =
                             JsonConvert.DeserializeObject<TransactionInitResponse>(responseContent);
-                        if (TxnDictionary.ContainsKey(sessionId))
-                        {
-                            TxnDictionary[sessionId] = generationResponse?.transactionId;
-                        }
-                        else
-                        {
-                            TxnDictionary.Add(sessionId, generationResponse?.transactionId);
-                        }
+                        TxnDictionary.AddOrUpdate(sessionId, generationResponse?.transactionId, (key, existing) => generationResponse?.transactionId);
                         return Accepted();
                     }
                     return StatusCode((int)response.StatusCode,responseContent);
@@ -91,7 +84,7 @@ namespace In.ProjectEKA.HipService.Creation
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
             try
             {
                 logger.Log(LogLevel.Information,
@@ -107,7 +100,7 @@ namespace In.ProjectEKA.HipService.Creation
                     {
                         var verificationResponse =
                             JsonConvert.DeserializeObject<MobileEmailPhrPreVerificationResponse>(responseContent);
-                        TxnDictionary[sessionId] = verificationResponse?.transactionId;
+                        TxnDictionary.AddOrUpdate(sessionId, verificationResponse?.transactionId, (key, existing) => verificationResponse?.transactionId);
                         return Accepted(new MobileEmailPhrPreVerificationResponse(verificationResponse.mobileEmail, verificationResponse.mappedPhrAddress));
                     }
                     return StatusCode((int)response.StatusCode,responseContent);
@@ -127,7 +120,7 @@ namespace In.ProjectEKA.HipService.Creation
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
             try
             {
                 logger.Log(LogLevel.Information,
@@ -142,14 +135,7 @@ namespace In.ProjectEKA.HipService.Creation
                     {
                         var tokenResponse =
                             JsonConvert.DeserializeObject<MobileEmailPhrGetUserTokenResponse>(responseContent);
-                        if (HealthIdTokenDictionary.ContainsKey(sessionId))
-                        {
-                            HealthIdTokenDictionary[sessionId] = $"{X_TOKEN_TYPE} {tokenResponse?.token}";
-                        }
-                        else
-                        {
-                            HealthIdTokenDictionary.Add(sessionId, $"{X_TOKEN_TYPE} {tokenResponse?.token}");
-                        }
+                        HealthIdTokenDictionary.AddOrUpdate(sessionId, $"{X_TOKEN_TYPE} {tokenResponse?.token}", (key, existing) => $"{X_TOKEN_TYPE} {tokenResponse?.token}");
                         var healthIdNumber = await getABHAAddressProfile(new TokenRequest(tokenResponse?.token));
                         return Accepted(healthIdNumber);
                     }
@@ -170,7 +156,8 @@ namespace In.ProjectEKA.HipService.Creation
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
+            HealthIdTokenDictionary.TryGetValue(sessionId, out var healthIdToken);
             try
             {
                 logger.Log(LogLevel.Information,
@@ -178,7 +165,7 @@ namespace In.ProjectEKA.HipService.Creation
                     "Request for link phr-address to gateway: {@GatewayResponse}",
                     phrAddressLinkRequest);
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,gatewayConfiguration.AbhaAddressServiceUrl,
-                    LINK_PHR_ADDRESS, new PhrAddressLinkRequest(phrAddressLinkRequest.action,txnId), correlationId, HealthIdTokenDictionary[sessionId]))
+                    LINK_PHR_ADDRESS, new PhrAddressLinkRequest(phrAddressLinkRequest.action,txnId), correlationId, healthIdToken))
                 {
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
@@ -218,14 +205,7 @@ namespace In.ProjectEKA.HipService.Creation
                     {
                         var authModeResponse =
                             JsonConvert.DeserializeObject<HealthIdAuthModeResponse>(responseContent);
-                        if (HealthIdNumberDictionary.ContainsKey(sessionId))
-                        {
-                            HealthIdNumberDictionary[sessionId] = authModeResponse?.healthIdNumber;
-                        }
-                        else
-                        {
-                            HealthIdNumberDictionary.Add(sessionId, authModeResponse?.healthIdNumber);
-                        }
+                        HealthIdNumberDictionary.AddOrUpdate(sessionId, authModeResponse?.healthIdNumber, (key, existing) => authModeResponse?.healthIdNumber);
                         return Accepted(authModeResponse);
                     }
                     return StatusCode((int)response.StatusCode,responseContent);
@@ -250,15 +230,16 @@ namespace In.ProjectEKA.HipService.Creation
                 logger.Log(LogLevel.Information,
                     LogEvents.LinkingPhr,
                     "Request for health id transaction to gateway with auth-mode: {@GatewayResponse}", authMode);
+                HealthIdNumberDictionary.TryGetValue(sessionId, out var healthIdNumber);
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,gatewayConfiguration.AbhaAddressServiceUrl,
-                    TRANSACTION_INIT, new HealthIdNumberRequest(authMode,HealthIdNumberDictionary[sessionId]), correlationId))
+                    TRANSACTION_INIT, new HealthIdNumberRequest(authMode, healthIdNumber), correlationId))
                 {
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
                     {
                         var txnResponse =
                             JsonConvert.DeserializeObject<TransactionInitResponse>(responseContent);
-                        TxnDictionary[sessionId] = txnResponse.transactionId;
+                        TxnDictionary.AddOrUpdate(sessionId, txnResponse.transactionId, (key, existing) => txnResponse.transactionId);
                         return Accepted();
                     }
                     return StatusCode((int)response.StatusCode,responseContent);

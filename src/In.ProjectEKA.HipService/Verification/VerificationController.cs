@@ -65,8 +65,8 @@ namespace In.ProjectEKA.HipService.Verification
                     {
                         AadhaarOTPGenerationResponse generationResponse =
                             JsonConvert.DeserializeObject<AadhaarOTPGenerationResponse>(responseContent);
-                        TxnDictionary[sessionId] = generationResponse?.txnId;
-                        HealthIdLoginScopeDictionary[sessionId] = abhaLoginRequestOtp.Scope;
+                        TxnDictionary.AddOrUpdate(sessionId, generationResponse?.txnId, (key, existing) => generationResponse?.txnId);
+                        HealthIdLoginScopeDictionary.AddOrUpdate(sessionId, abhaLoginRequestOtp.Scope, (key, existing) => abhaLoginRequestOtp.Scope);
                         return Accepted(new AadhaarOTPGenerationResponse(generationResponse?.message));
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
@@ -91,10 +91,8 @@ namespace In.ProjectEKA.HipService.Verification
             [FromBody] VerificationVerifyOtpRequest verifyOtpRequest)
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
-            string txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
-            List<string> scopes = HealthIdLoginScopeDictionary.ContainsKey(sessionId)
-                ? HealthIdLoginScopeDictionary[sessionId]
-                : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
+            HealthIdLoginScopeDictionary.TryGetValue(sessionId, out var scopes);
             try
             {
                 string encryptedOTP = EncryptionService.Encrypt(verifyOtpRequest.otp);
@@ -109,7 +107,7 @@ namespace In.ProjectEKA.HipService.Verification
                     {
                         ABHALoginVerifyOTPResponse gatewayResponse =
                             JsonConvert.DeserializeObject<ABHALoginVerifyOTPResponse>(responseContent);
-                        HealthIdNumberTokenDictionary[sessionId] = new TokenRequest(gatewayResponse.Token);
+                        HealthIdNumberTokenDictionary.AddOrUpdate(sessionId, new TokenRequest(gatewayResponse.Token), (key, existing) => new TokenRequest(gatewayResponse.Token));
                         VerificationVerifyOtpResponse verificationResponse = new VerificationVerifyOtpResponse
                         {
                             TxnId = gatewayResponse.TxnId,
@@ -139,8 +137,9 @@ namespace In.ProjectEKA.HipService.Verification
             string sessionId = HttpContext.Items[SESSION_ID] as string;
             try
             {
-                TokenRequest tokenRequest = ((!string.IsNullOrEmpty(sessionId)) && HealthIdNumberTokenDictionary.ContainsKey(sessionId))
-                    ? HealthIdNumberTokenDictionary[sessionId] : null;
+                TokenRequest tokenRequest = null;
+                if (!string.IsNullOrEmpty(sessionId))
+                    HealthIdNumberTokenDictionary.TryGetValue(sessionId, out tokenRequest);
                 if (tokenRequest == null || string.IsNullOrEmpty(tokenRequest.token))
                     return Unauthorized(new { message = "Session token not found. Please complete OTP verification first." });
                 using (var response = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
@@ -174,10 +173,8 @@ namespace In.ProjectEKA.HipService.Verification
             string sessionId = HttpContext.Items[SESSION_ID] as string;
             try
             {
-                TokenRequest tokenRequest = HealthIdNumberTokenDictionary.ContainsKey(sessionId)
-                    ? HealthIdNumberTokenDictionary[sessionId]
-                    : null;
-                string txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+                HealthIdNumberTokenDictionary.TryGetValue(sessionId, out var tokenRequest);
+                TxnDictionary.TryGetValue(sessionId, out var txnId);
                 VerifyABHAAccountRequest verifyABHAAccountGatewayRequest = new VerifyABHAAccountRequest(verifyABHAAccountRequest.ABHANumber, txnId);
                 using (var response = await gatewayClient.CallABHAService(HttpMethod.Post,
                            gatewayConfiguration.AbhaNumberServiceUrl, VERIFY_ABHA_ACCOUNT, verifyABHAAccountGatewayRequest,
@@ -187,7 +184,7 @@ namespace In.ProjectEKA.HipService.Verification
                     if (response.IsSuccessStatusCode)
                     {
                         TokenResponse tokenResponse = JsonConvert.DeserializeObject<TokenResponse>(responseContent);
-                        HealthIdNumberTokenDictionary[sessionId] = new TokenRequest(tokenResponse.token);
+                        HealthIdNumberTokenDictionary.AddOrUpdate(sessionId, new TokenRequest(tokenResponse.token), (key, existing) => new TokenRequest(tokenResponse.token));
                         return Ok();
                     }
 
@@ -258,8 +255,8 @@ namespace In.ProjectEKA.HipService.Verification
                     {
                         AadhaarOTPGenerationResponse generationResponse =
                             JsonConvert.DeserializeObject<AadhaarOTPGenerationResponse>(responseContent);
-                        TxnDictionary[sessionId] = generationResponse?.txnId;
-                        HealthIdLoginScopeDictionary[sessionId] = abhaLoginRequestOtp.Scope;
+                        TxnDictionary.AddOrUpdate(sessionId, generationResponse?.txnId, (key, existing) => generationResponse?.txnId);
+                        HealthIdLoginScopeDictionary.AddOrUpdate(sessionId, abhaLoginRequestOtp.Scope, (key, existing) => abhaLoginRequestOtp.Scope);
                         return Accepted(new AadhaarOTPGenerationResponse(generationResponse?.message));
                     }
                     return StatusCode((int)response.StatusCode, responseContent);
@@ -284,10 +281,8 @@ namespace In.ProjectEKA.HipService.Verification
             [FromBody] VerificationVerifyOtpRequest verifyOtpRequest)
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
-            string txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
-            List<string> scopes = HealthIdLoginScopeDictionary.ContainsKey(sessionId)
-                ? HealthIdLoginScopeDictionary[sessionId]
-                : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
+            HealthIdLoginScopeDictionary.TryGetValue(sessionId, out var scopes);
             try
             {
                 string encryptedOtp = EncryptionService.Encrypt(verifyOtpRequest.otp);
@@ -302,8 +297,9 @@ namespace In.ProjectEKA.HipService.Verification
                     {
                         AbhaAddressLoginVerifyOTPResponse gatewayResponse =
                             JsonConvert.DeserializeObject<AbhaAddressLoginVerifyOTPResponse>(responseContent);
-                        HealthIdNumberTokenDictionary[sessionId] =
-                            new TokenRequest(gatewayResponse.tokens?.token);
+                        HealthIdNumberTokenDictionary.AddOrUpdate(sessionId,
+                            new TokenRequest(gatewayResponse.tokens?.token),
+                            (key, existing) => new TokenRequest(gatewayResponse.tokens?.token));
                         AbhaAddressVerifyOtpResponse abhaAddressVerifyOtpResponse = new AbhaAddressVerifyOtpResponse()
                         {
                             AuthResult = gatewayResponse.authResult,
@@ -333,9 +329,7 @@ namespace In.ProjectEKA.HipService.Verification
             string sessionId = HttpContext.Items[SESSION_ID] as string;
             try
             {
-                TokenRequest tokenRequest = HealthIdNumberTokenDictionary.ContainsKey(sessionId)
-                    ? HealthIdNumberTokenDictionary[sessionId]
-                    : null;
+                HealthIdNumberTokenDictionary.TryGetValue(sessionId, out var tokenRequest);
                 using (var response = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
                            gatewayConfiguration.AbhaAddressServiceUrl, ABHA_ADDRESS_GET_PROFILE, null, correlationId,
                            $"{tokenRequest.tokenType} {tokenRequest.token}"))
@@ -369,10 +363,11 @@ namespace In.ProjectEKA.HipService.Verification
 
             try
             {
+                HealthIdNumberTokenDictionary.TryGetValue(sessionId, out var tokenRequest);
                 var response = await gatewayClient.CallABHAService<string>(HttpMethod.Get,
                     gatewayConfiguration.AbhaAddressServiceUrl, ABHA_ADDRESS_GET_CARD,
                     null, correlationId,
-                    $"{HealthIdNumberTokenDictionary[sessionId].tokenType} {HealthIdNumberTokenDictionary[sessionId].token}");
+                    $"{tokenRequest.tokenType} {tokenRequest.token}");
                 var stream = await response.Content.ReadAsStreamAsync();
                 return File(stream, "image/png");
             }
@@ -409,14 +404,7 @@ namespace In.ProjectEKA.HipService.Verification
                     {
                         var generationResponse =
                             JsonConvert.DeserializeObject<AuthInitResponse>(responseContent);
-                        if (TxnDictionary.ContainsKey(sessionId))
-                        {
-                            TxnDictionary[sessionId] = generationResponse?.txnId;
-                        }
-                        else
-                        {
-                            TxnDictionary.Add(sessionId, generationResponse?.txnId);
-                        }
+                        TxnDictionary.AddOrUpdate(sessionId, generationResponse?.txnId, (key, existing) => generationResponse?.txnId);
                         return Accepted();
                     }
                     return StatusCode((int)response.StatusCode,responseContent);
@@ -438,7 +426,7 @@ namespace In.ProjectEKA.HipService.Verification
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
             
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
             try
             {
                 string encryptedOTP = EncryptionService.Encrypt(otpVerifyRequest.otp);
@@ -557,14 +545,7 @@ namespace In.ProjectEKA.HipService.Verification
                     {
                         var generationResponse =
                             JsonConvert.DeserializeObject<TransactionResponse>(responseContent);
-                        if (TxnDictionary.ContainsKey(sessionId))
-                        {
-                            TxnDictionary[sessionId] = generationResponse?.txnId;
-                        }
-                        else
-                        {
-                            TxnDictionary.Add(sessionId, generationResponse?.txnId);
-                        }
+                        TxnDictionary.AddOrUpdate(sessionId, generationResponse?.txnId, (key, existing) => generationResponse?.txnId);
                         return Accepted();
                     }
                     return StatusCode((int)response.StatusCode,responseContent);
@@ -586,7 +567,7 @@ namespace In.ProjectEKA.HipService.Verification
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
             try
             {
                 string encryptedOTP = EncryptionService.Encrypt(verifyMobileOtpRequest.otp);
@@ -602,15 +583,8 @@ namespace In.ProjectEKA.HipService.Verification
                     if (response.IsSuccessStatusCode)
                     {
                         var otpResponse = JsonConvert.DeserializeObject<VerifyMobileOtpResponse>(responseContent);
-                        TxnDictionary[sessionId] = otpResponse?.txnId;
-                        if (VerifiedMobileTokenDictionary.ContainsKey(sessionId))
-                        {
-                            VerifiedMobileTokenDictionary[sessionId] = $"{T_TOKEN_TYPE} {otpResponse?.token}";;
-                        }
-                        else
-                        {
-                            VerifiedMobileTokenDictionary.Add(sessionId, $"{T_TOKEN_TYPE} {otpResponse?.token}");
-                        }
+                        TxnDictionary.AddOrUpdate(sessionId, otpResponse?.txnId, (key, existing) => otpResponse?.txnId);
+                        VerifiedMobileTokenDictionary.AddOrUpdate(sessionId, $"{T_TOKEN_TYPE} {otpResponse?.token}", (key, existing) => $"{T_TOKEN_TYPE} {otpResponse?.token}");
                         return Accepted(otpResponse.mobileLinkedHid);
                     }
 
@@ -632,8 +606,8 @@ namespace In.ProjectEKA.HipService.Verification
         {
             string sessionId = HttpContext.Items[SESSION_ID] as string;
 
-            var txnId = TxnDictionary.ContainsKey(sessionId) ? TxnDictionary[sessionId] : null;
-            var tToken = VerifiedMobileTokenDictionary.ContainsKey(sessionId) ? VerifiedMobileTokenDictionary[sessionId] : null;
+            TxnDictionary.TryGetValue(sessionId, out var txnId);
+            VerifiedMobileTokenDictionary.TryGetValue(sessionId, out var tToken);
             try
             {
                 logger.Log(LogLevel.Information,
@@ -725,10 +699,7 @@ namespace In.ProjectEKA.HipService.Verification
 
                         if (!string.IsNullOrEmpty(searchResponse?.txnId) && !string.IsNullOrEmpty(sessionId))
                         {
-                            if (TxnDictionary.ContainsKey(sessionId))
-                                TxnDictionary[sessionId] = searchResponse.txnId;
-                            else
-                                TxnDictionary.Add(sessionId, searchResponse.txnId);
+                            TxnDictionary.AddOrUpdate(sessionId, searchResponse.txnId, (key, existing) => searchResponse.txnId);
                         }
                         return Ok(searchResponse);
                     }
@@ -778,10 +749,7 @@ namespace In.ProjectEKA.HipService.Verification
                         var generationResponse = JsonConvert.DeserializeObject<AadhaarOTPGenerationResponse>(responseContent);
                         if (!string.IsNullOrEmpty(sessionId) && generationResponse != null && !string.IsNullOrEmpty(generationResponse.txnId))
                         {
-                            if (TxnDictionary.ContainsKey(sessionId))
-                                TxnDictionary[sessionId] = generationResponse.txnId;
-                            else
-                                TxnDictionary.Add(sessionId, generationResponse.txnId);
+                            TxnDictionary.AddOrUpdate(sessionId, generationResponse.txnId, (key, existing) => generationResponse.txnId);
                             return Accepted(new MobileOTPGenerationResponse(generationResponse.txnId, generationResponse.message));
                         }
                     }
@@ -847,10 +815,7 @@ namespace In.ProjectEKA.HipService.Verification
                             // var profile = await abhaService.getABHAProfile(sessionId, tokenRequest);
                             // return Accepted(profile);
 
-                            if (HealthIdNumberTokenDictionary.ContainsKey(sessionId))
-                                HealthIdNumberTokenDictionary[sessionId] = tokenRequest;
-                            else
-                                HealthIdNumberTokenDictionary.Add(sessionId, tokenRequest);
+                            HealthIdNumberTokenDictionary.AddOrUpdate(sessionId, tokenRequest, (key, existing) => tokenRequest);
                             return Accepted(verifyOtpResponse);
 
                             // using (var responseAbha = await gatewayClient.CallABHAService<string>(HttpMethod.Get,

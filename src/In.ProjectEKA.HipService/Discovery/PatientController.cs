@@ -83,10 +83,7 @@ namespace In.ProjectEKA.HipService.Discovery
                     new DiscoveryResponse(requestId,
                         error == null ? HttpStatusCode.OK : HttpStatusCode.NotFound,
                         error == null ? SuccessMessage : ErrorMessage));
-                if (!PatientInfoMap.ContainsKey(patientId))
-                {
-                    PatientInfoMap.Add(patientId, request.Patient);
-                }
+                PatientInfoMap.TryAdd(patientId, request.Patient);
                 
                 Log.Information("new GatewayDiscoveryRepresentation" + gatewayDiscoveryRepresentation);
                 Log.Information("Sending data to gateway");
