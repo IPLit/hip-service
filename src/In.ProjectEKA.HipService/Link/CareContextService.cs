@@ -248,7 +248,7 @@ namespace In.ProjectEKA.HipService.Link
                     hipId = bahmniConfiguration.GetDefaultHfrId();
                 }
             }
-            await SetAccessToken(abhaAddress, hipId);
+            await SetAccessToken(abhaAddress, hipId).ConfigureAwait(false);
             var compositeKey = abhaAddress + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
             if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)
                 || string.IsNullOrEmpty(linkToken))

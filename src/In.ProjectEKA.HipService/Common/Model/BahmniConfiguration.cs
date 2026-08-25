@@ -135,7 +135,7 @@ namespace In.ProjectEKA.HipService.Common.Model
                     return null;
                 }
                 Log.Information($"SetHfrIdForVisitAsync: Visit location UUID: {locationRef}");
-                var locationPath = $"ws/rest/v1/location/{locationRef}?v=full";
+                var locationPath = $"ws/rest/v1/location/{locationRef}";
                 var locationResponse = await _openMrsClient.GetAsync(locationPath);
                 if (locationResponse == null || !locationResponse.IsSuccessStatusCode)
                 {
