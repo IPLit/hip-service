@@ -66,17 +66,8 @@ namespace In.ProjectEKA.HipService.DataFlow
             {
                 if (string.IsNullOrEmpty(hipId))
                 {
-                    Log.Information($"PostTo: Attempting to set HFR ID for visit UUID: {visitUuid}");
-                    var hfrId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
-                    if (!string.IsNullOrEmpty(hfrId))
-                    {
-                        hipId = hfrId;
-                        Log.Information($"PostTo: Successfully set HFR ID {hfrId} for visit UUID {visitUuid}");
-                    }
-                    else
-                    {
-                        hipId = bahmniConfiguration.GetDefaultHfrId();
-                    }
+                    hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
+                    Log.Information($"DataFlowClient.PostTo: Successfully set HFR ID {hipId} for visit UUID {visitUuid}");
                 }
 
                 // TODO: Need to handle non 2xx response also

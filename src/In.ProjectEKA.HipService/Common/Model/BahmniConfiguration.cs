@@ -179,7 +179,14 @@ namespace In.ProjectEKA.HipService.Common.Model
                 if (string.IsNullOrEmpty(hfrId))
                 {
                     Log.Information($"SetHfrIdForVisitAsync: WARNING - HFR ID not found in location {locationRef} attributes");
-                    return null;
+                    string defaultHfrId = GetDefaultHfrId();
+                    SetHfrIdForVisit(visitUuid, defaultHfrId);
+                    Log.Information($"SetHfrIdForVisitAsync: Successfully stored HFR ID {defaultHfrId} for visit UUID {visitUuid}");
+
+                    string defaultFacilityName = GetDefaultFacilityName();
+                    SetFacilityNameForVisit(visitUuid, defaultFacilityName);
+                    Log.Information($"SetHfrIdForVisitAsync: Successfully stored facility name {defaultFacilityName} for visit UUID {visitUuid}");
+                    return defaultHfrId;
                 }
                 SetHfrIdForVisit(visitUuid, hfrId);
                 Log.Information($"SetHfrIdForVisitAsync: Successfully stored HFR ID {hfrId} for visit UUID {visitUuid}");
