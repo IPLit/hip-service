@@ -341,11 +341,13 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 healthId = getHealthId(accessToken);
             }
-            var hipId = bahmniConfiguration.GetDefaultHfrId();
-            if (UserAuthMap.RequestIdToHipId.ContainsKey(onGenerateTokenRequest.Response.RequestId))
-            {
-                hipId = UserAuthMap.RequestIdToHipId[onGenerateTokenRequest.Response.RequestId];
-            }
+            var token = new JwtSecurityTokenHandler().ReadToken(accessToken) as JwtSecurityToken;
+            var hipId = token?.Claims.First(c => c.Type == "hipId").Value;
+
+            // if (UserAuthMap.RequestIdToHipId.ContainsKey(onGenerateTokenRequest.Response.RequestId))
+            // {
+            //     hipId = UserAuthMap.RequestIdToHipId[onGenerateTokenRequest.Response.RequestId];
+            // }
             Tuple<AuthConfirm, ErrorRepresentation> authConfirmResponse = await updateAuthConfirmRepository(healthId, accessToken, hipId);
             if (authConfirmResponse.Item2 != null)
             {

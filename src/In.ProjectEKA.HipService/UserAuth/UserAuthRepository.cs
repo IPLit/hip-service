@@ -123,7 +123,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 var authRequest = await authContext.AuthConfirm
                     .FirstOrDefaultAsync(request =>
-                        request.HealthId.Equals(healthId) && request.HipId.Equals(hipId));
+                        request.HealthId.Equals(healthId) && request.HipId.Equals(hipId)).ConfigureAwait(false);
                 // if (authRequest == null && !string.IsNullOrEmpty(hipId))
                 // {
                 //     authRequest = await authContext.AuthConfirm

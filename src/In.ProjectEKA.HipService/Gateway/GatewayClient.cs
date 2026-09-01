@@ -125,7 +125,7 @@ namespace In.ProjectEKA.HipService.Gateway
                 var token = await Authenticate(correlationId).ConfigureAwait(false);
                 if (!token.HasValue)
                 {
-                    Log.Information("Data transfer notification to Gateway failed");
+                    Log.Error("Failed to obtain gateway access token; skipping request to {GatewayUrl}", gatewayUrl);
                     return;
                 }
 

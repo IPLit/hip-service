@@ -201,7 +201,8 @@ namespace In.ProjectEKA.HipService.Link
                     var resp = await SaveLinkedAccounts(linkEnquires, patient.Uuid);
                     if (resp)
                     {
-                        LinkAbhaIdentifier(patient.Uuid, linkEnquires.ConsentManagerUserId);
+                        await LinkAbhaIdentifier(patient.Uuid, linkEnquires.ConsentManagerUserId)
+                            .ConfigureAwait(false);
                         return (patientLinkResponse, cmId, (ErrorRepresentation) null);
                     } 
                     return (null,cmId,
@@ -228,31 +229,49 @@ namespace In.ProjectEKA.HipService.Link
             
         }
         
-        private async void LinkAbhaIdentifier(string patientUuid, string abhaAddress)
+        private async Task LinkAbhaIdentifier(string patientUuid, string abhaAddress)
         {
-            PatientInfoMap.TryGetValue(abhaAddress, out var patient);
-            var abhaNumberIdentifier =  patient?.VerifiedIdentifiers.FirstOrDefault(id => id.Type == IdentifierType.ABHA_NUMBER);
-            var json = JsonConvert.SerializeObject(new PatientAbhaIdentifier(abhaNumberIdentifier?.Value, abhaAddress), new JsonSerializerSettings
+            try
             {
-                NullValueHandling = NullValueHandling.Ignore,
-                ContractResolver = new DefaultContractResolver
+                PatientInfoMap.TryGetValue(abhaAddress, out var patient);
+                if (patient == null)
                 {
-                    NamingStrategy = new CamelCaseNamingStrategy()
+                    Log.Error("Unable to link ABHA identifier; patient info not found for {AbhaAddress}", abhaAddress);
+                    return;
                 }
-            });
-            var resp = await openMrsClient.PostAsync(
-                    $"{Constants.PATH_OPENMRS_UPDATE_IDENTIFIER}/{patientUuid}",
-                    json
-                )
-                .ConfigureAwait(false);
-            if (resp.IsSuccessStatusCode)
-            {
-                var ndhmDemographics = new NdhmDemographics(abhaAddress, patient.Name, patient.Gender.ToString(), patient.YearOfBirth.ToString(), patient.VerifiedIdentifiers.FirstOrDefault(id => id.Type == IdentifierType.MOBILE)?.Value);
-                await userAuthService.Dump(ndhmDemographics);
+
+                var abhaNumberIdentifier = patient.VerifiedIdentifiers?
+                    .FirstOrDefault(id => id.Type == IdentifierType.ABHA_NUMBER);
+                var json = JsonConvert.SerializeObject(new PatientAbhaIdentifier(abhaNumberIdentifier?.Value, abhaAddress), new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    ContractResolver = new DefaultContractResolver
+                    {
+                        NamingStrategy = new CamelCaseNamingStrategy()
+                    }
+                });
+                var resp = await openMrsClient.PostAsync(
+                        $"{Constants.PATH_OPENMRS_UPDATE_IDENTIFIER}/{patientUuid}",
+                        json
+                    )
+                    .ConfigureAwait(false);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    Log.Error("Errored in linking the abha identifier to the patient");
+                    return;
+                }
+
+                var ndhmDemographics = new NdhmDemographics(
+                    abhaAddress,
+                    patient.Name,
+                    patient.Gender.ToString(),
+                    patient.YearOfBirth.ToString(),
+                    patient.VerifiedIdentifiers?.FirstOrDefault(id => id.Type == IdentifierType.MOBILE)?.Value);
+                await userAuthService.Dump(ndhmDemographics).ConfigureAwait(false);
             }
-            else
+            catch (Exception exception)
             {
-                Log.Error("Errored in linking the abha identifier to the patient");
+                Log.Error(exception, "Failed to link ABHA identifier for patient {PatientUuid}", patientUuid);
             }
         }
 

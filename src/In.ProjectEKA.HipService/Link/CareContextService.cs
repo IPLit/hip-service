@@ -105,6 +105,8 @@ namespace In.ProjectEKA.HipService.Link
                  var error = userAuthService.CheckAccessToken(linkTokenFromDb);
                  if (error == null)
                  {
+                     Log.Debug("SetAccessToken: Using existing valid db access token for healthId: {HealthId} and hipId: {HipId} with linkToken: {LinkTokenFromDb}",
+                         healthId, hipId, linkTokenFromDb); 
                      UserAuthMap.HealthIdToAccessToken[compositeKey] = linkTokenFromDb;
                      return;
                  }
@@ -181,6 +183,7 @@ namespace In.ProjectEKA.HipService.Link
             }
             try
             {
+                await SetAccessToken(newContextRequest.HealthId, hipId).ConfigureAwait(false);
                 var compositeKey = newContextRequest.HealthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
                 if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)
                     || string.IsNullOrEmpty(linkToken))
@@ -221,12 +224,12 @@ namespace In.ProjectEKA.HipService.Link
                 hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
                 Log.Information($"CallAddContext: Successfully set HFR ID {hipId} for visit UUID {visitUuid}");
             }
-            await SetAccessToken(abhaAddress, hipId);
+            await SetAccessToken(abhaAddress, hipId).ConfigureAwait(false);
             var compositeKey = abhaAddress + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
             if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)
                 || string.IsNullOrEmpty(linkToken))
             {
-                Log.Error("Unable to get link token for healthId: {healthId} and hipId: {hipId}", abhaAddress, hipId);
+                Log.Debug("Unable to get link token: {linkToken} for healthId: {healthId} and hipId: {hipId}", linkToken, abhaAddress, hipId);
                 throw new Exception("Unable to get link token");
             }
             var cmSuffix = gatewayConfiguration.CmSuffix;

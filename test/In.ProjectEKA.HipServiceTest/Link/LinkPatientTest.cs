@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http;
 using In.ProjectEKA.HipService.OpenMrs;
 using In.ProjectEKA.HipService.UserAuth;
+using In.ProjectEKA.HipService.UserAuth.Model;
+using System.Threading.Tasks;
 
 namespace In.ProjectEKA.HipServiceTest.Link
 {
@@ -254,6 +256,9 @@ namespace In.ProjectEKA.HipServiceTest.Link
                     StatusCode = HttpStatusCode.OK
                 })
                 .Verifiable();
+            userAuthService
+                .Setup(x => x.Dump(It.IsAny<NdhmDemographics>()))
+                .Returns(Task.CompletedTask);
             var expectedLinkResponse = new PatientLinkConfirmationRepresentation(
                 new List<LinkConfirmationRepresentation>(){
                 new LinkConfirmationRepresentation(
@@ -267,6 +272,7 @@ namespace In.ProjectEKA.HipServiceTest.Link
             patientVerification.Verify();
             linkRepository.Verify();
             guidGenerator.Verify();
+            userAuthService.Verify(x => x.Dump(It.IsAny<NdhmDemographics>()), Times.Once);
             response.Patient.ToList()[0].ReferenceNumber.Should().BeEquivalentTo(expectedLinkResponse.Patient.ToList()[0].ReferenceNumber);
             response.Patient.ToList()[0].Display.Should().BeEquivalentTo(expectedLinkResponse.Patient.ToList()[0].Display);
         }
