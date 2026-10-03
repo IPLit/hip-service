@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 using FluentAssertions;
 using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.OpenMrs;
@@ -18,7 +21,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
         }
 
         [Fact]
-        public void SmsNotifyRequest_should_use_latest_healthId_for_phone_to_resolve_visit_facility()
+        public async Task SmsNotifyRequest_should_use_latest_healthId_for_phone_to_resolve_visit_facility()
         {
             var healthId = "patient@sbx";
             var visitUuid = "visit-uuid-123";
@@ -28,6 +31,8 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             UserAuthMap.HealthIdToLatestVisitUuid[healthId] = visitUuid;
 
             var openMrsClient = new Mock<IOpenMrsClient>();
+            openMrsClient.Setup(client => client.GetAsync(It.IsAny<string>()))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
             var bahmniConfiguration = new BahmniConfiguration(openMrsClient.Object)
             {
                 Id = "IN0000000001",
@@ -35,7 +40,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             };
             var smsNotificationService = new SmsNotificationService();
 
-            var result = smsNotificationService.SmsNotifyRequest(
+            var result = await smsNotificationService.SmsNotifyRequest(
                 new SmsNotifyRequest(phoneNo),
                 bahmniConfiguration);
 
@@ -45,7 +50,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
         }
 
         [Fact]
-        public void SmsNotifyRequest_should_fall_back_to_default_facility_when_visit_mapping_missing()
+        public async Task SmsNotifyRequest_should_fall_back_to_default_facility_when_visit_mapping_missing()
         {
             var healthId = "patient-fallback@sbx";
             var phoneNo = "+919999988877";
@@ -61,7 +66,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             };
             var smsNotificationService = new SmsNotificationService();
 
-            var result = smsNotificationService.SmsNotifyRequest(
+            var result = await smsNotificationService.SmsNotifyRequest(
                 new SmsNotifyRequest(phoneNo),
                 bahmniConfiguration);
 
