@@ -4,56 +4,57 @@ using System.Collections.Concurrent;
 namespace In.ProjectEKA.HipService.Common.Model
 {
     /// <summary>
-    /// Thread-safe in-memory cache for storing HFR ID per visit UUID
+    /// Thread-safe in-memory cache for storing HFR ID per location UUID.
+    /// Many visits share a location, so the HFR ID is cached once per location.
     /// </summary>
     public class HfrIdCache
     {
-        private readonly ConcurrentDictionary<string, string> _visitUuidToHfrId = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<string, string> _locationUuidToHfrId = new ConcurrentDictionary<string, string>();
 
         /// <summary>
-        /// Stores HFR ID for a given visit UUID
+        /// Stores HFR ID for a given location UUID
         /// </summary>
-        public void SetHfrId(string visitUuid, string hfrId)
+        public void SetHfrId(string locationUuid, string hfrId)
         {
-            if (string.IsNullOrEmpty(visitUuid))
-                throw new ArgumentException("Visit UUID cannot be null or empty", nameof(visitUuid));
+            if (string.IsNullOrEmpty(locationUuid))
+                throw new ArgumentException("Location UUID cannot be null or empty", nameof(locationUuid));
             if (string.IsNullOrEmpty(hfrId))
                 throw new ArgumentException("HFR ID cannot be null or empty", nameof(hfrId));
 
-            _visitUuidToHfrId.AddOrUpdate(visitUuid, hfrId, (key, oldValue) => hfrId);
+            _locationUuidToHfrId.AddOrUpdate(locationUuid, hfrId, (key, oldValue) => hfrId);
         }
 
         /// <summary>
-        /// Gets HFR ID for a given visit UUID
+        /// Gets HFR ID for a given location UUID
         /// </summary>
         /// <returns>HFR ID if found, null otherwise</returns>
-        public string GetHfrId(string visitUuid)
+        public string GetHfrId(string locationUuid)
         {
-            if (string.IsNullOrEmpty(visitUuid))
+            if (string.IsNullOrEmpty(locationUuid))
                 return null;
 
-            _visitUuidToHfrId.TryGetValue(visitUuid, out var hfrId);
+            _locationUuidToHfrId.TryGetValue(locationUuid, out var hfrId);
             return hfrId;
         }
 
         /// <summary>
-        /// Gets HFR ID for a given visit UUID, or returns default HFR ID if not found
+        /// Gets HFR ID for a given location UUID, or returns default HFR ID if not found
         /// </summary>
-        public string GetHfrIdOrDefault(string visitUuid, string defaultHfrId)
+        public string GetHfrIdOrDefault(string locationUuid, string defaultHfrId)
         {
-            var hfrId = GetHfrId(visitUuid);
+            var hfrId = GetHfrId(locationUuid);
             return hfrId ?? defaultHfrId;
         }
 
         /// <summary>
-        /// Removes HFR ID for a given visit UUID
+        /// Removes HFR ID for a given location UUID
         /// </summary>
-        public bool RemoveHfrId(string visitUuid)
+        public bool RemoveHfrId(string locationUuid)
         {
-            if (string.IsNullOrEmpty(visitUuid))
+            if (string.IsNullOrEmpty(locationUuid))
                 return false;
 
-            return _visitUuidToHfrId.TryRemove(visitUuid, out _);
+            return _locationUuidToHfrId.TryRemove(locationUuid, out _);
         }
 
         /// <summary>
@@ -61,12 +62,12 @@ namespace In.ProjectEKA.HipService.Common.Model
         /// </summary>
         public void Clear()
         {
-            _visitUuidToHfrId.Clear();
+            _locationUuidToHfrId.Clear();
         }
 
         /// <summary>
         /// Gets the count of cached entries
         /// </summary>
-        public int Count => _visitUuidToHfrId.Count;
+        public int Count => _locationUuidToHfrId.Count;
     }
 }

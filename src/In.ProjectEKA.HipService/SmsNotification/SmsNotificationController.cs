@@ -51,7 +51,7 @@ namespace In.ProjectEKA.HipService.SmsNotification
         public async Task<ActionResult> SendSMSNotification([FromHeader(Name = CORRELATION_ID)] string correlationId, [FromBody] SmsNotifyRequest smsNotifyRequest)
         {
             var (gatewaySmsNotifyRequestRepresentation, error) =
-                _smsNotificationService.SmsNotifyRequest(smsNotifyRequest, bahmniConfiguration);
+                await _smsNotificationService.SmsNotifyRequest(smsNotifyRequest, bahmniConfiguration);
             if (error != null)
                 return StatusCode(StatusCodes.Status400BadRequest, error);
             var cmSuffix = gatewayConfiguration.CmSuffix;

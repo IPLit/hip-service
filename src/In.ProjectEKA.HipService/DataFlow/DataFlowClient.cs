@@ -61,7 +61,7 @@ namespace In.ProjectEKA.HipService.DataFlow
             var visitUuid = grantedContexts.First() != null 
                 ? bahmniConfiguration.ExtractVisitUuidFromReference(grantedContexts.First().CareContextReference)
                 : null;
-            string hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+            string hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
             try
             {
                 if (string.IsNullOrEmpty(hipId))

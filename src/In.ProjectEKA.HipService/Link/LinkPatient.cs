@@ -83,13 +83,13 @@ namespace In.ProjectEKA.HipService.Link
                 var visitUuid = careContextReferenceNumbers.First() != null
                     ? bahmniConfiguration.ExtractVisitUuidFromReference(careContextReferenceNumbers.First())
                     : null;
-                var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+                var hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(hipId))
                 {
                     hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
                     Log.Information($"LinkPatient.LinkPatients: Successfully set HFR ID {hipId} for visit UUID {visitUuid}");
                 }
-                var hipName = bahmniConfiguration.GetFacilityNameByVisitUuid(visitUuid);
+                var hipName = await bahmniConfiguration.GetFacilityNameByVisitUuid(visitUuid).ConfigureAwait(false);
                 hipName = UrlEncoder.Default.Encode(hipName);
 
                 var (_, exception) = await linkPatientRepository.SaveRequestWith(

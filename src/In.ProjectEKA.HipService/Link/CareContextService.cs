@@ -150,7 +150,7 @@ namespace In.ProjectEKA.HipService.Link
             var hiTypes = context.HiTypes.Select(hiType => hiType.ToString()).ToList();
             // Extract visit UUID from care context reference (format: "patientId:visitUuid")
             var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(careContextReference);
-            var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+            var hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
             if (string.IsNullOrEmpty(hipId))
             {
                 hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
@@ -175,7 +175,7 @@ namespace In.ProjectEKA.HipService.Link
             var cmSuffix = gatewayConfiguration.CmSuffix;
             // Extract visit UUID from care context reference
             var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(context.ReferenceNumber);
-            var hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+            var hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
             if (string.IsNullOrEmpty(hipId))
             {
                 hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
@@ -218,7 +218,7 @@ namespace In.ProjectEKA.HipService.Link
             var demographics = (await userAuthRepository.GetDemographics(abhaAddress).ConfigureAwait(false)).ValueOrDefault();
             if (demographics != null)
                 UserAuthMap.UpdateHealthIdToPhoneNumber(demographics.PhoneNumber, abhaAddress);
-            string hipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+            string hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
             if (string.IsNullOrEmpty(hipId))
             {
                 hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);

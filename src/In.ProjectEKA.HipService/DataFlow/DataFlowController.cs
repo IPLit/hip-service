@@ -92,7 +92,6 @@ namespace In.ProjectEKA.HipService.DataFlow
             [FromHeader(Name = "X-GatewayID")] string gatewayId,
             [FromHeader(Name = REQUEST_ID)] string requestId,
             [FromHeader(Name = TIMESTAMP)] string timestamp)
-        
         {
             logger.Log(LogLevel.Information, LogEvents.DataFlow, "Data request received from gateway for transactionId {TransactionId} and requestId {RequestId}",
                 healthInformationRequest.TransactionId, requestId);

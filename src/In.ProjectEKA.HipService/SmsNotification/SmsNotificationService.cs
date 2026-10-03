@@ -1,5 +1,6 @@
 using System;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.Common.Model;
@@ -10,7 +11,7 @@ namespace In.ProjectEKA.HipService.SmsNotification
 {
     public class SmsNotificationService : ISmsNotificationService
     {
-        public Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation> SmsNotifyRequest(
+        public async Task<Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>> SmsNotifyRequest(
             SmsNotifyRequest smsNotifyRequest, BahmniConfiguration bahmniConfiguration)
         {
             if (smsNotifyRequest == null || string.IsNullOrWhiteSpace(smsNotifyRequest.phoneNo))
@@ -35,8 +36,8 @@ namespace In.ProjectEKA.HipService.SmsNotification
             if (UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid)
                 && !string.IsNullOrEmpty(visitUuid))
             {
-                var visitHipId = bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
-                var visitHipName = bahmniConfiguration.GetFacilityNameByVisitUuid(visitUuid);
+                var visitHipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
+                var visitHipName = await bahmniConfiguration.GetFacilityNameByVisitUuid(visitUuid);
                 if (!string.IsNullOrEmpty(visitHipId))
                     hipId = visitHipId;
                 if (!string.IsNullOrEmpty(visitHipName))

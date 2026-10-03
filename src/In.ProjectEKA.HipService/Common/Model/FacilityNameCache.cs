@@ -4,56 +4,57 @@ using System.Collections.Concurrent;
 namespace In.ProjectEKA.HipService.Common.Model
 {
     /// <summary>
-    /// Thread-safe in-memory cache for storing facility name per visit UUID
+    /// Thread-safe in-memory cache for storing facility name per location UUID.
+    /// Many visits share a location, so the facility name is cached once per location.
     /// </summary>
     public class FacilityNameCache
     {
-        private readonly ConcurrentDictionary<string, string> _visitUuidToFacilityName = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<string, string> _locationUuidToFacilityName = new ConcurrentDictionary<string, string>();
 
         /// <summary>
-        /// Stores facility name for a given visit UUID
+        /// Stores facility name for a given location UUID
         /// </summary>
-        public void SetFacilityName(string visitUuid, string facilityName)
+        public void SetFacilityName(string locationUuid, string facilityName)
         {
-            if (string.IsNullOrEmpty(visitUuid))
-                throw new ArgumentException("Visit UUID cannot be null or empty", nameof(visitUuid));
+            if (string.IsNullOrEmpty(locationUuid))
+                throw new ArgumentException("Location UUID cannot be null or empty", nameof(locationUuid));
             if (string.IsNullOrEmpty(facilityName))
                 throw new ArgumentException("Facility name cannot be null or empty", nameof(facilityName));
 
-            _visitUuidToFacilityName.AddOrUpdate(visitUuid, facilityName, (key, oldValue) => facilityName);
+            _locationUuidToFacilityName.AddOrUpdate(locationUuid, facilityName, (key, oldValue) => facilityName);
         }
 
         /// <summary>
-        /// Gets facility name for a given visit UUID
+        /// Gets facility name for a given location UUID
         /// </summary>
         /// <returns>Facility name if found, null otherwise</returns>
-        public string GetFacilityName(string visitUuid)
+        public string GetFacilityName(string locationUuid)
         {
-            if (string.IsNullOrEmpty(visitUuid))
+            if (string.IsNullOrEmpty(locationUuid))
                 return null;
 
-            _visitUuidToFacilityName.TryGetValue(visitUuid, out var facilityName);
+            _locationUuidToFacilityName.TryGetValue(locationUuid, out var facilityName);
             return facilityName;
         }
 
         /// <summary>
-        /// Gets facility name for a given visit UUID, or returns default facility name if not found
+        /// Gets facility name for a given location UUID, or returns default facility name if not found
         /// </summary>
-        public string GetFacilityNameOrDefault(string visitUuid, string defaultFacilityName)
+        public string GetFacilityNameOrDefault(string locationUuid, string defaultFacilityName)
         {
-            var facilityName = GetFacilityName(visitUuid);
+            var facilityName = GetFacilityName(locationUuid);
             return facilityName ?? defaultFacilityName;
         }
 
         /// <summary>
-        /// Removes facility name for a given visit UUID
+        /// Removes facility name for a given location UUID
         /// </summary>
-        public bool RemoveFacilityName(string visitUuid)
+        public bool RemoveFacilityName(string locationUuid)
         {
-            if (string.IsNullOrEmpty(visitUuid))
+            if (string.IsNullOrEmpty(locationUuid))
                 return false;
 
-            return _visitUuidToFacilityName.TryRemove(visitUuid, out _);
+            return _locationUuidToFacilityName.TryRemove(locationUuid, out _);
         }
 
         /// <summary>
@@ -61,12 +62,12 @@ namespace In.ProjectEKA.HipService.Common.Model
         /// </summary>
         public void Clear()
         {
-            _visitUuidToFacilityName.Clear();
+            _locationUuidToFacilityName.Clear();
         }
 
         /// <summary>
         /// Gets the count of cached entries
         /// </summary>
-        public int Count => _visitUuidToFacilityName.Count;
+        public int Count => _locationUuidToFacilityName.Count;
     }
 }
