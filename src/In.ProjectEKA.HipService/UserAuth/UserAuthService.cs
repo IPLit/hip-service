@@ -10,6 +10,7 @@ using In.ProjectEKA.HipService.Common;
 using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.DataFlow;
 using In.ProjectEKA.HipService.Gateway;
+using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.UserAuth.Model;
 using Microsoft.Extensions.Logging;
 using Optional;
@@ -360,8 +361,7 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         public Error CheckAccessToken(string accessToken)
         {
-            logger.Log(LogLevel.Information,
-                    LogEvents.UserAuth, $"accessToken: {{accessToken}}", accessToken);
+            Log.Debug($"accessToken: {{accessToken}}", accessToken);
             if (accessToken != null)
             {
                 var token = new JwtSecurityTokenHandler().ReadToken(accessToken) as JwtSecurityToken;
