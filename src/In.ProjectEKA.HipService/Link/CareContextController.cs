@@ -68,8 +68,11 @@ namespace In.ProjectEKA.HipService.Link
                             ? context.ReferenceNumber.Split(":")[1] : null;
                         if (!string.IsNullOrEmpty(visitUuid) && bahmniConfiguration != null)
                         {
-                            string hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
-                            Log.Information($"PassContext: Successfully set HFR ID {hipId} for visit UUID {visitUuid}");
+                            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+                            var hipId = hfrDetails?.HfrId;
+                            if (string.IsNullOrEmpty(hipId))
+                                hipId = bahmniConfiguration.GetDefaultHfrId();
+                            Log.Information($"PassContext: HFR ID {hipId} for visit UUID {visitUuid}");
                         }
                     }
                     if (careContexts != null && careContextService.IsLinkedContext(careContexts, context.ReferenceNumber))

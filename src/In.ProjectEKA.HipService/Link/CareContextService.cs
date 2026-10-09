@@ -150,12 +150,10 @@ namespace In.ProjectEKA.HipService.Link
             var hiTypes = context.HiTypes.Select(hiType => hiType.ToString()).ToList();
             // Extract visit UUID from care context reference (format: "patientId:visitUuid")
             var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(careContextReference);
-            var hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hipId = hfrDetails?.HfrId;
             if (string.IsNullOrEmpty(hipId))
-            {
-                hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
-                Log.Information($"NotificationContextResponse: Successfully set HFR ID {hipId} for visit UUID {visitUuid}");
-            }
+                hipId = bahmniConfiguration.GetDefaultHfrId();
             var patient = new NotificationPatientContext(id);
             var careContext = new NotificationCareContext(patientReference, careContextReference);
             var hip = new NotificationContextHip(hipId);
@@ -175,12 +173,10 @@ namespace In.ProjectEKA.HipService.Link
             var cmSuffix = gatewayConfiguration.CmSuffix;
             // Extract visit UUID from care context reference
             var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(context.ReferenceNumber);
-            var hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hipId = hfrDetails?.HfrId;
             if (string.IsNullOrEmpty(hipId))
-            {
-                hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
-                Log.Information($"CallNotifyContext: Successfully set HFR ID {hipId} for visit UUID {visitUuid}");
-            }
+                hipId = bahmniConfiguration.GetDefaultHfrId();
             try
             {
                 await SetAccessToken(newContextRequest.HealthId, hipId).ConfigureAwait(false);
@@ -218,12 +214,10 @@ namespace In.ProjectEKA.HipService.Link
             var demographics = (await userAuthRepository.GetDemographics(abhaAddress).ConfigureAwait(false)).ValueOrDefault();
             if (demographics != null)
                 UserAuthMap.UpdateHealthIdToPhoneNumber(demographics.PhoneNumber, abhaAddress);
-            string hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hipId = hfrDetails?.HfrId;
             if (string.IsNullOrEmpty(hipId))
-            {
-                hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
-                Log.Information($"CallAddContext: Successfully set HFR ID {hipId} for visit UUID {visitUuid}");
-            }
+                hipId = bahmniConfiguration.GetDefaultHfrId();
             await SetAccessToken(abhaAddress, hipId).ConfigureAwait(false);
             var compositeKey = abhaAddress + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
             if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)

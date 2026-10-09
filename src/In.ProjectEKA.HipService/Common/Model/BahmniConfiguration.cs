@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.OpenMrs;
@@ -6,10 +7,24 @@ using Newtonsoft.Json.Linq;
 
 namespace In.ProjectEKA.HipService.Common.Model
 {
+    public class HfrDetails
+    {
+        public HfrDetails(string hfrId, string hfrName)
+        {
+            HfrId = hfrId;
+            HfrName = hfrName;
+        }
+
+        public string HfrId { get; }
+
+        public string HfrName { get; }
+    }
+
     public class BahmniConfiguration
     {
         private readonly HfrIdCache _hfrIdCache;
         private readonly FacilityNameCache _facilityNameCache;
+        private readonly ConcurrentDictionary<string, string> _visitLocationCache = new ConcurrentDictionary<string, string>();
         private readonly IOpenMrsClient _openMrsClient;
 
         public BahmniConfiguration(IOpenMrsClient openMrsClient)
@@ -24,21 +39,36 @@ namespace In.ProjectEKA.HipService.Common.Model
         public string Name { get; set; }
 
         /// <summary>
-        /// Gets HFR ID for a visit. Location UUID is always loaded from the OpenMRS visit API,
-        /// then HFR ID is read from the location cache.
+        /// Loads the visit location once, then returns the HFR id and name for that location.
+        /// A later call for the same visit or location uses the cache.
+        /// HFR id and name are cached when the location has them.
+        /// When the location has neither, the configured defaults are cached and both values are returned as null
+        /// so the caller applies defaults. A failed lookup also returns nulls and is not cached.
         /// </summary>
-        /// <param name="visitUuid">Visit UUID</param>
-        /// <returns>HFR ID for the visit location, default Id when visit UUID is empty, or null on cache miss</returns>
-        public async Task<string> GetHfrIdByVisitUuid(string visitUuid)
+        public async Task<HfrDetails> GetHfrDetailsByVisitUuid(string visitUuid)
         {
-            if (string.IsNullOrEmpty(visitUuid))
-                return Id;
+            try
+            {
+                if (string.IsNullOrEmpty(visitUuid))
+                    return new HfrDetails(null, null);
 
-            var locationUuid = await GetLocationUuidForVisitAsync(visitUuid);
-            if (string.IsNullOrEmpty(locationUuid))
-                return null;
+                var locationUuid = await GetLocationUuidForVisitAsync(visitUuid);
+                if (string.IsNullOrEmpty(locationUuid))
+                    return new HfrDetails(null, null);
 
-            return _hfrIdCache.GetHfrId(locationUuid);
+                var cachedHfrId = _hfrIdCache.GetHfrId(locationUuid);
+                var cachedHfrName = _facilityNameCache.GetFacilityName(locationUuid);
+                if (!string.IsNullOrEmpty(cachedHfrId) || !string.IsNullOrEmpty(cachedHfrName))
+                    return new HfrDetails(cachedHfrId, cachedHfrName);
+
+                return await FetchAndCacheLocationDetailsAsync(locationUuid);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"GetHfrDetailsByVisitUuid: Failed to retrieve HFR details for visit {visitUuid} from OpenMRS.");
+                Log.Error($"GetHfrDetailsByVisitUuid: Error processing request: {ex.Message}");
+                return new HfrDetails(null, null);
+            }
         }
 
         public string GetDefaultHfrId()
@@ -56,27 +86,9 @@ namespace In.ProjectEKA.HipService.Common.Model
             _hfrIdCache.SetHfrId(locationUuid, hfrId);
         }
 
-        /// <summary>
-        /// Gets facility name for a visit. Location UUID is always loaded from the OpenMRS visit API,
-        /// then facility name is read from the location cache.
-        /// </summary>
-        /// <param name="visitUuid">Visit UUID</param>
-        /// <returns>Facility name for the visit location, default Name when visit UUID is empty, or null on cache miss</returns>
-        public async Task<string> GetFacilityNameByVisitUuid(string visitUuid)
-        {
-            if (string.IsNullOrEmpty(visitUuid))
-                return Name;
-
-            var locationUuid = await GetLocationUuidForVisitAsync(visitUuid);
-            if (string.IsNullOrEmpty(locationUuid))
-                return null;
-
-            return _facilityNameCache.GetFacilityName(locationUuid);
-        }
-
         public string GetDefaultFacilityName()
         {
-                return Name;
+            return Name;
         }
 
         /// <summary>
@@ -119,51 +131,19 @@ namespace In.ProjectEKA.HipService.Common.Model
             return careContextReference;
         }
 
-        /// <summary>
-        /// Resolves HFR ID for a visit. Uses the location cache first.
-        /// Calls the OpenMRS location API only when that location is not cached.
-        /// </summary>
-        public async Task<string> SetHfrIdForVisitAsync(string visitUuid)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(visitUuid))
-                {
-                    Log.Error("SetHfrIdForVisitAsync: visitUuid is null or empty");
-                    return null;
-                }
-
-                var locationUuid = await GetLocationUuidForVisitAsync(visitUuid);
-                if (string.IsNullOrEmpty(locationUuid))
-                    return null;
-
-                var cachedHfrId = _hfrIdCache.GetHfrId(locationUuid);
-                if (!string.IsNullOrEmpty(cachedHfrId))
-                {
-                    Log.Information($"SetHfrIdForVisitAsync: Using cached HFR ID {cachedHfrId} for location {locationUuid}");
-                    return cachedHfrId;
-                }
-
-                return await FetchAndCacheLocationDetailsAsync(locationUuid);
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve HFR ID for visit {visitUuid} from OpenMRS.");
-                Log.Error($"SetHfrIdForVisitAsync: Error processing request: {ex.Message}");
-                return null;
-            }
-        }
-
         private async Task<string> GetLocationUuidForVisitAsync(string visitUuid)
         {
+            if (_visitLocationCache.TryGetValue(visitUuid, out var cachedLocationUuid))
+                return cachedLocationUuid;
+
             try
             {
-                Log.Information($"SetHfrIdForVisitAsync: Retrieving location for visit UUID: {visitUuid}");
+                Log.Information($"GetHfrDetailsByVisitUuid: Retrieving location for visit UUID: {visitUuid}");
                 var visitPath = $"ws/rest/v1/visit/{visitUuid}";
                 var visitResponse = await _openMrsClient.GetAsync(visitPath);
                 if (visitResponse == null || !visitResponse.IsSuccessStatusCode)
                 {
-                    Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve visit {visitUuid} from OpenMRS. Status: {visitResponse?.StatusCode}");
+                    Log.Error($"GetHfrDetailsByVisitUuid: Failed to retrieve visit {visitUuid} from OpenMRS. Status: {visitResponse?.StatusCode}");
                     return null;
                 }
 
@@ -172,36 +152,37 @@ namespace In.ProjectEKA.HipService.Common.Model
                 var locationUuid = visitJson["location"]?["uuid"]?.ToString();
                 if (string.IsNullOrEmpty(locationUuid))
                 {
-                    Log.Error($"SetHfrIdForVisitAsync: Visit {visitUuid} does not have a location");
+                    Log.Error($"GetHfrDetailsByVisitUuid: Visit {visitUuid} does not have a location");
                     return null;
                 }
 
-                Log.Information($"SetHfrIdForVisitAsync: Visit {visitUuid} location UUID: {locationUuid}");
+                _visitLocationCache.TryAdd(visitUuid, locationUuid);
+                Log.Information($"GetHfrDetailsByVisitUuid: Visit {visitUuid} location UUID: {locationUuid}");
                 return locationUuid;
             }
             catch (Exception ex)
             {
-                Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve visit {visitUuid} from OpenMRS.");
-                Log.Error($"SetHfrIdForVisitAsync: Error processing request: {ex.Message}");
+                Log.Error($"GetHfrDetailsByVisitUuid: Failed to retrieve visit {visitUuid} from OpenMRS.");
+                Log.Error($"GetHfrDetailsByVisitUuid: Error processing request: {ex.Message}");
                 return null;
             }
         }
 
-        private async Task<string> FetchAndCacheLocationDetailsAsync(string locationUuid)
+        private async Task<HfrDetails> FetchAndCacheLocationDetailsAsync(string locationUuid)
         {
-            Log.Information($"SetHfrIdForVisitAsync: HFR ID not cached for location {locationUuid}. Calling OpenMRS location API");
+            Log.Information($"GetHfrDetailsByVisitUuid: HFR details not cached for location {locationUuid}. Calling OpenMRS location API");
             var locationPath = $"ws/rest/v1/location/{locationUuid}?v=full";
             var locationResponse = await _openMrsClient.GetAsync(locationPath);
             if (locationResponse == null || !locationResponse.IsSuccessStatusCode)
             {
-                Log.Error($"SetHfrIdForVisitAsync: Failed to retrieve location {locationUuid} from OpenMRS. Status: {locationResponse?.StatusCode}");
-                return null;
+                Log.Error($"GetHfrDetailsByVisitUuid: Failed to retrieve location {locationUuid} from OpenMRS. Status: {locationResponse?.StatusCode}");
+                return new HfrDetails(null, null);
             }
 
             var locationContent = await locationResponse.Content.ReadAsStringAsync();
             var locationJson = JObject.Parse(locationContent);
             string hfrId = null;
-            string facilityName = null;
+            string hfrName = null;
             var attributes = locationJson["attributes"] as JArray;
             if (attributes != null)
             {
@@ -217,39 +198,49 @@ namespace In.ProjectEKA.HipService.Common.Model
                     {
                         hfrId = attribute["value"]?.ToString();
                         if (!string.IsNullOrEmpty(hfrId))
-                            Log.Information($"SetHfrIdForVisitAsync: Found HFR ID: {hfrId} for location {locationUuid}");
+                            Log.Information($"GetHfrDetailsByVisitUuid: Found HFR ID: {hfrId} for location {locationUuid}");
                     }
 
                     if (attributeType.Equals("ABDM HFR Name", StringComparison.OrdinalIgnoreCase) ||
                         attributeType.Contains("HFR Name", StringComparison.OrdinalIgnoreCase))
                     {
-                        facilityName = attribute["value"]?.ToString();
-                        if (!string.IsNullOrEmpty(facilityName))
-                            Log.Information($"SetHfrIdForVisitAsync: Found ABDM HFR Name: {facilityName} for location {locationUuid}");
+                        hfrName = attribute["value"]?.ToString();
+                        if (!string.IsNullOrEmpty(hfrName))
+                            Log.Information($"GetHfrDetailsByVisitUuid: Found ABDM HFR Name: {hfrName} for location {locationUuid}");
                     }
                 }
             }
 
-            if (string.IsNullOrEmpty(hfrId))
+            if (string.IsNullOrEmpty(hfrId) && string.IsNullOrEmpty(hfrName))
             {
-                hfrId = GetDefaultHfrId();
-                Log.Information($"SetHfrIdForVisitAsync: WARNING - HFR ID not found in location {locationUuid} attributes. Using default {hfrId}");
+                CacheDefaultHfrDetails(locationUuid);
+                Log.Information($"GetHfrDetailsByVisitUuid: Location {locationUuid} has no HFR id or name. Cached defaults and returning null HFR id");
+                return new HfrDetails(null, null);
             }
-
-            if (string.IsNullOrEmpty(facilityName))
-                facilityName = GetDefaultFacilityName();
 
             if (!string.IsNullOrEmpty(hfrId))
             {
                 SetHfrIdForLocation(locationUuid, hfrId);
-                Log.Information($"SetHfrIdForVisitAsync: Stored HFR ID {hfrId} for location UUID {locationUuid}");
+                Log.Information($"GetHfrDetailsByVisitUuid: Stored HFR ID {hfrId} for location UUID {locationUuid}");
             }
 
-            if (!string.IsNullOrEmpty(facilityName)) {
-                SetFacilityNameForLocation(locationUuid, facilityName);
-                Log.Information($"SetHfrIdForVisitAsync: Stored facility name {facilityName} for location UUID {locationUuid}");
+            if (!string.IsNullOrEmpty(hfrName))
+            {
+                SetFacilityNameForLocation(locationUuid, hfrName);
+                Log.Information($"GetHfrDetailsByVisitUuid: Stored HFR name {hfrName} for location UUID {locationUuid}");
             }
-            return hfrId;
+
+            return new HfrDetails(hfrId, hfrName);
+        }
+
+        private void CacheDefaultHfrDetails(string locationUuid)
+        {
+            var defaultHfrId = GetDefaultHfrId();
+            var defaultHfrName = GetDefaultFacilityName();
+            if (!string.IsNullOrEmpty(defaultHfrId))
+                SetHfrIdForLocation(locationUuid, defaultHfrId);
+            if (!string.IsNullOrEmpty(defaultHfrName))
+                SetFacilityNameForLocation(locationUuid, defaultHfrName);
         }
     }
 }

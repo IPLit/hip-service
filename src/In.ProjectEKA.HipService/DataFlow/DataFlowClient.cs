@@ -61,14 +61,12 @@ namespace In.ProjectEKA.HipService.DataFlow
             var visitUuid = grantedContexts.First() != null 
                 ? bahmniConfiguration.ExtractVisitUuidFromReference(grantedContexts.First().CareContextReference)
                 : null;
-            string hipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hipId = hfrDetails?.HfrId;
+            if (string.IsNullOrEmpty(hipId))
+                hipId = bahmniConfiguration.GetDefaultHfrId();
             try
             {
-                if (string.IsNullOrEmpty(hipId))
-                {
-                    hipId = await bahmniConfiguration.SetHfrIdForVisitAsync(visitUuid).ConfigureAwait(false);
-                    Log.Information($"DataFlowClient.PostTo: Successfully set HFR ID {hipId} for visit UUID {visitUuid}");
-                }
 
                 // TODO: Need to handle non 2xx response also
                 // Do not mutate shared HttpClient.DefaultRequestHeaders — Authorization is set per-request.

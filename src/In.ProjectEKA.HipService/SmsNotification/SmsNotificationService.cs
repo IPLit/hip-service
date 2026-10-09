@@ -36,12 +36,13 @@ namespace In.ProjectEKA.HipService.SmsNotification
             if (UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid)
                 && !string.IsNullOrEmpty(visitUuid))
             {
-                var visitHipId = await bahmniConfiguration.GetHfrIdByVisitUuid(visitUuid);
-                var visitHipName = await bahmniConfiguration.GetFacilityNameByVisitUuid(visitUuid);
-                if (!string.IsNullOrEmpty(visitHipId))
-                    hipId = visitHipId;
-                if (!string.IsNullOrEmpty(visitHipName))
-                    hipName = visitHipName;
+                var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid);
+                if (!string.IsNullOrEmpty(hfrDetails?.HfrId))
+                {
+                    hipId = hfrDetails.HfrId;
+                    if (!string.IsNullOrEmpty(hfrDetails.HfrName))
+                        hipName = hfrDetails.HfrName;
+                }
             }
 
             var hip = new SmsNotifyHip(UrlEncoder.Default.Encode(hipName), UrlEncoder.Default.Encode(hipId));
