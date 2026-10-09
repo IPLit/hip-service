@@ -38,6 +38,8 @@ namespace In.ProjectEKA.HipService.Link
 
         Task<Option<InitiatedLinkRequest>> Save(string requestId, string transactionId, string linkReferenceNumber);
 
+        Task<Option<InitiatedLinkRequest>> GetByRequestId(string requestId);
+
         Task<Option<IEnumerable<InitiatedLinkRequest>>> Get(string linkReferenceNumber);
 
         bool Update(InitiatedLinkRequest linkRequest);

@@ -292,8 +292,14 @@ namespace In.ProjectEKA.HipService.Link
         }
         public async Task<ErrorRepresentation> VerifyAndLinkCareContexts(String requestId)
         {
+            // on_carecontext echoes the gateway request id. LinkEnquires is stored under the
+            // separate link reference saved on InitiatedLinkRequest.
+            var linkReferenceNumber = requestId;
+            (await linkPatientRepository.GetByRequestId(requestId).ConfigureAwait(false))
+                .MatchSome(initiated => linkReferenceNumber = initiated.LinkReferenceNumber);
+
             var (linkEnquires, exception) =
-                await linkPatientRepository.GetPatientFor(requestId);
+                await linkPatientRepository.GetPatientFor(linkReferenceNumber);
             var cmId = "";
             if (exception != null)
                 return new ErrorRepresentation(new Error(ErrorCode.NoLinkRequestFound, ErrorMessage.NoLinkRequestFound));
@@ -301,7 +307,7 @@ namespace In.ProjectEKA.HipService.Link
             var patient = await patientRepository.PatientWithAsync(linkEnquires.PatientReferenceNumber);
             return await patient.Map( async patient =>
                 {
-                    var savedLinkRequests = await linkPatientRepository.Get(requestId);
+                    var savedLinkRequests = await linkPatientRepository.Get(linkReferenceNumber);
                     savedLinkRequests.MatchSome(linkRequests =>
                     {
                         foreach (var linkRequest in linkRequests)

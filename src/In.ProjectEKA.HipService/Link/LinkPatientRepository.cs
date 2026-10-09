@@ -63,8 +63,10 @@ namespace In.ProjectEKA.HipService.Link
             }
             catch (Exception exception)
             {
-                Log.Error("Can't find patient for the given reference number");
-                // Log.Fatal(exception, exception.StackTrace);
+                Log.Error(
+                    "Can't find patient for the given reference number {LinkReferenceNumber}. {Exception}",
+                    linkReferenceNumber,
+                    exception.Message);
                 return new Tuple<LinkEnquires, Exception>(null, exception);
             }
         }
@@ -225,6 +227,24 @@ namespace In.ProjectEKA.HipService.Link
             {
                 Log.Fatal(exception, exception.StackTrace);
                 return Option.None<CareContextMap>();
+            }
+        }
+
+        public async Task<Option<InitiatedLinkRequest>> GetByRequestId(string requestId)
+        {
+            try
+            {
+                var initiatedLinkRequest = await linkPatientContext.InitiatedLinkRequest
+                    .FirstOrDefaultAsync(request => request.RequestId == requestId)
+                    .ConfigureAwait(false);
+                return initiatedLinkRequest == null
+                    ? Option.None<InitiatedLinkRequest>()
+                    : Option.Some(initiatedLinkRequest);
+            }
+            catch (Exception exception)
+            {
+                Log.Fatal(exception, exception.StackTrace);
+                return Option.None<InitiatedLinkRequest>();
             }
         }
 
