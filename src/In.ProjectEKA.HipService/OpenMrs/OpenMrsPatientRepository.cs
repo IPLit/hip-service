@@ -62,6 +62,7 @@ namespace In.ProjectEKA.HipService.OpenMrs
                     var bahmniPhoneNumber = _phoneNumberRepository.GetPhoneNumber(referenceNumber).Result;
                     if (bahmniPhoneNumber != null && phoneNumber[^PHONE_NUMBER_LENGTH..].Equals(bahmniPhoneNumber[^PHONE_NUMBER_LENGTH..]))
                     {
+                        hipPatient.PhoneNumber = bahmniPhoneNumber;
                         result.Add(hipPatient);
                     }
                 }

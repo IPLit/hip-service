@@ -104,7 +104,7 @@ namespace In.ProjectEKA.HipServiceTest.Discovery
             var requestId = Uuid.Generate().ToString();
             //Given
             GivenAPatientStartedANewDiscoveryRequest(Krunal, out DiscoveryRequest discoveryRequest);
-            AndThisPatientMatchASingleRegisteredPatient(Krunal, new[] {"name", "gender"},
+            AndThisPatientMatchASingleRegisteredPatient(Krunal, new[] {"Mobile", "Name"},
                 out DiscoveryRepresentation discoveryRepresentation);
 
             //When
@@ -114,8 +114,7 @@ namespace In.ProjectEKA.HipServiceTest.Discovery
             ThenAResponseToThisTransactionShouldHaveBeenSentToTheGateway(discoveryRequest,
                 out GatewayDiscoveryRepresentation actualResponse);
             AndTheSentResponseShouldContainTheFoundPatient(actualResponse, discoveryRepresentation.Patient);
-            AndTheResponseShouldContainTheMatchFields(actualResponse,
-                discoveryRepresentation.Patient.MatchedBy.ToList());
+            AndTheResponseShouldContainTheMatchFields(actualResponse, new[] {"MOBILE"});
             AndTheResponseShouldContainTheTransactionId(actualResponse, discoveryRequest);
             AndTheResponseShouldContainTheExpectedStatus(actualResponse, discoveryRequest, HttpStatusCode.OK,
                 "Patient record with one or more care contexts found");
@@ -203,7 +202,7 @@ namespace In.ProjectEKA.HipServiceTest.Discovery
             var requestId = Uuid.Generate().ToString();
             //Given
             GivenAPatientStartedANewDiscoveryRequest(Krunal, out DiscoveryRequest discoveryRequest);
-            AndThisPatientMatchASingleRegisteredPatient(Krunal, new[] {"name", "gender"},
+            AndThisPatientMatchASingleRegisteredPatient(Krunal, new[] {"Mobile", "Name"},
                 out DiscoveryRepresentation discoveryRepresentation);
 
             //When
@@ -212,8 +211,7 @@ namespace In.ProjectEKA.HipServiceTest.Discovery
             //Then
             ThenAResponseToThisTransactionShouldHaveBeenSentToTheGateway(discoveryRequest,
                 out GatewayDiscoveryRepresentation actualResponse);
-            AndTheResponseShouldContainTheMatchFields(actualResponse,
-                discoveryRepresentation.Patient.MatchedBy.ToList());
+            AndTheResponseShouldContainTheMatchFields(actualResponse, new[] {"MOBILE"});
         }
 
         [Fact]

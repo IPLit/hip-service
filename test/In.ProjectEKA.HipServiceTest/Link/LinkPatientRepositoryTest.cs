@@ -160,6 +160,28 @@ namespace In.ProjectEKA.HipServiceTest.Link
         }
 
         [Fact]
+        private async void ShouldGetInitiatedLinkRequestByRequestId()
+        {
+            var faker = TestBuilders.Faker();
+            var dbContext = PatientContext();
+            var linkPatientRepository = new LinkPatientRepository(dbContext);
+            var requestId = faker.Random.Hash();
+            var linkReferenceNumber = faker.Random.Hash();
+            await linkPatientRepository.Save(requestId, null, linkReferenceNumber);
+
+            var request = await linkPatientRepository.GetByRequestId(requestId);
+
+            request.MatchSome(l =>
+            {
+                l.RequestId.Should().Be(requestId);
+                l.LinkReferenceNumber.Should().Be(linkReferenceNumber);
+            });
+            request.HasValue.Should().BeTrue();
+
+            dbContext.Database.EnsureDeleted();
+        }
+
+        [Fact]
         private async void ThrowErrorOnSaveOfSamePrimaryKeyInitiatedLinkRequest()
         {
             var faker = TestBuilders.Faker();

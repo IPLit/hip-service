@@ -11,7 +11,7 @@ namespace In.ProjectEKA.HipService.Gateway.Model
             IEnumerable<string> matchedBy,
             string transactionId,
             Error error,
-            DiscoveryResponse response)
+            Resp response)
         {
             Patient = patient;
             MatchedBy = matchedBy;

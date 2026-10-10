@@ -150,6 +150,10 @@ namespace In.ProjectEKA.HipService.Discovery
                         Log.Information("careContext Display ~~~~~~~~~~> " + careContext.Display);
                         Log.Information("careContext Type ~~~~~~~~~~> " + careContext.Type);
                         Log.Information("careContext Reference Number ~~~~~~~~~~> " + careContext.ReferenceNumber);
+                        Log.Information("careContext HiTypes ~~~~~~~~~~> " +
+                                        (careContext.HiTypes == null
+                                            ? "null"
+                                            : string.Join(",", careContext.HiTypes)));
                         await linkPatientRepository.SaveCareContextMap(careContext);
                     }
                     patient.CareContexts = careContexts;

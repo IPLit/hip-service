@@ -16,7 +16,7 @@ namespace In.ProjectEKA.HipServiceTest.Discovery.Mapper
         }
 
         [Fact]
-        public void ShouldExcludeCareContextsFromMappingWhenHiTypeIsNotFound()
+        public void ShouldDiscoverVisitAsOpConsultationWhenHiTypeIsMissing()
         {
             var patientEnquiryRepresentation = new PatientEnquiryRepresentation(
                 "ref123",
@@ -32,7 +32,20 @@ namespace In.ProjectEKA.HipServiceTest.Discovery.Mapper
             var result = PatientDiscoveryMapper.Map(patientEnquiryRepresentation);
 
             Assert.NotNull(result);
-            Assert.Empty(result);
+            Assert.Single(result);
+            Assert.Equal(HiType.OPConsultation.ToString(), result[0].HiType);
+            Assert.Equal(2, result[0].Count);
+        }
+
+        [Fact]
+        public void ShouldMapMatchedByToAbdmIdentifierTypes()
+        {
+            var matchedBy = PatientDiscoveryMapper.ToAbdmMatchedBy(new[]
+            {
+                "Mobile", "Name", "Gender", "Mr", "ConsentManagerUserId"
+            });
+
+            Assert.Equal(new[] {"MOBILE", "MR", "ABHA_ADDRESS"}, matchedBy);
         }
 
         [Fact]

@@ -278,6 +278,44 @@ namespace In.ProjectEKA.HipServiceTest.Link
         }
 
         [Fact]
+        private async void ShouldLinkCareContextsUsingStoredLinkReference()
+        {
+            const string requestId = "gateway-request-id";
+            const string linkReferenceNumber = "stored-link-reference";
+            const string programRefNo = "129";
+            var dateTimeStamp = DateTime.Now.ToUniversalTime().ToString(Constants.DateTimeFormat);
+            var initiated = new InitiatedLinkRequest(requestId, null, linkReferenceNumber, false, dateTimeStamp);
+            ICollection<CareContext> linkedCareContext = new[] {new CareContext(programRefNo)};
+            var testLinkRequest = new LinkEnquires(testPatient.Identifier, linkReferenceNumber,
+                "sbx", "patient@sbx", dateTimeStamp, linkedCareContext);
+            var testLinkedAccounts = new LinkedAccounts(testLinkRequest.PatientReferenceNumber,
+                testLinkRequest.LinkReferenceNumber,
+                testLinkRequest.ConsentManagerUserId, dateTimeStamp, new[] {programRefNo}.ToList(), Guid.Empty);
+
+            linkRepository.Setup(x => x.GetByRequestId(requestId))
+                .ReturnsAsync(Option.Some(initiated));
+            linkRepository.Setup(e => e.GetPatientFor(linkReferenceNumber))
+                .ReturnsAsync(new Tuple<LinkEnquires, Exception>(testLinkRequest, null));
+            patientRepository.Setup(x => x.PatientWithAsync(testPatient.Identifier))
+                .ReturnsAsync(Option.Some(testPatient));
+            linkRepository.Setup(x => x.Get(linkReferenceNumber))
+                .ReturnsAsync(Option.Some<IEnumerable<InitiatedLinkRequest>>(new[] {initiated}));
+            linkRepository.Setup(x => x.Update(initiated)).Returns(true);
+            linkRepository.Setup(x => x.Save(testLinkRequest.ConsentManagerUserId,
+                    testLinkRequest.PatientReferenceNumber,
+                    testLinkRequest.LinkReferenceNumber,
+                    new[] {programRefNo},
+                    It.IsAny<Guid>()))
+                .ReturnsAsync(Option.Some(testLinkedAccounts));
+
+            var error = await linkPatient.VerifyAndLinkCareContexts(requestId);
+
+            error.Should().BeNull();
+            linkRepository.Verify(e => e.GetPatientFor(linkReferenceNumber), Times.Once);
+            linkRepository.Verify(e => e.GetPatientFor(requestId), Times.Never);
+        }
+
+        [Fact]
         private async void ErrorOnDuplicateRequestId()
         {
             const string linkReferenceNumber = "linkreference";

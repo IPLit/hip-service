@@ -114,7 +114,7 @@ namespace In.ProjectEKA.HipService.Discovery
                     patient.Identifier,
                     request.Patient.Name,
                     careContextRepresentations,
-                    Enumerable.Empty<string>()
+                    new[] {"ABHA_ADDRESS"}
                 ) };
             return enumerable;
         }

@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using In.ProjectEKA.HipService.Discovery.Mapper;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 
 namespace In.ProjectEKA.HipService.Discovery
 {
     using System;
-    using System.Net;
     using System.Threading.Tasks;
     using Gateway;
     using Gateway.Model;
@@ -25,9 +27,6 @@ namespace In.ProjectEKA.HipService.Discovery
     [ApiController]
     public class CareContextDiscoveryController : Controller
     {
-        private const string SuccessMessage = "Patient record with one or more care contexts found";
-        private const string ErrorMessage = "No Matching Record Found or More than one Record Found";
-
         private readonly IPatientDiscovery patientDiscovery;
         private readonly IGatewayClient gatewayClient;
         private readonly IBackgroundJobClient backgroundJob;
@@ -47,25 +46,29 @@ namespace In.ProjectEKA.HipService.Discovery
             [FromHeader(Name = CORRELATION_ID)] string correlationId,
             [FromHeader(Name = REQUEST_ID)] string requestId,
             [FromHeader(Name = TIMESTAMP)] string timestamp,
-            [FromBody] DiscoveryRequest request)
+            [FromBody] DiscoveryRequest request,
+            [FromHeader(Name = "X-HIP-ID")] string hipId = null)
         {
             requestId = String.IsNullOrEmpty(requestId) ? Guid.NewGuid().ToString() : requestId;
             Log.Information($"discovery request received for {request.Patient.Id} with {requestId}.");
             Log.Information("Started Execution");
             Log.Information("calling GetPatientCareContext Method, Patient Name -> " + request.Patient.Name);
             Log.Information("Correlation Id -----> " + correlationId);
-            backgroundJob.Enqueue(() => GetPatientCareContext(request, correlationId, requestId));
+            Log.Information("X-HIP-ID -----> " + hipId);
+            backgroundJob.Enqueue(() => GetPatientCareContext(request, correlationId, requestId, hipId));
             return Accepted();
         }
 
         [NonAction]
-        public async Task GetPatientCareContext(DiscoveryRequest request, string correlationId, string requestId)
+        public async Task GetPatientCareContext(DiscoveryRequest request, string correlationId, string requestId,
+            string hipId = null)
         {
             Log.Information("In GetPatientCareContext Method -----> ");
             var patientId = request.Patient.Id;
             Log.Information("Patient Id -----> " + patientId);
             var cmSuffix = patientId.Substring(patientId.LastIndexOf("@", StringComparison.Ordinal) + 1);
             Log.Information("CM suffix -----> " + cmSuffix);
+            hipId = string.IsNullOrWhiteSpace(hipId) ? null : hipId;
             try
             {
                 var (response, error) = await patientDiscovery.PatientFor(request);
@@ -75,35 +78,75 @@ namespace In.ProjectEKA.HipService.Discovery
                 {
                     error = new ErrorRepresentation(new Error(ErrorCode.CareContextNotFound, "No care context found"));
                 }
+
+                var discovered = error == null;
                 var gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
-                    patientDiscoveryRepresentation,
-                    response?.Patient?.MatchedBy,
-                    request.TransactionId, //TODO: should be reading transactionId from contract
+                    discovered ? patientDiscoveryRepresentation : null,
+                    discovered ? MatchedByFor(request, response?.Patient) : null,
+                    request.TransactionId,
                     error?.Error,
-                    new DiscoveryResponse(requestId,
-                        error == null ? HttpStatusCode.OK : HttpStatusCode.NotFound,
-                        error == null ? SuccessMessage : ErrorMessage));
+                    new Resp(requestId));
                 PatientInfoMap.TryAdd(patientId, request.Patient);
-                
-                Log.Information("new GatewayDiscoveryRepresentation" + gatewayDiscoveryRepresentation);
-                Log.Information("Sending data to gateway");
-                Log.Information($"Response about to be send for {requestId} with {@response?.Patient}");
+
+                Log.Information("on-discover payload for {RequestId} transaction {TransactionId} is {Payload}",
+                    requestId, request.TransactionId, Serialize(gatewayDiscoveryRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
-                    correlationId);
+                    correlationId, hipId);
             }
             catch (Exception exception)
             {
                 var gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
                     null,
                     null,
-                    request.TransactionId, //TODO: should be reading transactionId from contract
+                    request.TransactionId,
                     new Error(ErrorCode.ServerInternalError, "Unreachable external service"),
-                    new DiscoveryResponse(requestId, HttpStatusCode.InternalServerError,
-                        "Unreachable external service"));
+                    new Resp(requestId));
+                Log.Information("on-discover error payload for {RequestId} is {Payload}",
+                    requestId, Serialize(gatewayDiscoveryRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
-                    correlationId);
+                    correlationId, hipId);
                 logger.LogError(LogEvents.Discovery, exception, $"Error happened for {requestId}");
             }
+        }
+
+        private static List<string> MatchedByFor(DiscoveryRequest request, PatientEnquiryRepresentation patient)
+        {
+            var matchedBy = PatientDiscoveryMapper.ToAbdmMatchedBy(patient?.MatchedBy);
+            if (matchedBy.Count > 0)
+            {
+                return matchedBy;
+            }
+
+            var identifiers = (request.Patient?.VerifiedIdentifiers ?? Enumerable.Empty<Identifier>())
+                .Concat(request.Patient?.UnverifiedIdentifiers ?? Enumerable.Empty<Identifier>());
+            foreach (var identifier in identifiers)
+            {
+                var mapped = PatientDiscoveryMapper.ToAbdmMatchedBy(new[] {identifier.Type.ToString()});
+                if (mapped.Count > 0)
+                {
+                    return mapped;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.Patient?.Id) && request.Patient.Id.Contains("@"))
+            {
+                return new List<string> {"ABHA_ADDRESS"};
+            }
+
+            return new List<string> {"MOBILE"};
+        }
+
+        private static string Serialize(GatewayDiscoveryRepresentation representation)
+        {
+            return JsonConvert.SerializeObject(representation, new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy()
+                },
+                Converters = new List<JsonConverter> {new StringEnumConverter()}
+            });
         }
     }
 }
