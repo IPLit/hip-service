@@ -74,9 +74,21 @@ namespace In.ProjectEKA.HipService.Discovery
                 var (response, error) = await patientDiscovery.PatientFor(request);
                 Log.Information("PatientFor executed successfully" + response);
                 List<PatientDiscoveryRepresentation> patientDiscoveryRepresentation = PatientDiscoveryMapper.Map(response?.Patient);
-                if(error == null && (patientDiscoveryRepresentation == null || patientDiscoveryRepresentation.Count == 0))
+                if (error == null && (patientDiscoveryRepresentation == null || patientDiscoveryRepresentation.Count == 0))
                 {
                     error = new ErrorRepresentation(new Error(ErrorCode.CareContextNotFound, "No care context found"));
+                }
+                else if (string.IsNullOrWhiteSpace(hipId))
+                {
+                    foreach (var p in patientDiscoveryRepresentation)
+                    {
+                        var careContext = p.CareContexts.ToList().Find(c => !string.IsNullOrWhiteSpace(c.ReferenceNumber));
+                        if (careContext != null)
+                        {
+                            hipId = careContext.ReferenceNumber.Split(":")[1];
+                            break;
+                        }
+                    }
                 }
 
                 var discovered = error == null;
@@ -91,7 +103,7 @@ namespace In.ProjectEKA.HipService.Discovery
                 Log.Information("on-discover payload for {RequestId} transaction {TransactionId} is {Payload}",
                     requestId, request.TransactionId, Serialize(gatewayDiscoveryRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
-                    correlationId, hipId);
+                    correlationId, hipId, requestId);
             }
             catch (Exception exception)
             {
