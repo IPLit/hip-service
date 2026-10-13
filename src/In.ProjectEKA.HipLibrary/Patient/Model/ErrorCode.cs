@@ -5,6 +5,7 @@ namespace In.ProjectEKA.HipLibrary.Patient.Model
         public const string NoPatientFound = "ABDM-1010";
         public const string MultiplePatientsFound = "3403";
         public const string CareContextNotFound = "ABDM-1012";
+        public const string CareContextMismatch = "ABDM-1013";
         public const string OtpInValid = "ABDM-1035";
         public const string OtpExpired = "ABDM-1035";
         public const string OtpGenerationFailed = "3501";

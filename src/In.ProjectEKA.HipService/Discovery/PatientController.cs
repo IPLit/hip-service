@@ -68,6 +68,8 @@ namespace In.ProjectEKA.HipService.Discovery
             Log.Information("Patient Id -----> " + patientId);
             var cmSuffix = patientId.Substring(patientId.LastIndexOf("@", StringComparison.Ordinal) + 1);
             Log.Information("CM suffix -----> " + cmSuffix);
+            Log.Information("Request Id -----> " + requestId);
+            Log.Information("Hip Id -----> " + hipId);
             hipId = string.IsNullOrWhiteSpace(hipId) ? null : hipId;
             try
             {
@@ -78,21 +80,35 @@ namespace In.ProjectEKA.HipService.Discovery
                 {
                     error = new ErrorRepresentation(new Error(ErrorCode.CareContextNotFound, "No care context found"));
                 }
-                else if (string.IsNullOrWhiteSpace(hipId))
+                GatewayDiscoveryRepresentation gatewayDiscoveryRepresentation = null;
+                string hipIdCareContext = null;
+                foreach (var p in patientDiscoveryRepresentation)
                 {
-                    foreach (var p in patientDiscoveryRepresentation)
+                    var careContext = p.CareContexts.ToList().Find(c => !string.IsNullOrWhiteSpace(c.ReferenceNumber));
+                    if (careContext != null)
                     {
-                        var careContext = p.CareContexts.ToList().Find(c => !string.IsNullOrWhiteSpace(c.ReferenceNumber));
-                        if (careContext != null)
-                        {
-                            hipId = careContext.ReferenceNumber.Split(":")[1];
-                            break;
-                        }
+                        hipIdCareContext = careContext.ReferenceNumber.Split(":")[1];
+                        break;
                     }
+                }
+                if (!string.IsNullOrWhiteSpace(hipIdCareContext) && hipIdCareContext != hipId)
+                {
+                    gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
+                    null,
+                    null,
+                    request.TransactionId,
+                    new Error(ErrorCode.CareContextMismatch, "Care context mismatch"),
+                    new Resp(requestId));
+                    Log.Information("on-discover error payload for {RequestId} is {Payload}",
+                        requestId, Serialize(gatewayDiscoveryRepresentation));
+                    await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
+                        correlationId, hipId, requestId);
+                    logger.LogError(LogEvents.Discovery, $"Care context mismatch for {requestId} with hipId {hipId} and hipIdCareContext {hipIdCareContext}");
+                    return;
                 }
 
                 var discovered = error == null;
-                var gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
+                gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
                     discovered ? patientDiscoveryRepresentation : null,
                     discovered ? MatchedByFor(request, response?.Patient) : null,
                     request.TransactionId,
@@ -100,8 +116,8 @@ namespace In.ProjectEKA.HipService.Discovery
                     new Resp(requestId));
                 PatientInfoMap.TryAdd(patientId, request.Patient);
 
-                Log.Information("on-discover payload for {RequestId} transaction {TransactionId} is {Payload}",
-                    requestId, request.TransactionId, Serialize(gatewayDiscoveryRepresentation));
+                Log.Information("on-discover payload for {hipId} {RequestId} transaction {TransactionId} is {Payload}",
+                    hipId, requestId, request.TransactionId, Serialize(gatewayDiscoveryRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
                     correlationId, hipId, requestId);
             }
@@ -116,7 +132,7 @@ namespace In.ProjectEKA.HipService.Discovery
                 Log.Information("on-discover error payload for {RequestId} is {Payload}",
                     requestId, Serialize(gatewayDiscoveryRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
-                    correlationId, hipId);
+                    correlationId, hipId, requestId);
                 logger.LogError(LogEvents.Discovery, exception, $"Error happened for {requestId}");
             }
         }

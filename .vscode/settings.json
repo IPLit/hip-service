@@ -1,3 +1,6 @@
 {
-    "dotnet.defaultSolution": "hip-service.sln"
+    "dotnet.defaultSolution": "hip-service.sln",
+    "csharp-dev-tools.solutionViewer.selectedWorkspaceSolutions": [
+        "hip-service.sln"
+    ]
 }
