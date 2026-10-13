@@ -24,6 +24,8 @@ namespace In.ProjectEKA.HipServiceTest.Discovery
     using Hangfire.States;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.Logging;
+    using In.ProjectEKA.HipService.Common.Model;
+
 
     public class PatientControllerTest
     {
@@ -31,6 +33,7 @@ namespace In.ProjectEKA.HipServiceTest.Discovery
         private readonly CareContextDiscoveryController careContextDiscoveryController;
         private readonly Dictionary<string, GatewayDiscoveryRepresentation> responsesSentToGateway;
         private readonly Dictionary<string, Job> backgroundJobs;
+        private readonly Mock<BahmniConfiguration> bahmniConfigurationMock;
         
         private static readonly User Krunal = User.Krunal;
         private static readonly User JohnDoe = User.JohnDoe;
@@ -41,12 +44,14 @@ namespace In.ProjectEKA.HipServiceTest.Discovery
             var gatewayClientMock = new Mock<IGatewayClient>();
             var backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             var logger = new Mock<ILogger<CareContextDiscoveryController>>();
+            bahmniConfigurationMock = new Mock<BahmniConfiguration>();
 
             responsesSentToGateway = new Dictionary<string, GatewayDiscoveryRepresentation>();
             backgroundJobs = new Dictionary<string, Job>();
 
             careContextDiscoveryController = new CareContextDiscoveryController(patientDiscoveryMock.Object,
-                gatewayClientMock.Object, backgroundJobClientMock.Object, logger.Object);
+                gatewayClientMock.Object, backgroundJobClientMock.Object, 
+                logger.Object, bahmniConfigurationMock.Object);
 
             SetupGatewayClientToSaveAllSentDiscoveryIntoThisList(gatewayClientMock, responsesSentToGateway);
             SetupBackgroundJobClientToSaveAllCreatedJobsIntoThisList(backgroundJobClientMock, backgroundJobs);

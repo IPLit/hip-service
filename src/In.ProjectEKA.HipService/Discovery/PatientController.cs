@@ -4,6 +4,7 @@ using In.ProjectEKA.HipService.Discovery.Mapper;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
+using In.ProjectEKA.HipService.Common.Model;
 
 namespace In.ProjectEKA.HipService.Discovery
 {
@@ -31,15 +32,18 @@ namespace In.ProjectEKA.HipService.Discovery
         private readonly IGatewayClient gatewayClient;
         private readonly IBackgroundJobClient backgroundJob;
         private readonly ILogger<CareContextDiscoveryController> logger;
+        private readonly BahmniConfiguration bahmniConfiguration;
 
         public CareContextDiscoveryController(IPatientDiscovery patientDiscovery,
             IGatewayClient gatewayClient,
-            IBackgroundJobClient backgroundJob, ILogger<CareContextDiscoveryController> logger)
+            IBackgroundJobClient backgroundJob, ILogger<CareContextDiscoveryController> logger,
+            BahmniConfiguration bahmniConfiguration)
         {
             this.patientDiscovery = patientDiscovery;
             this.gatewayClient = gatewayClient;
             this.backgroundJob = backgroundJob;
             this.logger = logger;
+            this.bahmniConfiguration = bahmniConfiguration;
         }
 
         public AcceptedResult DiscoverPatientCareContexts(
@@ -87,8 +91,17 @@ namespace In.ProjectEKA.HipService.Discovery
                     var careContext = p.CareContexts.ToList().Find(c => !string.IsNullOrWhiteSpace(c.ReferenceNumber));
                     if (careContext != null)
                     {
-                        hipIdCareContext = careContext.ReferenceNumber.Split(":")[1];
-                        break;
+                        string visitUuid = careContext.ReferenceNumber.Split(":")[1];
+                        if (!string.IsNullOrEmpty(visitUuid) && bahmniConfiguration != null)
+                        {
+                            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+                            hipIdCareContext = hfrDetails?.HfrId;
+                            if (string.IsNullOrWhiteSpace(hipIdCareContext))
+                            {
+                                hipIdCareContext = bahmniConfiguration.GetDefaultHfrId();
+                            }
+                            break;
+                        }
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(hipIdCareContext) && hipIdCareContext != hipId)
@@ -102,7 +115,7 @@ namespace In.ProjectEKA.HipService.Discovery
                     Log.Information("on-discover error payload for {RequestId} is {Payload}",
                         requestId, Serialize(gatewayDiscoveryRepresentation));
                     await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
-                        correlationId, hipId, requestId);
+                        correlationId, hipIdCareContext, requestId);
                     logger.LogError(LogEvents.Discovery, $"Care context mismatch for {requestId} with hipId {hipId} and hipIdCareContext {hipIdCareContext}");
                     return;
                 }
@@ -117,9 +130,9 @@ namespace In.ProjectEKA.HipService.Discovery
                 PatientInfoMap.TryAdd(patientId, request.Patient);
 
                 Log.Information("on-discover payload for {hipId} {RequestId} transaction {TransactionId} is {Payload}",
-                    hipId, requestId, request.TransactionId, Serialize(gatewayDiscoveryRepresentation));
+                    hipIdCareContext, requestId, request.TransactionId, Serialize(gatewayDiscoveryRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
-                    correlationId, hipId, requestId);
+                    correlationId, hipIdCareContext, requestId);
             }
             catch (Exception exception)
             {
