@@ -104,13 +104,15 @@ namespace In.ProjectEKA.HipService.Discovery
                         }
                     }
                 }
+                Log.Information("Hip Id -----> " + hipId);
+                Log.Information("Hip Id Care Context -----> " + hipIdCareContext);
                 if (!string.IsNullOrWhiteSpace(hipIdCareContext) && hipIdCareContext != hipId)
                 {
                     gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
                     null,
                     null,
                     request.TransactionId,
-                    new Error(ErrorCode.CareContextMismatch, "Care context mismatch"),
+                    new Error(ErrorCode.CareContextHipDataMismatch, "Care context hip data mismatch"),
                     new Resp(requestId));
                     Log.Information("on-discover error payload for {RequestId} is {Payload}",
                         requestId, Serialize(gatewayDiscoveryRepresentation));
@@ -129,7 +131,7 @@ namespace In.ProjectEKA.HipService.Discovery
                     new Resp(requestId));
                 PatientInfoMap.TryAdd(patientId, request.Patient);
 
-                Log.Information("on-discover payload for {hipId} {RequestId} transaction {TransactionId} is {Payload}",
+                Log.Information("on-discover payload for {hipIdCareContext} {RequestId} transaction {TransactionId} is {Payload}",
                     hipIdCareContext, requestId, request.TransactionId, Serialize(gatewayDiscoveryRepresentation));
                 await gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, cmSuffix,
                     correlationId, hipIdCareContext, requestId);
