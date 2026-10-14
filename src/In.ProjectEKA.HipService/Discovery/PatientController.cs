@@ -106,7 +106,8 @@ namespace In.ProjectEKA.HipService.Discovery
                 }
                 Log.Information("Hip Id -----> " + hipId);
                 Log.Information("Hip Id Care Context -----> " + hipIdCareContext);
-                if (!string.IsNullOrWhiteSpace(hipIdCareContext) && hipIdCareContext != hipId)
+                if (!string.IsNullOrWhiteSpace(hipIdCareContext) &&
+                    !hipIdCareContext.Equals(hipId, StringComparison.OrdinalIgnoreCase))
                 {
                     gatewayDiscoveryRepresentation = new GatewayDiscoveryRepresentation(
                     null,
