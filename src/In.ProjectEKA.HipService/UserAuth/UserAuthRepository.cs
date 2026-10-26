@@ -45,6 +45,33 @@ namespace In.ProjectEKA.HipService.UserAuth
             return Option.Some(ndhmDemographics);
         }
 
+        public async Task<string> GetHealthIdByPhoneNumber(string phoneNumber)
+        {
+            var normalized = UserAuthMap.NormalizePhoneNumber(phoneNumber);
+            if (string.IsNullOrEmpty(normalized))
+                return null;
+
+            var candidates = new[]
+            {
+                phoneNumber.Trim(),
+                normalized,
+                "91" + normalized,
+                "+91" + normalized,
+                "0" + normalized
+            }.Where(value => !string.IsNullOrEmpty(value)).Distinct().ToArray();
+
+            var matches = await ndhmDemographicsContext.NdhmDemographics
+                .Where(d => d.PhoneNumber != null &&
+                            (candidates.Contains(d.PhoneNumber) || d.PhoneNumber.EndsWith(normalized)))
+                .ToListAsync()
+                .ConfigureAwait(false);
+            if (matches.Count == 0)
+                return null;
+
+            var exact = matches.FirstOrDefault(d => candidates.Contains(d.PhoneNumber));
+            return (exact ?? matches[0]).HealthId;
+        }
+
         public async Task<Option<AuthConfirm>> Add(AuthConfirm authConfirm)
         {
             try
@@ -136,6 +163,22 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 Log.Fatal(exception, exception.StackTrace);
                 return new Tuple<string, Exception>(null, exception);
+            }
+        }
+
+        public async Task<Tuple<AuthConfirm, Exception>> GetAuthDetailsByHealthId(string healthId)
+        {
+            try
+            {
+                var authRequest = await authContext.AuthConfirm
+                    .FirstAsync(request =>
+                        request.HealthId.Equals(healthId)).ConfigureAwait(false);
+                return new Tuple<AuthConfirm, Exception>(authRequest, null);
+            }
+            catch (Exception exception)
+            {
+                Log.Error(exception, exception.StackTrace);
+                return new Tuple<AuthConfirm, Exception>(null, exception);
             }
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.Link.Model;
@@ -66,15 +67,15 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         public static string NormalizePhoneNumber(string phoneNumber)
         {
-            if (string.IsNullOrEmpty(phoneNumber))
+            if (string.IsNullOrWhiteSpace(phoneNumber))
                 return phoneNumber;
 
-            phoneNumber = phoneNumber.Trim();
-            if (phoneNumber.StartsWith("+91"))
-                phoneNumber = phoneNumber.Substring(3);
-            else if (phoneNumber.StartsWith("91"))
-                phoneNumber = phoneNumber.Substring(2);
-            return phoneNumber;
+            var digits = new string(phoneNumber.Where(char.IsDigit).ToArray());
+            if (digits.Length == 12 && digits.StartsWith("91"))
+                return digits.Substring(2);
+            if (digits.Length == 11 && digits.StartsWith("0"))
+                return digits.Substring(1);
+            return digits;
         }
     }
 }

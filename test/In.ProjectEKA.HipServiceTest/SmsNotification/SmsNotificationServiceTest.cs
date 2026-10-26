@@ -38,7 +38,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
                 Id = "IN0000000001",
                 Name = "Default Facility"
             };
-            var smsNotificationService = new SmsNotificationService();
+            var smsNotificationService = new SmsNotificationService(null);
 
             var result = await smsNotificationService.SmsNotifyRequest(
                 new SmsNotifyRequest(phoneNo),
@@ -64,7 +64,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
                 Id = "IN0000000001",
                 Name = "Default Facility"
             };
-            var smsNotificationService = new SmsNotificationService();
+            var smsNotificationService = new SmsNotificationService(null);
 
             var result = await smsNotificationService.SmsNotifyRequest(
                 new SmsNotifyRequest(phoneNo),
@@ -74,6 +74,34 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             result.Item2.Should().BeNull();
             result.Item1.notification.hip.id.Should().Be("IN0000000001");
             result.Item1.notification.hip.name.Should().Be("Default%20Facility");
+        }
+
+        [Fact]
+        public async Task SmsNotifyRequest_should_resolve_healthId_from_demographics_when_memory_misses()
+        {
+            var phoneNo = "917000000001";
+            var healthId = "db-patient@sbx";
+            UserAuthMap.PhoneNumberToHealthId.TryRemove(UserAuthMap.NormalizePhoneNumber(phoneNo), out _);
+
+            var userAuthRepository = new Mock<IUserAuthRepository>();
+            userAuthRepository.Setup(repository => repository.GetHealthIdByPhoneNumber(phoneNo))
+                .ReturnsAsync(healthId);
+
+            var openMrsClient = new Mock<IOpenMrsClient>();
+            var bahmniConfiguration = new BahmniConfiguration(openMrsClient.Object)
+            {
+                Id = "IN0000000001",
+                Name = "Default Facility"
+            };
+            var smsNotificationService = new SmsNotificationService(userAuthRepository.Object);
+
+            var result = await smsNotificationService.SmsNotifyRequest(
+                new SmsNotifyRequest(phoneNo),
+                bahmniConfiguration);
+
+            result.Item2.Should().BeNull();
+            result.Item1.Should().NotBeNull();
+            UserAuthMap.GetHealthIdByPhoneNumber(phoneNo).Should().Be(healthId);
         }
 
     }

@@ -13,7 +13,9 @@ namespace In.ProjectEKA.HipService.UserAuth
         Task<Tuple<string, Exception>> GetAccessToken(string healthId, string hipId);
         Task<Option<NdhmDemographics>> AddDemographics(NdhmDemographics ndhmDemographics);
         Task<Option<NdhmDemographics>> GetDemographics(string healthId);
+        Task<string> GetHealthIdByPhoneNumber(string phoneNumber);
         Task Delete(string healthId, string hipId = null);
         Task DeleteDemographics(string healthId);
+        Task<Tuple<AuthConfirm, Exception>> GetAuthDetailsByHealthId(string healthId);
     }
 }
