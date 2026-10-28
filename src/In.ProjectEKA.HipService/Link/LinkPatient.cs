@@ -94,7 +94,7 @@ namespace In.ProjectEKA.HipService.Link
                 }
                 else
                 {
-                    hfrDetails = await bahmniConfiguration.ResolveFromVisitOrDefault(visitUuid).ConfigureAwait(false);
+                    hfrDetails = await bahmniConfiguration.ResolveFromVisit(visitUuid).ConfigureAwait(false);
                 }
                 var hipId = string.IsNullOrEmpty(hfrDetails?.HfrId)
                     ? bahmniConfiguration.GetDefaultHfrId()

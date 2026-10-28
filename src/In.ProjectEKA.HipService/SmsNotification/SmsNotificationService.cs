@@ -37,11 +37,11 @@ namespace In.ProjectEKA.HipService.SmsNotification
                 UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out visitUuid);
             var hfrDetails = hipFacilityResolver != null
                 ? await hipFacilityResolver.Resolve(healthId, visitUuid).ConfigureAwait(false)
-                : await bahmniConfiguration.ResolveFromVisitOrDefault(visitUuid).ConfigureAwait(false);
+                : await bahmniConfiguration.ResolveFromVisit(visitUuid).ConfigureAwait(false);
             var hipId = hfrDetails?.HfrId;
             var hipName = hfrDetails?.HfrName;
 
-            if (string.IsNullOrEmpty(hipId) || string.IsNullOrEmpty(hipName))
+            if (string.IsNullOrEmpty(hipId) && string.IsNullOrEmpty(hipName))
             {
                 Log.Information("Sms notify rejected. No HIP details for phone {Phone}", phoneNo);
                 return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(null,

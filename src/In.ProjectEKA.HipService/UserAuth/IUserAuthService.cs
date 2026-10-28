@@ -32,9 +32,6 @@ namespace In.ProjectEKA.HipService.UserAuth
         public Task<Tuple<AuthConfirm, ErrorRepresentation>> HandleOnGenerateLinkToken(
             OnGenerateTokenRequest onGenerateTokenRequest);
 
-        public Task<bool> RememberHipDetails(string healthId, string hipId, string hipName, string accessToken,
-            bool replaceExisting);
-
         public Error CheckAccessToken(string accessToken);
 
 
