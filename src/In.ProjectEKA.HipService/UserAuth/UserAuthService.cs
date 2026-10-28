@@ -443,7 +443,7 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         private async Task<Tuple<AuthConfirm, ErrorRepresentation>> SaveAuthConfirm(string healthId, string accessToken, string hipId = null)
         {
-            string hipName = "":
+            string hipName = "";
             if (string.IsNullOrEmpty(hipId))
             {
                 if (!string.IsNullOrWhiteSpace(healthId) && userAuthRepository != null)
