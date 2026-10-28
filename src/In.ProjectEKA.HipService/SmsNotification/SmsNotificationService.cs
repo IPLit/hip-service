@@ -12,10 +12,13 @@ namespace In.ProjectEKA.HipService.SmsNotification
     public class SmsNotificationService : ISmsNotificationService
     {
         private readonly IUserAuthRepository userAuthRepository;
+        private readonly HipFacilityResolver hipFacilityResolver;
 
-        public SmsNotificationService(IUserAuthRepository userAuthRepository)
+        public SmsNotificationService(IUserAuthRepository userAuthRepository,
+            HipFacilityResolver hipFacilityResolver = null)
         {
             this.userAuthRepository = userAuthRepository;
+            this.hipFacilityResolver = hipFacilityResolver;
         }
 
         public async Task<Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>> SmsNotifyRequest(
@@ -28,38 +31,15 @@ namespace In.ProjectEKA.HipService.SmsNotification
             }
 
             var phoneNo = smsNotifyRequest.phoneNo.Trim();
-            var hipId = bahmniConfiguration.GetDefaultHfrId();
-            var hipName = bahmniConfiguration.GetDefaultFacilityName();
-
             var healthId = await ResolveHealthId(phoneNo).ConfigureAwait(false);
-            if (string.IsNullOrEmpty(healthId))
-            {
-                Log.Information(
-                    "Sms notify using default facility. No ABHA address mapped for phone {Phone}",
-                    phoneNo);
-            }
-            else if (UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid)
-                     && !string.IsNullOrEmpty(visitUuid))
-            {
-                var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid);
-                if (!string.IsNullOrEmpty(hfrDetails?.HfrId))
-                {
-                    hipId = hfrDetails.HfrId;
-                    if (!string.IsNullOrEmpty(hfrDetails.HfrName))
-                        hipName = hfrDetails.HfrName;
-                    else
-                        hipName = hfrDetails.HfrId;
-                }
-            }
-            else if (userAuthRepository != null)
-            {
-                var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
-                if (authDetails != null && authDetails.Item2 == null && !string.IsNullOrEmpty(authDetails.Item1?.HipId))
-                {
-                    hipId = authDetails.Item1.HipId;
-                    hipName = authDetails.Item1.HipId;
-                }
-            }
+            string visitUuid = null;
+            if (!string.IsNullOrEmpty(healthId))
+                UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out visitUuid);
+            var hfrDetails = hipFacilityResolver != null
+                ? await hipFacilityResolver.Resolve(healthId, visitUuid).ConfigureAwait(false)
+                : await bahmniConfiguration.ResolveFromVisitOrDefault(visitUuid).ConfigureAwait(false);
+            var hipId = hfrDetails?.HfrId;
+            var hipName = hfrDetails?.HfrName;
 
             if (string.IsNullOrEmpty(hipId) || string.IsNullOrEmpty(hipName))
             {

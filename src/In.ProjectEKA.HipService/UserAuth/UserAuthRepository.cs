@@ -171,8 +171,11 @@ namespace In.ProjectEKA.HipService.UserAuth
             try
             {
                 var authRequest = await authContext.AuthConfirm
-                    .FirstAsync(request =>
-                        request.HealthId.Equals(healthId)).ConfigureAwait(false);
+                    .Where(request => request.HealthId == healthId
+                                      && request.HipId != null
+                                      && request.HipId != "")
+                    .FirstOrDefaultAsync()
+                    .ConfigureAwait(false);
                 return new Tuple<AuthConfirm, Exception>(authRequest, null);
             }
             catch (Exception exception)

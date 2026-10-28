@@ -13,8 +13,6 @@ using In.ProjectEKA.HipService.Gateway;
 using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.UserAuth.Model;
 using Microsoft.Extensions.Logging;
-using Optional;
-using Optional.Unsafe;
 using static In.ProjectEKA.HipService.Common.Constants;
 using Error = In.ProjectEKA.HipLibrary.Patient.Model.Error;
 
@@ -36,8 +34,6 @@ namespace In.ProjectEKA.HipService.UserAuth
             this.gatewayClient = gatewayClient;
             this.bahmniConfiguration = bahmniConfiguration;
         }
-        
-
        
         public Tuple<GatewayFetchModesRequestRepresentation, ErrorRepresentation> FetchModeResponse(
             FetchRequest fetchRequest, BahmniConfiguration bahmniConfiguration)
@@ -284,19 +280,19 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 healthId = getHealthId(onAuthConfirmRequest.auth.accessToken);
             }
-            var authConfirmResponse = await SaveAuthConfirm(healthId, accessToken).ConfigureAwait(false);
-            if (authConfirmResponse.Item2 != null)
-                return authConfirmResponse;
-            var authConfirm = authConfirmResponse.Item1;
-
-            UserAuthMap.HealthIdToTransactionId.TryRemove(healthId, out _);
             var requestId = Guid.Parse(onAuthConfirmRequest.resp.RequestId);
-            UserAuthMap.RequestIdToAccessToken[requestId] = accessToken;
             var hipId = bahmniConfiguration.GetDefaultHfrId();
             if (UserAuthMap.RequestIdToHipId.ContainsKey(requestId.ToString()))
             {
                 hipId = UserAuthMap.RequestIdToHipId[requestId.ToString()];
             }
+            var authConfirmResponse = await SaveAuthConfirm(healthId, accessToken, hipId).ConfigureAwait(false);
+            if (authConfirmResponse.Item2 != null)
+                return authConfirmResponse;
+            var authConfirm = authConfirmResponse.Item1;
+
+            UserAuthMap.HealthIdToTransactionId.TryRemove(healthId, out _);
+            UserAuthMap.RequestIdToAccessToken[requestId] = accessToken;
             var compositeKey = healthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
             UserAuthMap.HealthIdToAccessToken[compositeKey] = accessToken;
 
@@ -400,38 +396,86 @@ namespace In.ProjectEKA.HipService.UserAuth
             return await SaveAuthConfirm(healthId, accessToken, hipId).ConfigureAwait(false);
         }
 
-        private async Task<Tuple<AuthConfirm, ErrorRepresentation>> SaveAuthConfirm(string healthId, string accessToken, string hipId = null)
+        private async Task<bool> RememberHipDetails(string healthId, string hipId, string hipName, string accessToken,
+            bool replaceExisting)
         {
-            var authConfirm = new AuthConfirm(healthId, hipId, accessToken);
-            var savedAuthConfirm = await userAuthRepository.Get(healthId, hipId).ConfigureAwait(false);
-            var existing = savedAuthConfirm.ValueOrDefault();
-            if (existing == null)
+            if (string.IsNullOrWhiteSpace(healthId) || string.IsNullOrWhiteSpace(hipId))
+                return false;
+
+            var current = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
+            var existing = current != null && current.Item2 == null ? current.Item1 : null;
+            if (existing != null && existing.HipId == hipId)
             {
-                var authConfirmResponse = await userAuthRepository.Add(authConfirm).ConfigureAwait(false);
-                if (!authConfirmResponse.HasValue)
-                {
-                    return new Tuple<AuthConfirm, ErrorRepresentation>(null,
-                        new ErrorRepresentation(new Error(ErrorCode.DuplicateAuthConfirmRequest,
-                            "Auth confirm request already exists")));
-                }
-            }
-            else if (existing.HipId != hipId)
-            {
-                var authConfirmResponse = await userAuthRepository.Add(authConfirm).ConfigureAwait(false);
-                if (!authConfirmResponse.HasValue)
-                {
-                    return new Tuple<AuthConfirm, ErrorRepresentation>(null,
-                        new ErrorRepresentation(new Error(ErrorCode.DuplicateAuthConfirmRequest,
-                            "Auth confirm request already exists")));
-                }
-            }
-            else
-            {
-                userAuthRepository.Update(authConfirm);
+                var name = string.IsNullOrEmpty(hipName) ? existing.HipName : hipName;
+                var token = accessToken ?? existing.AccessToken;
+                if (name == existing.HipName && token == existing.AccessToken)
+                    return true;
+                return userAuthRepository.Update(new AuthConfirm(healthId, hipId, token, name));
             }
 
-            return new Tuple<AuthConfirm, ErrorRepresentation>(authConfirm, null);
+            if (existing != null && !replaceExisting)
+                return true;
+
+            if (existing != null)
+                await userAuthRepository.Delete(healthId, existing.HipId).ConfigureAwait(false);
+
+            var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, accessToken, hipName))
+                .ConfigureAwait(false);
+            return added.HasValue;
         }
 
+        private async Task<string> LookupHipName(string healthId, string hipId)
+        {
+            if (!string.IsNullOrEmpty(healthId)
+                && UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid)
+                && !string.IsNullOrEmpty(visitUuid))
+            {
+                var details = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(details?.HfrName)
+                    && string.Equals(details.HfrId, hipId, StringComparison.OrdinalIgnoreCase))
+                    return details.HfrName;
+            }
+
+            if (string.Equals(hipId, bahmniConfiguration.GetDefaultHfrId(), StringComparison.OrdinalIgnoreCase))
+                return bahmniConfiguration.GetDefaultFacilityName();
+            return null;
+        }
+
+        private async Task<Tuple<AuthConfirm, ErrorRepresentation>> SaveAuthConfirm(string healthId, string accessToken, string hipId = null)
+        {
+            string hipName = "":
+            if (string.IsNullOrEmpty(hipId))
+            {
+                if (!string.IsNullOrWhiteSpace(healthId) && userAuthRepository != null)
+                {
+                    var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
+                    var stored = authDetails != null && authDetails.Item2 == null ? authDetails.Item1 : null;
+                    if (!string.IsNullOrEmpty(stored?.HipId))
+                    {
+                        hipId = stored.HipId;
+                        hipName = NameForStoredHip(stored.HipId, stored.HipName);
+                    }
+                }
+            }
+            var saved = await RememberHipDetails(healthId, hipId, hipName, accessToken, true).ConfigureAwait(false);
+            // if (!saved)
+            // {
+            //     return new Tuple<AuthConfirm, ErrorRepresentation>(null,
+            //         new ErrorRepresentation(new Error(ErrorCode.DuplicateAuthConfirmRequest,
+            //             "Auth confirm request already exists")));
+            // }
+
+            return new Tuple<AuthConfirm, ErrorRepresentation>(
+                new AuthConfirm(healthId, hipId, accessToken, hipName), null);
+        }
+
+        private string NameForStoredHip(string hipId, string hipName)
+        {
+            if (!string.IsNullOrEmpty(hipName))
+                return hipName;
+            if (string.Equals(hipId, bahmniConfiguration.GetDefaultHfrId(), StringComparison.OrdinalIgnoreCase))
+                return bahmniConfiguration.GetDefaultFacilityName();
+            return hipId;
+        }
     }
 }

@@ -33,6 +33,7 @@ namespace In.ProjectEKA.HipService.Link
         private readonly IOpenMrsClient openMrsClient;
         private readonly IUserAuthService userAuthService;
         private readonly BahmniConfiguration bahmniConfiguration;
+        private readonly HipFacilityResolver hipFacilityResolver;
 
         public LinkPatient(
             ILinkPatientRepository linkPatientRepository,
@@ -43,7 +44,8 @@ namespace In.ProjectEKA.HipService.Link
             IOptions<OtpServiceConfiguration> otpService,
             IOpenMrsClient openMrsClient,
             IUserAuthService userAuthService,
-            BahmniConfiguration bahmniConfiguration)
+            BahmniConfiguration bahmniConfiguration,
+            HipFacilityResolver hipFacilityResolver = null)
         {
             this.linkPatientRepository = linkPatientRepository;
             this.patientRepository = patientRepository;
@@ -54,6 +56,7 @@ namespace In.ProjectEKA.HipService.Link
             this.openMrsClient = openMrsClient;
             this.userAuthService = userAuthService;
             this.bahmniConfiguration = bahmniConfiguration;
+            this.hipFacilityResolver = hipFacilityResolver;
         }
 
         public virtual async Task<ValueTuple<PatientLinkEnquiryRepresentation, ErrorRepresentation>> LinkPatients(
@@ -83,21 +86,20 @@ namespace In.ProjectEKA.HipService.Link
                 var visitUuid = careContextReferenceNumbers.First() != null
                     ? bahmniConfiguration.ExtractVisitUuidFromReference(careContextReferenceNumbers.First())
                     : null;
-                var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
-                string hipId;
-                string hipName;
-                if (string.IsNullOrEmpty(hfrDetails?.HfrId))
+                HfrDetails hfrDetails;
+                if (hipFacilityResolver != null)
                 {
-                    hipId = bahmniConfiguration.GetDefaultHfrId();
-                    hipName = bahmniConfiguration.GetDefaultFacilityName();
+                    hfrDetails = await hipFacilityResolver
+                        .Resolve(request.Patient.ConsentManagerUserId, visitUuid).ConfigureAwait(false);
                 }
                 else
                 {
-                    hipId = hfrDetails.HfrId;
-                    hipName = string.IsNullOrEmpty(hfrDetails.HfrName)
-                        ? bahmniConfiguration.GetDefaultFacilityName()
-                        : hfrDetails.HfrName;
+                    hfrDetails = await bahmniConfiguration.ResolveFromVisitOrDefault(visitUuid).ConfigureAwait(false);
                 }
+                var hipId = string.IsNullOrEmpty(hfrDetails?.HfrId)
+                    ? bahmniConfiguration.GetDefaultHfrId()
+                    : hfrDetails.HfrId;
+                var hipName = hipFacilityResolver.NameForStoredHip(hipId, hfrDetails?.HfrName);
                 hipName = UrlEncoder.Default.Encode(hipName);
 
                 var (_, exception) = await linkPatientRepository.SaveRequestWith(

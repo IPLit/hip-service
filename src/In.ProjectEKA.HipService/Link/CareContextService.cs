@@ -29,9 +29,10 @@ namespace In.ProjectEKA.HipService.Link
         private readonly IOptions<HipConfiguration> hipConfiguration;
         private readonly IGatewayClient gatewayClient;
         private readonly GatewayConfiguration gatewayConfiguration;
+        private readonly HipFacilityResolver hipFacilityResolver;
         public CareContextService(HttpClient httpClient, IUserAuthRepository userAuthRepository,
             BahmniConfiguration bahmniConfiguration, ILinkPatientRepository linkPatientRepository, LinkPatient linkPatient, IOptions<HipConfiguration> hipConfiguration, IGatewayClient gatewayClient, GatewayConfiguration gatewayConfiguration,
-            IUserAuthService userAuthService)
+            IUserAuthService userAuthService, HipFacilityResolver hipFacilityResolver)
         {
             this.httpClient = httpClient;
             this.userAuthRepository = userAuthRepository;
@@ -42,6 +43,13 @@ namespace In.ProjectEKA.HipService.Link
             this.gatewayClient = gatewayClient;
             this.gatewayConfiguration = gatewayConfiguration;
             this.userAuthService = userAuthService;
+            this.hipFacilityResolver = hipFacilityResolver;
+        }
+
+        private async Task<HfrDetails> ResolveHip(string healthId, string visitUuid)
+        {
+            var details = await hipFacilityResolver.Resolve(healthId, visitUuid).ConfigureAwait(false);
+            return details;
         }
 
         public async Task<Tuple<GatewayAddContextsRequestRepresentation, ErrorRepresentation>> AddContextsResponse(
@@ -150,7 +158,7 @@ namespace In.ProjectEKA.HipService.Link
             var hiTypes = context.HiTypes.Select(hiType => hiType.ToString()).ToList();
             // Extract visit UUID from care context reference (format: "patientId:visitUuid")
             var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(careContextReference);
-            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hfrDetails = await ResolveHip(id, visitUuid).ConfigureAwait(false);
             var hipId = hfrDetails?.HfrId;
             if (string.IsNullOrEmpty(hipId))
                 hipId = bahmniConfiguration.GetDefaultHfrId();
@@ -173,7 +181,7 @@ namespace In.ProjectEKA.HipService.Link
             var cmSuffix = gatewayConfiguration.CmSuffix;
             // Extract visit UUID from care context reference
             var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(context.ReferenceNumber);
-            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hfrDetails = await ResolveHip(newContextRequest.HealthId, visitUuid).ConfigureAwait(false);
             var hipId = hfrDetails?.HfrId;
             if (string.IsNullOrEmpty(hipId))
                 hipId = bahmniConfiguration.GetDefaultHfrId();
@@ -214,7 +222,7 @@ namespace In.ProjectEKA.HipService.Link
             var demographics = (await userAuthRepository.GetDemographics(abhaAddress).ConfigureAwait(false)).ValueOrDefault();
             if (demographics != null)
                 UserAuthMap.UpdateHealthIdToPhoneNumber(demographics.PhoneNumber, abhaAddress);
-            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+            var hfrDetails = await ResolveHip(abhaAddress, visitUuid).ConfigureAwait(false);
             var hipId = hfrDetails?.HfrId;
             if (string.IsNullOrEmpty(hipId))
                 hipId = bahmniConfiguration.GetDefaultHfrId();

@@ -18,6 +18,7 @@ namespace In.ProjectEKA.HipService.UserAuth.Database
                 builder.Property(p => p.HealthId);
                 builder.Property(p => p.HipId);
                 builder.Property(p => p.AccessToken);
+                builder.Property(p => p.HipName);
             });
         }
 

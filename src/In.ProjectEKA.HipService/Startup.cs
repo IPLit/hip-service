@@ -127,6 +127,7 @@ namespace In.ProjectEKA.HipService
                 .AddScoped<IPatientNotificationService,PatientNotificationService>()
                 .AddScoped<ICareContextService,CareContextService>()
                 .AddScoped<ISmsNotificationService,SmsNotificationService>()
+                .AddScoped<HipFacilityResolver>()
                 .AddScoped<IUserAuthService, UserAuthService>()
                 .AddScoped<IPatientProfileService,PatientProfileService>()
                 .AddScoped<ICareContextService, CareContextService>()

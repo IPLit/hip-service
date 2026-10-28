@@ -33,17 +33,20 @@ namespace In.ProjectEKA.HipService.Discovery
         private readonly IBackgroundJobClient backgroundJob;
         private readonly ILogger<CareContextDiscoveryController> logger;
         private readonly BahmniConfiguration bahmniConfiguration;
+        private readonly HipFacilityResolver hipFacilityResolver;
 
         public CareContextDiscoveryController(IPatientDiscovery patientDiscovery,
             IGatewayClient gatewayClient,
             IBackgroundJobClient backgroundJob, ILogger<CareContextDiscoveryController> logger,
-            BahmniConfiguration bahmniConfiguration)
+            BahmniConfiguration bahmniConfiguration,
+            HipFacilityResolver hipFacilityResolver = null)
         {
             this.patientDiscovery = patientDiscovery;
             this.gatewayClient = gatewayClient;
             this.backgroundJob = backgroundJob;
             this.logger = logger;
             this.bahmniConfiguration = bahmniConfiguration;
+            this.hipFacilityResolver = hipFacilityResolver;
         }
 
         public AcceptedResult DiscoverPatientCareContexts(
@@ -92,11 +95,13 @@ namespace In.ProjectEKA.HipService.Discovery
                     if (careContext != null)
                     {
                         string visitUuid = careContext.ReferenceNumber.Split(":")[1];
-                        if (!string.IsNullOrEmpty(visitUuid) && bahmniConfiguration != null)
+                        if (!string.IsNullOrEmpty(visitUuid) && (hipFacilityResolver != null || bahmniConfiguration != null))
                         {
-                            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+                            var hfrDetails = hipFacilityResolver != null
+                                ? await hipFacilityResolver.Resolve(patientId, visitUuid).ConfigureAwait(false)
+                                : await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
                             hipIdCareContext = hfrDetails?.HfrId;
-                            if (string.IsNullOrWhiteSpace(hipIdCareContext))
+                            if (string.IsNullOrWhiteSpace(hipIdCareContext) && bahmniConfiguration != null)
                             {
                                 hipIdCareContext = bahmniConfiguration.GetDefaultHfrId();
                             }

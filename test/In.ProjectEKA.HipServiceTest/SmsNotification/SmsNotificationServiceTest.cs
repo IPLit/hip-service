@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -129,6 +130,35 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             result.Item1.notification.phoneNo.Should().Be(phoneNo);
             result.Item1.notification.hip.id.Should().Be("IN0000000001");
             result.Item1.notification.hip.name.Should().Be("Default%20Facility");
+        }
+
+        [Fact]
+        public async Task SmsNotifyRequest_should_prefer_hip_stored_for_healthId()
+        {
+            var phoneNo = "919900000099";
+            var healthId = "stored-patient@sbx";
+            UserAuthMap.UpdateHealthIdToPhoneNumber(phoneNo, healthId);
+            UserAuthMap.HealthIdToLatestVisitUuid[healthId] = "visit-that-should-not-win";
+
+            var userAuthRepository = new Mock<IUserAuthRepository>();
+            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId))
+                .ReturnsAsync(new Tuple<AuthConfirm, Exception>(
+                    new AuthConfirm(healthId, "IN-STORED", "token", "Stored Facility"), null));
+            var bahmniConfiguration = new BahmniConfiguration(new Mock<IOpenMrsClient>().Object)
+            {
+                Id = "IN0000000001",
+                Name = "Default Facility"
+            };
+            var resolver = new HipFacilityResolver(userAuthRepository.Object, bahmniConfiguration);
+            var smsNotificationService = new SmsNotificationService(userAuthRepository.Object, resolver);
+
+            var result = await smsNotificationService.SmsNotifyRequest(
+                new SmsNotifyRequest(phoneNo),
+                bahmniConfiguration);
+
+            result.Item2.Should().BeNull();
+            result.Item1.notification.hip.id.Should().Be("IN-STORED");
+            result.Item1.notification.hip.name.Should().Be("Stored%20Facility");
         }
 
     }

@@ -21,18 +21,21 @@ namespace In.ProjectEKA.HipService.Link
         private readonly ILinkPatientRepository linkPatientRepository;
         private readonly IOpenMrsClient openMrsClient;
         private BahmniConfiguration bahmniConfiguration;
+        private readonly HipFacilityResolver hipFacilityResolver;
         
         public CareContextController(
             ICareContextService careContextService,
             ILinkPatientRepository linkPatientRepository,
             IOpenMrsClient openMrsClient,
-            BahmniConfiguration bahmniConfiguration
+            BahmniConfiguration bahmniConfiguration,
+            HipFacilityResolver hipFacilityResolver = null
         )
         {
             this.careContextService = careContextService;
             this.linkPatientRepository = linkPatientRepository;
             this.openMrsClient = openMrsClient;
             this.bahmniConfiguration = bahmniConfiguration;
+            this.hipFacilityResolver = hipFacilityResolver;
         }
         
         [Authorize]
@@ -66,11 +69,13 @@ namespace In.ProjectEKA.HipService.Link
                         isFirstTime = false;
                         var visitUuid = context.ReferenceNumber!=null && context.ReferenceNumber.Split(":").Length >= 2
                             ? context.ReferenceNumber.Split(":")[1] : null;
-                        if (!string.IsNullOrEmpty(visitUuid) && bahmniConfiguration != null)
+                        if (!string.IsNullOrEmpty(visitUuid) && (hipFacilityResolver != null || bahmniConfiguration != null))
                         {
-                            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+                            var hfrDetails = hipFacilityResolver != null
+                                ? await hipFacilityResolver.Resolve(newContextRequest.HealthId, visitUuid).ConfigureAwait(false)
+                                : await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
                             var hipId = hfrDetails?.HfrId;
-                            if (string.IsNullOrEmpty(hipId))
+                            if (string.IsNullOrEmpty(hipId) && bahmniConfiguration != null)
                                 hipId = bahmniConfiguration.GetDefaultHfrId();
                             Log.Information($"PassContext: HFR ID {hipId} for visit UUID {visitUuid}");
                         }

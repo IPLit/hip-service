@@ -29,6 +29,9 @@ namespace In.ProjectEKA.HipService.Migrations
                     b.Property<string>("AccessToken")
                         .HasColumnType("text");
 
+                    b.Property<string>("HipName")
+                        .HasColumnType("text");
+
                     b.HasKey("HealthId", "HipId");
 
                     b.ToTable("AuthConfirm");

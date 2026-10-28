@@ -9,6 +9,7 @@ using In.ProjectEKA.HipService.Gateway;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.DataFlow.Model;
+using Microsoft.Extensions.DependencyInjection;
 namespace In.ProjectEKA.HipService.DataFlow
 {
     public class DataFlowClient
@@ -18,19 +19,22 @@ namespace In.ProjectEKA.HipService.DataFlow
         private readonly HipService.Common.Model.BahmniConfiguration bahmniConfiguration;
         private readonly HttpClient httpClient;
         private readonly GatewayClient gatewayClient;
+        private readonly IServiceScopeFactory scopeFactory;
         private static readonly string MEDIA_APPLICATION_FHIR_JSON = "application/fhir+json";
 
         public DataFlowClient(HttpClient httpClient,
             DataFlowNotificationClient dataFlowNotificationClient,
             GatewayConfiguration gatewayConfiguration,
             HipService.Common.Model.BahmniConfiguration bahmniConfiguration,
-            GatewayClient gatewayClient)
+            GatewayClient gatewayClient,
+            IServiceScopeFactory scopeFactory = null)
         {
             this.gatewayClient = gatewayClient;
             this.httpClient = httpClient;
             this.dataFlowNotificationClient = dataFlowNotificationClient;
             this.gatewayConfiguration = gatewayConfiguration;
             this.bahmniConfiguration = bahmniConfiguration;
+            this.scopeFactory = scopeFactory;
         }
 
         public virtual async Task SendDataToHiu(TraceableDataRequest dataRequest,
@@ -61,8 +65,18 @@ namespace In.ProjectEKA.HipService.DataFlow
             var visitUuid = grantedContexts.First() != null 
                 ? bahmniConfiguration.ExtractVisitUuidFromReference(grantedContexts.First().CareContextReference)
                 : null;
-            var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
-            var hipId = hfrDetails?.HfrId;
+            string hipId;
+            if (scopeFactory != null)
+            {
+                using var scope = scopeFactory.CreateScope();
+                var resolver = scope.ServiceProvider.GetRequiredService<HipService.Common.Model.HipFacilityResolver>();
+                hipId = (await resolver.Resolve(null, visitUuid).ConfigureAwait(false))?.HfrId;
+            }
+            else
+            {
+                var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+                hipId = hfrDetails?.HfrId;
+            }
             if (string.IsNullOrEmpty(hipId))
                 hipId = bahmniConfiguration.GetDefaultHfrId();
             try
