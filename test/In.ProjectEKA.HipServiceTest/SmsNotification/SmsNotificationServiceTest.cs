@@ -104,5 +104,32 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             UserAuthMap.GetHealthIdByPhoneNumber(phoneNo).Should().Be(healthId);
         }
 
+        [Fact]
+        public async Task SmsNotifyRequest_should_use_default_facility_when_phone_is_not_mapped()
+        {
+            var phoneNo = "919928974138";
+            UserAuthMap.PhoneNumberToHealthId.TryRemove(UserAuthMap.NormalizePhoneNumber(phoneNo), out _);
+
+            var userAuthRepository = new Mock<IUserAuthRepository>();
+            userAuthRepository.Setup(repository => repository.GetHealthIdByPhoneNumber(phoneNo))
+                .ReturnsAsync((string)null);
+
+            var bahmniConfiguration = new BahmniConfiguration(new Mock<IOpenMrsClient>().Object)
+            {
+                Id = "IN0000000001",
+                Name = "Default Facility"
+            };
+            var smsNotificationService = new SmsNotificationService(userAuthRepository.Object);
+
+            var result = await smsNotificationService.SmsNotifyRequest(
+                new SmsNotifyRequest(phoneNo),
+                bahmniConfiguration);
+
+            result.Item2.Should().BeNull();
+            result.Item1.notification.phoneNo.Should().Be(phoneNo);
+            result.Item1.notification.hip.id.Should().Be("IN0000000001");
+            result.Item1.notification.hip.name.Should().Be("Default%20Facility");
+        }
+
     }
 }

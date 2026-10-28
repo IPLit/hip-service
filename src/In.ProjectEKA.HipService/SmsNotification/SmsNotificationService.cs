@@ -34,15 +34,12 @@ namespace In.ProjectEKA.HipService.SmsNotification
             var healthId = await ResolveHealthId(phoneNo).ConfigureAwait(false);
             if (string.IsNullOrEmpty(healthId))
             {
-                Log.Information("Sms notify rejected. No ABHA address mapped for phone {Phone}", phoneNo);
-                return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(null,
-                    new ErrorRepresentation(new Error(ErrorCode.BadRequest,
-                        "No details found for the given phone number " + phoneNo)));
+                Log.Information(
+                    "Sms notify using default facility. No ABHA address mapped for phone {Phone}",
+                    phoneNo);
             }
-
-            // Prefer visit-specific facility when available; fall back to default HIP for race/timing gaps.
-            if (UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid)
-                && !string.IsNullOrEmpty(visitUuid))
+            else if (UserAuthMap.HealthIdToLatestVisitUuid.TryGetValue(healthId, out var visitUuid)
+                     && !string.IsNullOrEmpty(visitUuid))
             {
                 var hfrDetails = await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid);
                 if (!string.IsNullOrEmpty(hfrDetails?.HfrId))
@@ -50,19 +47,26 @@ namespace In.ProjectEKA.HipService.SmsNotification
                     hipId = hfrDetails.HfrId;
                     if (!string.IsNullOrEmpty(hfrDetails.HfrName))
                         hipName = hfrDetails.HfrName;
+                    else
+                        hipName = hfrDetails.HfrId;
                 }
             }
-            else
+            else if (userAuthRepository != null)
             {
-                var (hfrDetails, error) = await userAuthRepository.GetAuthDetailsByHealthId(healthId);
-                if (error != null)
+                var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
+                if (authDetails != null && authDetails.Item2 == null && !string.IsNullOrEmpty(authDetails.Item1?.HipId))
                 {
-                    return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(null,
-                        new ErrorRepresentation(new Error(ErrorCode.BadRequest,
-                            "No hfr details found for the given phone number " + phoneNo)));
+                    hipId = authDetails.Item1.HipId;
+                    hipName = authDetails.Item1.HipId;
                 }
-                hipId = hfrDetails?.HipId;
-                hipName = hfrDetails?.HipId;
+            }
+
+            if (string.IsNullOrEmpty(hipId) || string.IsNullOrEmpty(hipName))
+            {
+                Log.Information("Sms notify rejected. No HIP details for phone {Phone}", phoneNo);
+                return new Tuple<GatewaySmsNotifyRequestRepresentation, ErrorRepresentation>(null,
+                    new ErrorRepresentation(new Error(ErrorCode.BadRequest,
+                        "No hfr details found for the given phone number " + phoneNo)));
             }
 
             var hip = new SmsNotifyHip(UrlEncoder.Default.Encode(hipName), UrlEncoder.Default.Encode(hipId));
