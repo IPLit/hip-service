@@ -26,6 +26,26 @@ namespace In.ProjectEKA.HipServiceTest.UserAuth
             (await repository.GetHealthIdByPhoneNumber("911111111111")).Should().BeNull();
         }
 
+        [Fact]
+        public async Task Update_replaces_link_token_after_auth_confirm_was_loaded()
+        {
+            var databaseName = "auth-update-" + System.Guid.NewGuid();
+            var repository = new UserAuthRepository(AuthContext(databaseName), DemographicsContext(databaseName));
+            const string healthId = "vengurlekar_30930@sbx";
+            const string hipId = "IN2710004666_1";
+            (await repository.Add(new AuthConfirm(healthId, hipId, "old-token", "IPLit Wellness Clinic")))
+                .HasValue.Should().BeTrue();
+
+            var loaded = await repository.GetAuthDetailsByHealthId(healthId);
+            loaded.Item1.AccessToken.Should().Be("old-token");
+
+            repository.Update(new AuthConfirm(healthId, hipId, "new-link-token", "IPLit Wellness Clinic"))
+                .Should().BeTrue();
+
+            (await repository.Get(healthId, hipId)).ValueOr((AuthConfirm) null).AccessToken
+                .Should().Be("new-link-token");
+        }
+
         private static AuthContext AuthContext(string databaseName)
         {
             var options = new DbContextOptionsBuilder<AuthContext>()

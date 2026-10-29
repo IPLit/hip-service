@@ -113,8 +113,10 @@ namespace In.ProjectEKA.HipService.UserAuth
         {
             try
             {
+                DetachTracked(authConfirm.HealthId, authConfirm.HipId);
                 authContext.AuthConfirm.Update(authConfirm);
                 authContext.SaveChanges();
+                authContext.Entry(authConfirm).State = EntityState.Detached;
                 return true;
             }
             catch (Exception e)
@@ -122,6 +124,15 @@ namespace In.ProjectEKA.HipService.UserAuth
                 Log.Fatal(e, e.StackTrace);
                 return false;
             }
+        }
+
+        private void DetachTracked(string healthId, string hipId)
+        {
+            var tracked = authContext.ChangeTracker.Entries<AuthConfirm>()
+                .Where(entry => entry.Entity.HealthId == healthId && entry.Entity.HipId == hipId)
+                .ToList();
+            foreach (var entry in tracked)
+                entry.State = EntityState.Detached;
         }
 
         public async Task Delete(string healthId, string hipId = null)
@@ -157,6 +168,8 @@ namespace In.ProjectEKA.HipService.UserAuth
                 //         .FirstOrDefaultAsync(request =>
                 //             request.HealthId.Equals(healthId) && request.HipId.Equals(string.Empty));
                 // }
+                if (authRequest != null)
+                    authContext.Entry(authRequest).State = EntityState.Detached;
                 return new Tuple<string, Exception>(authRequest != null ? authRequest.AccessToken : null, null);
             }
             catch (Exception exception)
@@ -176,6 +189,8 @@ namespace In.ProjectEKA.HipService.UserAuth
                                       && request.HipId != "")
                     .FirstOrDefaultAsync()
                     .ConfigureAwait(false);
+                if (authRequest != null)
+                    authContext.Entry(authRequest).State = EntityState.Detached;
                 return new Tuple<AuthConfirm, Exception>(authRequest, null);
             }
             catch (Exception exception)
