@@ -114,7 +114,7 @@ namespace In.ProjectEKA.HipService.Common.Model
                     return new HfrDetails(fromVisit.HfrId, name);
                 }
             }
-            return null;
+            return new HfrDetails(GetDefaultHfrId(), GetDefaultFacilityName());
         }
 
         /// <summary>
