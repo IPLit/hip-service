@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
 using In.ProjectEKA.HipService.Common.Model;
@@ -39,7 +40,8 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
                 Id = "IN0000000001",
                 Name = "Default Facility"
             };
-            var smsNotificationService = new SmsNotificationService(null);
+            var smsNotificationService = new SmsNotificationService(
+                null, new HipFacilityResolver(null, bahmniConfiguration));
 
             var result = await smsNotificationService.SmsNotifyRequest(
                 new SmsNotifyRequest(phoneNo),
@@ -65,7 +67,8 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
                 Id = "IN0000000001",
                 Name = "Default Facility"
             };
-            var smsNotificationService = new SmsNotificationService(null);
+            var smsNotificationService = new SmsNotificationService(
+                null, new HipFacilityResolver(null, bahmniConfiguration));
 
             var result = await smsNotificationService.SmsNotifyRequest(
                 new SmsNotifyRequest(phoneNo),
@@ -87,6 +90,8 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             var userAuthRepository = new Mock<IUserAuthRepository>();
             userAuthRepository.Setup(repository => repository.GetHealthIdByPhoneNumber(phoneNo))
                 .ReturnsAsync(healthId);
+            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId))
+                .ReturnsAsync(new Tuple<AuthConfirm, Exception>(null, null));
 
             var openMrsClient = new Mock<IOpenMrsClient>();
             var bahmniConfiguration = new BahmniConfiguration(openMrsClient.Object)
@@ -94,7 +99,8 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
                 Id = "IN0000000001",
                 Name = "Default Facility"
             };
-            var smsNotificationService = new SmsNotificationService(userAuthRepository.Object);
+            var smsNotificationService = new SmsNotificationService(
+                userAuthRepository.Object, new HipFacilityResolver(userAuthRepository.Object, bahmniConfiguration));
 
             var result = await smsNotificationService.SmsNotifyRequest(
                 new SmsNotifyRequest(phoneNo),
@@ -120,7 +126,8 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
                 Id = "IN0000000001",
                 Name = "Default Facility"
             };
-            var smsNotificationService = new SmsNotificationService(userAuthRepository.Object);
+            var smsNotificationService = new SmsNotificationService(
+                userAuthRepository.Object, new HipFacilityResolver(userAuthRepository.Object, bahmniConfiguration));
 
             var result = await smsNotificationService.SmsNotifyRequest(
                 new SmsNotifyRequest(phoneNo),
@@ -133,12 +140,55 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
         }
 
         [Fact]
-        public async Task SmsNotifyRequest_should_prefer_hip_stored_for_healthId()
+        public async Task SmsNotifyRequest_should_prefer_visit_location_hfr_over_hip_stored_for_healthId()
+        {
+            var phoneNo = "919900000088";
+            var healthId = "visit-patient@sbx";
+            var visitUuid = "visit-at-clinic";
+            var locationUuid = "location-uuid-1";
+            UserAuthMap.UpdateHealthIdToPhoneNumber(phoneNo, healthId);
+            UserAuthMap.HealthIdToLatestVisitUuid[healthId] = visitUuid;
+
+            var userAuthRepository = new Mock<IUserAuthRepository>();
+            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId))
+                .ReturnsAsync(new Tuple<AuthConfirm, Exception>(
+                    new AuthConfirm(healthId, "IN-STORED", "token", "Stored Facility"), null));
+
+            var openMrsClient = new Mock<IOpenMrsClient>();
+            openMrsClient.Setup(client => client.GetAsync($"ws/rest/v1/visit/{visitUuid}"))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        $"{{\"location\":{{\"uuid\":\"{locationUuid}\"}}}}",
+                        Encoding.UTF8,
+                        "application/json")
+                });
+            var bahmniConfiguration = new BahmniConfiguration(openMrsClient.Object)
+            {
+                Id = "IN0000000001",
+                Name = "Default Facility"
+            };
+            bahmniConfiguration.SetHfrIdForLocation(locationUuid, "IN-VISIT");
+            bahmniConfiguration.SetFacilityNameForLocation(locationUuid, "Visit Facility");
+            var resolver = new HipFacilityResolver(userAuthRepository.Object, bahmniConfiguration);
+            var smsNotificationService = new SmsNotificationService(userAuthRepository.Object, resolver);
+
+            var result = await smsNotificationService.SmsNotifyRequest(
+                new SmsNotifyRequest(phoneNo),
+                bahmniConfiguration);
+
+            result.Item2.Should().BeNull();
+            result.Item1.notification.hip.id.Should().Be("IN-VISIT");
+            result.Item1.notification.hip.name.Should().Be("Visit%20Facility");
+        }
+
+        [Fact]
+        public async Task SmsNotifyRequest_should_use_hip_stored_for_healthId_when_visit_has_no_hfr()
         {
             var phoneNo = "919900000099";
             var healthId = "stored-patient@sbx";
             UserAuthMap.UpdateHealthIdToPhoneNumber(phoneNo, healthId);
-            UserAuthMap.HealthIdToLatestVisitUuid[healthId] = "visit-that-should-not-win";
+            UserAuthMap.HealthIdToLatestVisitUuid[healthId] = "visit-without-facility";
 
             var userAuthRepository = new Mock<IUserAuthRepository>();
             userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId))

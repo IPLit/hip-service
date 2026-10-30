@@ -6,7 +6,7 @@ namespace In.ProjectEKA.HipService.Common.Model
 {
     /// <summary>
     /// Resolves the HIP facility for a patient.
-    /// Stored health-id details are used first, then the visit location, then the configured default.
+    /// The visit location is used first, then stored health-id details, then the configured default.
     /// </summary>
     public class HipFacilityResolver
     {
@@ -49,25 +49,25 @@ namespace In.ProjectEKA.HipService.Common.Model
 
         public async Task<HfrDetails> Resolve(string healthId, string visitUuid)
         {
-            if (!string.IsNullOrWhiteSpace(healthId) && userAuthRepository != null)
-            {
-                var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
-                var stored = authDetails != null && authDetails.Item2 == null ? authDetails.Item1 : null;
-                if (!string.IsNullOrEmpty(stored?.HipId))
-                {
-                    return new HfrDetails(stored.HipId, NameForStoredHip(stored.HipId, stored.HipName));
-                }
-            }
             if (!string.IsNullOrEmpty(visitUuid))
             {
-                HfrDetails fromVisit = await bahmniConfiguration.ResolveFromVisit(visitUuid).ConfigureAwait(false);
-                if (fromVisit!=null && !string.IsNullOrEmpty(fromVisit.HfrId) && !string.IsNullOrEmpty(fromVisit.HfrName))
+                var fromVisit = await bahmniConfiguration.ResolveFromVisit(visitUuid).ConfigureAwait(false);
+                if (fromVisit != null && !string.IsNullOrEmpty(fromVisit.HfrId) && !string.IsNullOrEmpty(fromVisit.HfrName))
                 {
                     await RememberHipDetails(healthId, fromVisit.HfrId, fromVisit.HfrName, null, false)
                         .ConfigureAwait(false);
                     return fromVisit;
                 }
             }
+
+            if (!string.IsNullOrWhiteSpace(healthId) && userAuthRepository != null)
+            {
+                var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
+                var stored = authDetails != null && authDetails.Item2 == null ? authDetails.Item1 : null;
+                if (!string.IsNullOrEmpty(stored?.HipId))
+                    return new HfrDetails(stored.HipId, NameForStoredHip(stored.HipId, stored.HipName));
+            }
+
             return new HfrDetails(bahmniConfiguration.GetDefaultHfrId(), bahmniConfiguration.GetDefaultFacilityName());
         }
 
