@@ -105,20 +105,25 @@ namespace In.ProjectEKA.HipServiceTest.Link
         }
 
         [Fact]
-        private async void ThrowErrorOnSaveOfSamePrimaryKeyLinkedAccounts()
+        private async void ShouldUpdateLinkedAccountsWhenLinkReferenceAlreadyExists()
         {
             var faker = TestBuilders.Faker();
             var dbContext = PatientContext();
             var linkPatientRepository = new LinkPatientRepository(dbContext);
             var consentManagerUserId = faker.Random.Hash();
             var linkReferenceNumber = faker.Random.Hash();
-            await linkPatientRepository.Save(consentManagerUserId, faker.Random.Hash()
-                , linkReferenceNumber, new[] {faker.Random.Word()},Guid.NewGuid());
-            var linkedAccount = await linkPatientRepository.Save(consentManagerUserId, faker.Random.Hash()
-                , linkReferenceNumber, new[] {faker.Random.Word()},Guid.NewGuid());
+            var patientReferenceNumber = faker.Random.Hash();
+            await linkPatientRepository.Save(consentManagerUserId, patientReferenceNumber
+                , linkReferenceNumber, new[] {"visit-1"}, Guid.NewGuid());
+            var linkedAccount = await linkPatientRepository.Save(consentManagerUserId, patientReferenceNumber
+                , linkReferenceNumber, new[] {"visit-2"}, Guid.NewGuid());
 
-            linkedAccount.HasValue.Should().BeFalse();
-            
+            linkedAccount.HasValue.Should().BeTrue();
+            var (stored, error) = await linkPatientRepository.GetLinkedCareContexts(consentManagerUserId);
+            error.Should().BeNull();
+            stored.Should().ContainSingle();
+            stored.First().CareContexts.Should().BeEquivalentTo(new[] {"visit-1", "visit-2"});
+
             dbContext.Database.EnsureDeleted();
         }
 

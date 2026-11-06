@@ -17,6 +17,7 @@ namespace In.ProjectEKA.HipService.Gateway
     public interface IGatewayClient
     {
         Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix,string correlationId, string hipId = null, string requestId = null, string linkToken = null);
+        Task<bool> TrySendDataToGateway<T>(string urlPath, T response, string cmSuffix, string correlationId, string hipId = null, string requestId = null, string linkToken = null);
         Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl, string urlPath, T representation,
             string correlationId, string xtoken = null, string tToken = null, string transactionId = null);
     }
@@ -65,9 +66,9 @@ namespace In.ProjectEKA.HipService.Gateway
 
                 if (!responseMessage.IsSuccessStatusCode)
                 {
-                    var error = await responseMessage.Content.ReadAsStringAsync();
                     Log.Error(
-                        $"Failure in getting the token with status code {responseMessage.StatusCode} {error}");
+                        "Failure in getting the token with status code {StatusCode}. Body: {Body}",
+                        responseMessage.StatusCode, response);
                     return Option.None<string>();
                 }
 
@@ -85,7 +86,15 @@ namespace In.ProjectEKA.HipService.Gateway
 
         public virtual async Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix, string correlationId, string hipId = null,string requestId=null, string linkToken = null)
         {
-            await PostTo(configuration.Url + urlPath, response, cmSuffix, correlationId, hipId, requestId, linkToken).ConfigureAwait(false);
+            await TrySendDataToGateway(urlPath, response, cmSuffix, correlationId, hipId, requestId, linkToken)
+                .ConfigureAwait(false);
+        }
+
+        public virtual async Task<bool> TrySendDataToGateway<T>(string urlPath, T response, string cmSuffix,
+            string correlationId, string hipId = null, string requestId = null, string linkToken = null)
+        {
+            return await PostTo(configuration.Url + urlPath, response, cmSuffix, correlationId, hipId, requestId,
+                linkToken).ConfigureAwait(false);
         }
 
         public virtual async Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl,string urlPath,
@@ -118,7 +127,7 @@ namespace In.ProjectEKA.HipService.Gateway
             return response;
         }
 
-        private async Task PostTo<T>(string gatewayUrl, T representation, string cmSuffix, string correlationId, string hipId, string requestId, string linkToken = null)
+        private async Task<bool> PostTo<T>(string gatewayUrl, T representation, string cmSuffix, string correlationId, string hipId, string requestId, string linkToken = null)
         {
             try
             {
@@ -126,7 +135,7 @@ namespace In.ProjectEKA.HipService.Gateway
                 if (!token.HasValue)
                 {
                     Log.Error("Failed to obtain gateway access token; skipping request to {GatewayUrl}", gatewayUrl);
-                    return;
+                    return false;
                 }
 
                 try
@@ -147,16 +156,21 @@ namespace In.ProjectEKA.HipService.Gateway
                         Log.Error(
                             "Gateway returned non-success status {@status} for URI {@uri}. Body: {@body}",
                             responseMessage.StatusCode, gatewayUrl, responseBody);
+                        return false;
                     }
+
+                    return true;
                 }
                 catch (Exception exception)
                 {
                     Log.Error(exception, exception.StackTrace);
+                    return false;
                 }
             }
             catch (Exception exception)
             {
                 Log.Error(exception, exception.StackTrace);
+                return false;
             }
         }
 

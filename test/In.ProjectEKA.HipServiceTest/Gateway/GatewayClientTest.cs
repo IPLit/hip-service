@@ -87,7 +87,7 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
         }
 
         [Fact]
-        private void ShouldNotPostDataIfAuthenticationWithGatewayFailed()
+        private async Task ShouldNotPostDataIfAuthenticationWithGatewayFailed()
         {
             var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var httpClient = new HttpClient(handlerMock.Object);
@@ -125,8 +125,10 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
                 })
                 .Verifiable();
 
-            gatewayClient.SendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, "ncg", correlationId);
+            var sent = await gatewayClient.TrySendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, "ncg",
+                correlationId);
 
+            sent.Should().BeFalse();
             handlerMock.Protected().Verify(
                 "SendAsync",
                 Times.Exactly(1),

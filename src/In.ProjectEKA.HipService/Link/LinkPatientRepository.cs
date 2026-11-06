@@ -1,4 +1,5 @@
 using In.ProjectEKA.HipLibrary.Patient.Model;
+using Npgsql;
 
 namespace In.ProjectEKA.HipService.Link
 {
@@ -78,23 +79,88 @@ namespace In.ProjectEKA.HipService.Link
             Guid patientUuid
         )
         {
+            var careContexts = careContextReferenceNumbers.ToList();
             var linkedAccounts = new LinkedAccounts(patientReferenceNumber,
                 linkReferenceNumber,
                 consentManagerUserId,
                 DateTime.Now.ToUniversalTime().ToString(Constants.DateTimeFormat),
-                careContextReferenceNumbers.ToList(),
+                careContexts,
                 patientUuid);
             try
             {
+                var existing = await linkPatientContext.LinkedAccounts
+                    .FirstOrDefaultAsync(account => account.LinkReferenceNumber == linkReferenceNumber)
+                    .ConfigureAwait(false);
+                if (existing != null)
+                {
+                    ApplyLinkedAccount(existing, consentManagerUserId, patientReferenceNumber, careContexts,
+                        patientUuid);
+                    await linkPatientContext.SaveChangesAsync().ConfigureAwait(false);
+                    return Option.Some(existing);
+                }
+
                 await linkPatientContext.LinkedAccounts.AddAsync(linkedAccounts).ConfigureAwait(false);
                 await linkPatientContext.SaveChangesAsync().ConfigureAwait(false);
                 return Option.Some(linkedAccounts);
+            }
+            catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+            {
+                var added = linkPatientContext.ChangeTracker.Entries<LinkedAccounts>()
+                    .FirstOrDefault(entry => ReferenceEquals(entry.Entity, linkedAccounts));
+                if (added != null)
+                    added.State = EntityState.Detached;
+                var stored = await linkPatientContext.LinkedAccounts
+                    .FirstOrDefaultAsync(account => account.LinkReferenceNumber == linkReferenceNumber)
+                    .ConfigureAwait(false);
+                if (stored == null)
+                {
+                    Log.Error(exception,
+                        "Duplicate key on LinkedAccounts for {LinkReferenceNumber} but the row was not found",
+                        linkReferenceNumber);
+                    return Option.None<LinkedAccounts>();
+                }
+
+                Log.Information(
+                    "Linked account {LinkReferenceNumber} already stored; treating callback as already processed",
+                    linkReferenceNumber);
+                return Option.Some(stored);
             }
             catch (Exception exception)
             {
                 Log.Fatal(exception, exception.StackTrace);
                 return Option.None<LinkedAccounts>();
             }
+        }
+
+        private static void ApplyLinkedAccount(LinkedAccounts existing, string consentManagerUserId,
+            string patientReferenceNumber, List<string> careContexts, Guid patientUuid)
+        {
+            if (!string.IsNullOrEmpty(consentManagerUserId))
+                existing.ConsentManagerUserId = consentManagerUserId;
+            if (!string.IsNullOrEmpty(patientReferenceNumber))
+                existing.PatientReferenceNumber = patientReferenceNumber;
+            if (patientUuid != Guid.Empty)
+                existing.PatientUuid = patientUuid;
+            existing.DateTimeStamp = DateTime.Now.ToUniversalTime().ToString(Constants.DateTimeFormat);
+            var merged = new List<string>(existing.CareContexts ?? new List<string>());
+            foreach (var careContext in careContexts)
+            {
+                if (!string.IsNullOrEmpty(careContext) && !merged.Contains(careContext))
+                    merged.Add(careContext);
+            }
+
+            existing.CareContexts = merged;
+        }
+
+        private static bool IsUniqueViolation(Exception exception)
+        {
+            for (var current = exception; current != null; current = current.InnerException)
+            {
+                if (current is PostgresException postgres && postgres.SqlState == PostgresErrorCodes.UniqueViolation)
+                    return true;
+            }
+
+            return false;
         }
 
         public async Task<Tuple<IEnumerable<LinkedAccounts>, Exception>> GetLinkedCareContexts(

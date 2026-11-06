@@ -125,9 +125,17 @@ namespace In.ProjectEKA.HipService.Link
             UserAuthMap.RequestIdToHipId[requestId.ToString()] = hipId;
             var generateTokenPayload = new GenerateLinkTokenRequest(demographics.HealthId, demographics.Name,
                 demographics.Gender, demographics.DateOfBirth.Split("-").First());
-            
-            await gatewayClient.SendDataToGateway(PATH_GENERATE_TOKEN, generateTokenPayload, gatewayConfiguration.CmSuffix,
-                Guid.NewGuid().ToString(), hipId:hipId, requestId.ToString());
+
+            var tokenRequested = await gatewayClient.TrySendDataToGateway(PATH_GENERATE_TOKEN, generateTokenPayload,
+                gatewayConfiguration.CmSuffix, Guid.NewGuid().ToString(), hipId: hipId, requestId: requestId.ToString());
+            if (!tokenRequested)
+            {
+                UserAuthMap.RequestIdToHipId.TryRemove(requestId.ToString(), out _);
+                Log.Error(
+                    "Failed to request link token from gateway for healthId: {HealthId} and hipId: {HipId}",
+                    healthId, hipId);
+                return;
+            }
             var i = 0;
             do
             {
@@ -200,9 +208,11 @@ namespace In.ProjectEKA.HipService.Link
                 Log.Information(
                     "Request for notification-contexts to gateway: {@GatewayResponse}",
                     gatewayNotificationContextRepresentation.dump(gatewayNotificationContextRepresentation));
-                await gatewayClient.SendDataToGateway(PATH_NOTIFY_PATIENT_CONTEXTS,
+                var sent = await gatewayClient.TrySendDataToGateway(PATH_NOTIFY_PATIENT_CONTEXTS,
                     gatewayNotificationContextRepresentation,
                     cmSuffix, Guid.NewGuid().ToString(), hipId:hipId, linkToken:linkToken, requestId: Guid.NewGuid().ToString());
+                if (!sent)
+                    throw new Exception("Failed to send care context notification to gateway");
             }
             catch (Exception exception)
             {
@@ -231,7 +241,7 @@ namespace In.ProjectEKA.HipService.Link
             if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)
                 || string.IsNullOrEmpty(linkToken))
             {
-                Log.Debug("Unable to get link token: {linkToken} for healthId: {healthId} and hipId: {hipId}", linkToken, abhaAddress, hipId);
+                Log.Error("Unable to get link token: {linkToken} for healthId: {healthId} and hipId: {hipId}", linkToken, abhaAddress, hipId);
                 throw new Exception("Unable to get link token");
             }
             var cmSuffix = gatewayConfiguration.CmSuffix;
@@ -248,9 +258,11 @@ namespace In.ProjectEKA.HipService.Link
                 Log.Information(
                     "Request for add-context to gateway: {@GatewayResponse}",
                     gatewayAddContextsRequestRepresentation.dump(gatewayAddContextsRequestRepresentation));
-                await gatewayClient.SendDataToGateway(PATH_ADD_PATIENT_CONTEXTS,
+                var sent = await gatewayClient.TrySendDataToGateway(PATH_ADD_PATIENT_CONTEXTS,
                     gatewayAddContextsRequestRepresentation,
                     cmSuffix, Guid.NewGuid().ToString(), hipId:hipId, linkToken:linkToken, requestId: requestId.ToString());
+                if (!sent)
+                    throw new Exception("Failed to send add-care context request to gateway");
             }
             catch (Exception exception)
             {
