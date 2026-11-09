@@ -57,16 +57,18 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
-                bool isFirstTime = true;
                 var (careContexts, exception) =
                     await linkPatientRepository.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber);
                 foreach (var context in newContextRequest.CareContexts)
                 {
                     Log.Information("Processing care context for patient: " + newContextRequest.PatientReferenceNumber);
                     Log.Information($"context.ReferenceNumber: {context.ReferenceNumber} context.display: {context.Display}");
-                    if (isFirstTime)
+                    if (careContexts != null && careContextService.IsLinkedContext(careContexts, context.ReferenceNumber))
                     {
-                        isFirstTime = false;
+                        await careContextService.CallNotifyContext(newContextRequest, context);
+                    }
+                    else
+                    {
                         var visitUuid = context.ReferenceNumber!=null && context.ReferenceNumber.Split(":").Length >= 2
                             ? context.ReferenceNumber.Split(":")[1] : null;
                         if (!string.IsNullOrEmpty(visitUuid) && (hipFacilityResolver != null || bahmniConfiguration != null))
@@ -79,13 +81,6 @@ namespace In.ProjectEKA.HipService.Link
                                 hipId = bahmniConfiguration.GetDefaultHfrId();
                             Log.Information($"PassContext: HFR ID {hipId} for visit UUID {visitUuid}");
                         }
-                    }
-                    if (careContexts != null && careContextService.IsLinkedContext(careContexts, context.ReferenceNumber))
-                    {
-                        await careContextService.CallNotifyContext(newContextRequest, context);
-                    }
-                    else
-                    {
                         await careContextService.CallAddContext(newContextRequest).ConfigureAwait(false);
                     }
                 }

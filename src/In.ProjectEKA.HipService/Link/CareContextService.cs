@@ -57,7 +57,7 @@ namespace In.ProjectEKA.HipService.Link
         {
             var careContexts = addContextsRequest.CareContexts;
             var abhaAddress = addContextsRequest.HealthId;
-            var linkReferenceNumber = Guid.NewGuid().ToString();
+            var linkReferenceNumber = requestId.ToString();
             
             if (!await linkPatient.SaveInitiatedLinkRequest(requestId.ToString(), null, linkReferenceNumber)
                 .ConfigureAwait(false))

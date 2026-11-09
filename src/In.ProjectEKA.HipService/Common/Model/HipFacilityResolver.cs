@@ -59,7 +59,6 @@ namespace In.ProjectEKA.HipService.Common.Model
                     return fromVisit;
                 }
             }
-
             if (!string.IsNullOrWhiteSpace(healthId) && userAuthRepository != null)
             {
                 var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
@@ -67,7 +66,6 @@ namespace In.ProjectEKA.HipService.Common.Model
                 if (!string.IsNullOrEmpty(stored?.HipId))
                     return new HfrDetails(stored.HipId, NameForStoredHip(stored.HipId, stored.HipName));
             }
-
             return new HfrDetails(bahmniConfiguration.GetDefaultHfrId(), bahmniConfiguration.GetDefaultFacilityName());
         }
 

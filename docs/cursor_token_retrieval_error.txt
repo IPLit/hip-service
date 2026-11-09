@@ -1,0 +1,46 @@
+
+
+
+
+Two separate failures are in this log. The care-context request dies because the ABDM session call returns HTTP 500, and a later callback cannot insert a link row that is already stored.
+
+## 1. Session token failure (the 500 on new care context)
+
+`POST /v0.5/hip/new-carecontext` for patient `LHWRF2015970` ran about **77 seconds** and then returned **500**.
+
+`GatewayClient.Authenticate` calls the ABDM sessions API (`api/hiecm/gateway/v3/sessions`) and got **InternalServerError**. With no session token, every later gateway call is skipped:
+
+- `https://apis.abdm.gov.in/api/hiecm/v3/token/generate-token` (link token)
+- `https://apis.abdm.gov.in/api/hiecm/hip/v3/link/patient/links/sms/notify2` (SMS notify)
+
+`CareContextService.SetAccessToken` still waits for a link-token callback that will never arrive, then `CallAddContext` throws `Unable to get link token` at line 235. That exception is what `PassContext` turns into the 500.
+
+An HTTP 500 from the sessions API is an ABDM gateway failure, not a duplicate-key or local database error. Bad client credentials normally come back as 401 or 403. The same session failure also explains both SMS notify errors a second later.
+
+The long wait is local. After the session call already failed, `SetAccessToken` still polls `TimeOut + 8000` ms up to `Counter` times before giving up.
+
+## 2. Duplicate `LinkedAccounts` primary key
+
+`POST /api/v3/link/on_carecontext` fails in `LinkPatientRepository.Save` (line 90):
+
+```sql
+INSERT INTO "LinkedAccounts"
+  ("LinkReferenceNumber", "CareContexts", "ConsentManagerUserId",
+   "DateTimeStamp", "PatientReferenceNumber", "PatientUuid")
+```
+
+Postgres `23505` on `PK_LinkedAccounts`. That primary key is `LinkReferenceNumber`. `Save` always inserts a new row. `HipLinkOnAddContexts` → `VerifyAndLinkCareContexts` runs that insert on every callback, including an ABDM retry for a link that is already stored. The same insert fails again about 46 seconds later (`06:16:49` and `06:17:35`).
+
+The exception is caught and logged as `Error Occured`. The caller then returns `NoPatientFound`, which is the wrong error for a duplicate key. The link itself was already saved on the first successful callback.
+
+These two errors overlap in time, but they are different requests. The token failure never reached `generate-token`, so it did not create the `on_carecontext` callback. That callback is a repeat of an earlier add-context that already wrote the same `LinkReferenceNumber`.
+
+
+
+The service no longer waits out a dead gateway call, and a repeated care-context callback updates the existing link instead of inserting a second row.
+
+**Gateway session token.** `POST /v0.5/hip/new-carecontext` stayed open for about 77 seconds because `SetAccessToken` kept polling after the ABDM sessions call had already returned 500 and the link-token request was never sent. That request now stops immediately, logs the sessions response body, and `PassContext` returns 500. The same failure on `POST /v0.5/hip/patients/sms/notify` now returns **504** instead of Accepted. An add or notify that never leaves this service also fails the care-context request, so Bahmni does not get a success for a call that was skipped.
+
+The sessions **500 itself still comes from ABDM** (`api/hiecm/gateway/v3/sessions`). The next failure log will include the response body. If that body stays an internal error, the client id, secret, and `X-CM-ID` on this HIP are worth checking against the gateway.
+
+**Duplicate `LinkedAccounts` key.** `on_carecontext` always inserted a row whose primary key is `LinkReferenceNumber`. A repeated callback now updates that row and merges any new care contexts. A concurrent insert that still hits `23505` is treated as already stored, so the callback completes instead of being reported as `NoPatientFound`.
