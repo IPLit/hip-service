@@ -128,7 +128,7 @@ namespace In.ProjectEKA.HipService.Link
 
             var tokenRequested = await gatewayClient.TrySendDataToGateway(PATH_GENERATE_TOKEN, generateTokenPayload,
                 gatewayConfiguration.CmSuffix, Guid.NewGuid().ToString(), hipId: hipId, requestId: requestId.ToString());
-            if (!tokenRequested)
+            if (!tokenRequested.Succeeded)
             {
                 UserAuthMap.RequestIdToHipId.TryRemove(requestId.ToString(), out _);
                 Log.Error(
@@ -211,7 +211,7 @@ namespace In.ProjectEKA.HipService.Link
                 var sent = await gatewayClient.TrySendDataToGateway(PATH_NOTIFY_PATIENT_CONTEXTS,
                     gatewayNotificationContextRepresentation,
                     cmSuffix, Guid.NewGuid().ToString(), hipId:hipId, linkToken:linkToken, requestId: Guid.NewGuid().ToString());
-                if (!sent)
+                if (!sent.Succeeded)
                     throw new Exception("Failed to send care context notification to gateway");
             }
             catch (Exception exception)
@@ -261,8 +261,20 @@ namespace In.ProjectEKA.HipService.Link
                 var sent = await gatewayClient.TrySendDataToGateway(PATH_ADD_PATIENT_CONTEXTS,
                     gatewayAddContextsRequestRepresentation,
                     cmSuffix, Guid.NewGuid().ToString(), hipId:hipId, linkToken:linkToken, requestId: requestId.ToString());
-                if (!sent)
+                if (sent.AlreadyLinked)
+                {
+                    Log.Information(
+                        "Care context already linked at gateway for patient {PatientReferenceNumber}. Recording it locally and sending context notify.",
+                        newContextRequest.PatientReferenceNumber);
+                    await RememberLinkedCareContexts(newContextRequest, requestId.ToString()).ConfigureAwait(false);
+                    foreach (var context in newContextRequest.CareContexts)
+                        await CallNotifyContext(newContextRequest, context).ConfigureAwait(false);
+                    return;
+                }
+
+                if (!sent.Succeeded)
                     throw new Exception("Failed to send add-care context request to gateway");
+                await RememberLinkedCareContexts(newContextRequest, requestId.ToString()).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -273,6 +285,31 @@ namespace In.ProjectEKA.HipService.Link
         public bool IsLinkedContext(List<string> careContexts, string context)
         {
             return careContexts.Any(careContext => careContext.Equals(context));
+        }
+
+        private async Task RememberLinkedCareContexts(NewContextRequest newContextRequest, string linkReferenceNumber)
+        {
+            var referenceNumbers = newContextRequest.CareContexts?
+                .Select(context => context.ReferenceNumber)
+                .Where(reference => !string.IsNullOrEmpty(reference))
+                .Distinct()
+                .ToList();
+            if (referenceNumbers == null || referenceNumbers.Count == 0)
+                return;
+
+            var saved = await linkPatientRepository.Save(
+                    newContextRequest.HealthId,
+                    newContextRequest.PatientReferenceNumber,
+                    linkReferenceNumber,
+                    referenceNumbers,
+                    Guid.Empty)
+                .ConfigureAwait(false);
+            if (!saved.HasValue)
+            {
+                Log.Error(
+                    "Failed to record linked care contexts for patient {PatientReferenceNumber}",
+                    newContextRequest.PatientReferenceNumber);
+            }
         }
 
     }

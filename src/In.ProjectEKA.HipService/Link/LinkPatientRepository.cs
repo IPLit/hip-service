@@ -186,16 +186,20 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
-                var linkRequest = await linkPatientContext.LinkedAccounts.OrderByDescending(i => i.DateTimeStamp)
-                    .FirstOrDefaultAsync(request => request.PatientReferenceNumber.Equals(patientReferenceNumber));
-                   if (linkRequest != null)
-                   {
-                       return new Tuple<List<string>, Exception>(linkRequest.CareContexts, null);
-                   }
-                   else
-                   {
-                       return new Tuple<List<string>, Exception>(null, null);
-                   }
+                var linkedAccounts = await linkPatientContext.LinkedAccounts
+                    .Where(request => request.PatientReferenceNumber.Equals(patientReferenceNumber))
+                    .ToListAsync()
+                    .ConfigureAwait(false);
+                if (linkedAccounts.Count == 0)
+                    return new Tuple<List<string>, Exception>(null, null);
+
+                var careContexts = linkedAccounts
+                    .Where(account => account.CareContexts != null)
+                    .SelectMany(account => account.CareContexts)
+                    .Where(reference => !string.IsNullOrEmpty(reference))
+                    .Distinct()
+                    .ToList();
+                return new Tuple<List<string>, Exception>(careContexts, null);
             }
             catch (Exception exception)
             {

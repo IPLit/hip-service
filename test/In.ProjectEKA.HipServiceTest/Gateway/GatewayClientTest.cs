@@ -128,13 +128,46 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
             var sent = await gatewayClient.TrySendDataToGateway(PATH_ON_DISCOVER, gatewayDiscoveryRepresentation, "ncg",
                 correlationId);
 
-            sent.Should().BeFalse();
+            sent.Succeeded.Should().BeFalse();
+            sent.AlreadyLinked.Should().BeFalse();
             handlerMock.Protected().Verify(
                 "SendAsync",
                 Times.Exactly(1),
                 ItExpr.Is<HttpRequestMessage>(message => message.Method == HttpMethod.Post
                                                          && message.RequestUri == authenticationUri),
                 ItExpr.IsAny<CancellationToken>());
+        }
+
+        [Fact]
+        private async Task ShouldTreatDuplicateHipLinkAsAlreadyLinked()
+        {
+            var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            var httpClient = new HttpClient(handlerMock.Object);
+            var gatewayConfiguration = new GatewayConfiguration {Url = "http://someUrl"};
+            var gatewayClient = new GatewayClient(httpClient, gatewayConfiguration);
+            var token = JsonConvert.SerializeObject(new {accessToken = "Whatever", tokenType = "Bearer"});
+            var duplicateBody = "{\"error\":{\"code\":\"ABDM-9999: \",\"message\":\"Duplicate HIP link request\"}}";
+            handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsInOrder(() => Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(token, Encoding.UTF8, MediaTypeNames.Application.Json)
+                }), () => Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Content = new StringContent(duplicateBody, Encoding.UTF8, MediaTypeNames.Application.Json)
+                }));
+
+            var sent = await gatewayClient.TrySendDataToGateway(PATH_ADD_PATIENT_CONTEXTS, new { }, "sbx",
+                Uuid.Generate().ToString());
+
+            sent.Succeeded.Should().BeFalse();
+            sent.AlreadyLinked.Should().BeTrue();
         }
 
         [Fact]

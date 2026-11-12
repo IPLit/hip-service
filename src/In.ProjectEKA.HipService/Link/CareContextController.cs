@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Common;
 using In.ProjectEKA.HipService.Common.Model;
 using In.ProjectEKA.HipService.Link.Model;
@@ -59,6 +61,7 @@ namespace In.ProjectEKA.HipService.Link
             {
                 var (careContexts, exception) =
                     await linkPatientRepository.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber);
+                var contextsToLink = new List<CareContextRepresentation>();
                 foreach (var context in newContextRequest.CareContexts)
                 {
                     Log.Information("Processing care context for patient: " + newContextRequest.PatientReferenceNumber);
@@ -66,23 +69,34 @@ namespace In.ProjectEKA.HipService.Link
                     if (careContexts != null && careContextService.IsLinkedContext(careContexts, context.ReferenceNumber))
                     {
                         await careContextService.CallNotifyContext(newContextRequest, context);
+                        continue;
                     }
-                    else
+
+                    var visitUuid = context.ReferenceNumber!=null && context.ReferenceNumber.Split(":").Length >= 2
+                        ? context.ReferenceNumber.Split(":")[1] : null;
+                    if (!string.IsNullOrEmpty(visitUuid) && (hipFacilityResolver != null || bahmniConfiguration != null))
                     {
-                        var visitUuid = context.ReferenceNumber!=null && context.ReferenceNumber.Split(":").Length >= 2
-                            ? context.ReferenceNumber.Split(":")[1] : null;
-                        if (!string.IsNullOrEmpty(visitUuid) && (hipFacilityResolver != null || bahmniConfiguration != null))
-                        {
-                            var hfrDetails = hipFacilityResolver != null
-                                ? await hipFacilityResolver.Resolve(newContextRequest.HealthId, visitUuid).ConfigureAwait(false)
-                                : await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
-                            var hipId = hfrDetails?.HfrId;
-                            if (string.IsNullOrEmpty(hipId) && bahmniConfiguration != null)
-                                hipId = bahmniConfiguration.GetDefaultHfrId();
-                            Log.Information($"PassContext: HFR ID {hipId} for visit UUID {visitUuid}");
-                        }
-                        await careContextService.CallAddContext(newContextRequest).ConfigureAwait(false);
+                        var hfrDetails = hipFacilityResolver != null
+                            ? await hipFacilityResolver.Resolve(newContextRequest.HealthId, visitUuid).ConfigureAwait(false)
+                            : await bahmniConfiguration.GetHfrDetailsByVisitUuid(visitUuid).ConfigureAwait(false);
+                        var hipId = hfrDetails?.HfrId;
+                        if (string.IsNullOrEmpty(hipId) && bahmniConfiguration != null)
+                            hipId = bahmniConfiguration.GetDefaultHfrId();
+                        Log.Information($"PassContext: HFR ID {hipId} for visit UUID {visitUuid}");
                     }
+                    contextsToLink.Add(context);
+                }
+
+                if (contextsToLink.Count > 0)
+                {
+                    var addRequest = contextsToLink.Count == newContextRequest.CareContexts.Count
+                        ? newContextRequest
+                        : new NewContextRequest(
+                            newContextRequest.PatientReferenceNumber,
+                            newContextRequest.PatientName,
+                            contextsToLink,
+                            newContextRequest.HealthId);
+                    await careContextService.CallAddContext(addRequest).ConfigureAwait(false);
                 }
                 return StatusCode(StatusCodes.Status200OK);
             }

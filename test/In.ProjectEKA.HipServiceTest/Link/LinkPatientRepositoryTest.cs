@@ -128,6 +128,28 @@ namespace In.ProjectEKA.HipServiceTest.Link
         }
 
         [Fact]
+        private async void ShouldReturnEveryLinkedCareContextForPatient()
+        {
+            var faker = TestBuilders.Faker();
+            var dbContext = PatientContext();
+            var linkPatientRepository = new LinkPatientRepository(dbContext);
+            var patientReferenceNumber = faker.Random.Hash();
+            var consentManagerUserId = faker.Random.Hash();
+            await linkPatientRepository.Save(consentManagerUserId, patientReferenceNumber,
+                faker.Random.Hash(), new[] {"visit-1"}, Guid.NewGuid());
+            await linkPatientRepository.Save(consentManagerUserId, patientReferenceNumber,
+                faker.Random.Hash(), new[] {"visit-2"}, Guid.NewGuid());
+
+            var (careContexts, error) =
+                await linkPatientRepository.GetLinkedCareContextsOfPatient(patientReferenceNumber);
+
+            error.Should().BeNull();
+            careContexts.Should().BeEquivalentTo(new[] {"visit-1", "visit-2"});
+
+            dbContext.Database.EnsureDeleted();
+        }
+
+        [Fact]
         private async void ShouldGetLinkedCareContexts()
         {
             var faker = TestBuilders.Faker();

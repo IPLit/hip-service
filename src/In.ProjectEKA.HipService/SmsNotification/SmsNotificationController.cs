@@ -65,7 +65,7 @@ namespace In.ProjectEKA.HipService.SmsNotification
                 
                 var sent = await gatewayClient.TrySendDataToGateway(PATH_SMS_NOTIFY, gatewaySmsNotifyRequestRepresentation,
                     cmSuffix, correlationId);
-                if (!sent)
+                if (!sent.Succeeded)
                 {
                     return StatusCode(StatusCodes.Status504GatewayTimeout,
                         new ErrorRepresentation(new Error(ErrorCode.GatewayTimedOut,

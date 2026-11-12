@@ -124,6 +124,48 @@ namespace In.ProjectEKA.HipServiceTest.Link
             await careContextController.PassContext(newContextRequest);
 
             careContextService.Verify(a => a.CallAddContext(newContextRequest), Times.Exactly(1));
+            careContextService.Verify(a => a.CallNotifyContext(
+                It.IsAny<NewContextRequest>(), It.IsAny<CareContextRepresentation>()), Times.Never);
+        }
+
+        [Fact]
+        private async Task ShouldNotifyWhenCareContextIsAlreadyLinked()
+        {
+            var careContext = new CareContextRepresentation("VISIT:already-linked", "OPD");
+            var newContextRequest = new NewContextRequest("GAN204041", "some",
+                new List<CareContextRepresentation> {careContext}, "hinapatel@sbx");
+            var linkedCareContexts = new List<string> {"VISIT:already-linked"};
+
+            linkPatientRepository.Setup(e => e.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber))
+                .ReturnsAsync(new Tuple<List<string>, Exception>(linkedCareContexts, null));
+            careContextService.Setup(e => e.IsLinkedContext(linkedCareContexts, careContext.ReferenceNumber))
+                .Returns(true);
+
+            await careContextController.PassContext(newContextRequest);
+
+            careContextService.Verify(a => a.CallNotifyContext(newContextRequest, careContext), Times.Once);
+            careContextService.Verify(a => a.CallAddContext(It.IsAny<NewContextRequest>()), Times.Never);
+        }
+
+        [Fact]
+        private async Task ShouldAddUnlinkedContextsOnce()
+        {
+            var careContexts = new List<CareContextRepresentation>
+            {
+                new CareContextRepresentation("visit-1", "OPD"),
+                new CareContextRepresentation("visit-2", "IPD")
+            };
+            var newContextRequest = new NewContextRequest("GAN204041", "some",
+                careContexts, "hinapatel@sbx");
+
+            linkPatientRepository.Setup(e => e.GetLinkedCareContextsOfPatient(newContextRequest.PatientReferenceNumber))
+                .ReturnsAsync(new Tuple<List<string>, Exception>(null, null));
+
+            await careContextController.PassContext(newContextRequest);
+
+            careContextService.Verify(a => a.CallAddContext(newContextRequest), Times.Once);
+            careContextService.Verify(a => a.CallNotifyContext(
+                It.IsAny<NewContextRequest>(), It.IsAny<CareContextRepresentation>()), Times.Never);
         }
     }
 }

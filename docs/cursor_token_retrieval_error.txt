@@ -44,3 +44,25 @@ The service no longer waits out a dead gateway call, and a repeated care-context
 The sessions **500 itself still comes from ABDM** (`api/hiecm/gateway/v3/sessions`). The next failure log will include the response body. If that body stays an internal error, the client id, secret, and `X-CM-ID` on this HIP are worth checking against the gateway.
 
 **Duplicate `LinkedAccounts` key.** `on_carecontext` always inserted a row whose primary key is `LinkReferenceNumber`. A repeated callback now updates that row and merges any new care contexts. A concurrent insert that still hits `23505` is treated as already stored, so the callback completes instead of being reported as `NoPatientFound`.
+
+Please check the error logs file in path  C:\Users\Lenovo\Downloads\hip-errors.txt
+Basically please check and fix below errors from this file 
+ip  | {"Timestamp":"2026-11-12T03:51:39.8262756+00:00","Level":"Information","MessageTemplate":"Initiating Request to Gateway for URI {@uri}","Properties":{"uri":"https://dev.abdm.gov.in/api/hiecm/hip/v3/link/carecontext","ActionId":"84731823-cf46-43b8-9cd5-42c2a6cd8ca3","ActionName":"In.ProjectEKA.HipService.Link.CareContextController.PassContext (In.ProjectEKA.HipService)","RequestId":"0HNQ0E0USGABR:00000001","RequestPath":"/v0.5/hip/new-carecontext","ConnectionId":"0HNQ0E0USGABR","MachineName":"25d57990fef2","Environment":null}}
+hip  | {"Timestamp":"2026-11-12T03:51:39.8706695+00:00","Level":"Information","MessageTemplate":"Response Status from Gateway for URI {@uri} is {@status}","Properties":{"uri":"https://dev.abdm.gov.in/api/hiecm/hip/v3/link/carecontext","status":"BadRequest","ActionId":"84731823-cf46-43b8-9cd5-42c2a6cd8ca3","ActionName":"In.ProjectEKA.HipService.Link.CareContextController.PassContext (In.ProjectEKA.HipService)","RequestId":"0HNQ0E0USGABR:00000001","RequestPath":"/v0.5/hip/new-carecontext","ConnectionId":"0HNQ0E0USGABR","MachineName":"25d57990fef2","Environment":null}}
+hip  | {"Timestamp":"2026-11-12T03:51:39.8724600+00:00","Level":"Error","MessageTemplate":"Gateway returned non-success status {@status} for URI {@uri}. Body: {@body}","Properties":{"status":"BadRequest","uri":"https://dev.abdm.gov.in/api/hiecm/hip/v3/link/carecontext","body":"{\"error\":{\"code\":\"ABDM-9999: \",\"message\":\"Duplicate HIP link request\"}}","ActionId":"84731823-cf46-43b8-9cd5-42c2a6cd8ca3","ActionName":"In.ProjectEKA.HipService.Link.CareContextController.PassContext (In.ProjectEKA.HipService)","RequestId":"0HNQ0E0USGABR:00000001","RequestPath":"/v0.5/hip/new-carecontext","ConnectionId":"0HNQ0E0USGABR","MachineName":"25d57990fef2","Environment":null}}
+hip  | {"Timestamp":"2026-11-12T03:51:39.8973565+00:00","Level":"Error","MessageTemplate":"Error happened for add-care context request","Properties":{"ActionId":"84731823-cf46-43b8-9cd5-42c2a6cd8ca3","ActionName":"In.ProjectEKA.HipService.Link.CareContextController.PassContext (In.ProjectEKA.HipService)","RequestId":"0HNQ0E0USGABR:00000001","RequestPath":"/v0.5/hip/new-carecontext","ConnectionId":"0HNQ0E0USGABR","MachineName":"25d57990fef2","Environment":null}}
+
+The first care-context link succeeded. The errors are from the same visit being linked again before HIP had stored it as linked.
+
+At 03:51:38 the gateway accepted `VISIT:8b164f17-0fa9-4ac7-a367-083bc6ab0482` for `snv30969@sbx`. Bahmni then posted `/v0.5/hip/new-carecontext` again about once a second. Each retry called `/api/hiecm/hip/v3/link/carecontext` and ABDM returned `ABDM-9999` **Duplicate HIP link request**.
+
+HIP only treated a visit as linked after the `on_carecontext` callback finished saving it. That callback took about 32 seconds, so the retries still looked like a new link.
+
+What changed:
+
+- A successful link is stored as soon as the gateway accepts it, so the next request uses context notify instead of linking again.
+- A **Duplicate HIP link request** response is treated as already linked: it is stored locally and a context notify is sent, and it is no longer logged as a failed add.
+- Already-linked and new visits in one request are split, and the link API is called once for the new visits only.
+- The linked-visit check now includes every stored care context for the patient, not only the latest row.
+
+The related gateway, repository, and controller tests passed (22 tests).

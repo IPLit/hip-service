@@ -17,7 +17,7 @@ namespace In.ProjectEKA.HipService.Gateway
     public interface IGatewayClient
     {
         Task SendDataToGateway<T>(string urlPath, T response, string cmSuffix,string correlationId, string hipId = null, string requestId = null, string linkToken = null);
-        Task<bool> TrySendDataToGateway<T>(string urlPath, T response, string cmSuffix, string correlationId, string hipId = null, string requestId = null, string linkToken = null);
+        Task<GatewaySendResult> TrySendDataToGateway<T>(string urlPath, T response, string cmSuffix, string correlationId, string hipId = null, string requestId = null, string linkToken = null);
         Task<HttpResponseMessage> CallABHAService<T>(HttpMethod method, string baseUrl, string urlPath, T representation,
             string correlationId, string xtoken = null, string tToken = null, string transactionId = null);
     }
@@ -90,7 +90,7 @@ namespace In.ProjectEKA.HipService.Gateway
                 .ConfigureAwait(false);
         }
 
-        public virtual async Task<bool> TrySendDataToGateway<T>(string urlPath, T response, string cmSuffix,
+        public virtual async Task<GatewaySendResult> TrySendDataToGateway<T>(string urlPath, T response, string cmSuffix,
             string correlationId, string hipId = null, string requestId = null, string linkToken = null)
         {
             return await PostTo(configuration.Url + urlPath, response, cmSuffix, correlationId, hipId, requestId,
@@ -127,7 +127,7 @@ namespace In.ProjectEKA.HipService.Gateway
             return response;
         }
 
-        private async Task<bool> PostTo<T>(string gatewayUrl, T representation, string cmSuffix, string correlationId, string hipId, string requestId, string linkToken = null)
+        private async Task<GatewaySendResult> PostTo<T>(string gatewayUrl, T representation, string cmSuffix, string correlationId, string hipId, string requestId, string linkToken = null)
         {
             try
             {
@@ -135,7 +135,7 @@ namespace In.ProjectEKA.HipService.Gateway
                 if (!token.HasValue)
                 {
                     Log.Error("Failed to obtain gateway access token; skipping request to {GatewayUrl}", gatewayUrl);
-                    return false;
+                    return GatewaySendResult.Failure;
                 }
 
                 try
@@ -153,25 +153,39 @@ namespace In.ProjectEKA.HipService.Gateway
                     Log.Debug("Response Payload {@payload}", responseBody);
                     if (!responseMessage.IsSuccessStatusCode)
                     {
+                        if (IsDuplicateHipLink(responseBody))
+                        {
+                            Log.Information(
+                                "Gateway reports care context already linked for URI {@uri}. Body: {@body}",
+                                gatewayUrl, responseBody);
+                            return GatewaySendResult.DuplicateLink;
+                        }
+
                         Log.Error(
                             "Gateway returned non-success status {@status} for URI {@uri}. Body: {@body}",
                             responseMessage.StatusCode, gatewayUrl, responseBody);
-                        return false;
+                        return GatewaySendResult.Failure;
                     }
 
-                    return true;
+                    return GatewaySendResult.Success;
                 }
                 catch (Exception exception)
                 {
                     Log.Error(exception, exception.StackTrace);
-                    return false;
+                    return GatewaySendResult.Failure;
                 }
             }
             catch (Exception exception)
             {
                 Log.Error(exception, exception.StackTrace);
-                return false;
+                return GatewaySendResult.Failure;
             }
+        }
+
+        private static bool IsDuplicateHipLink(string responseBody)
+        {
+            return !string.IsNullOrEmpty(responseBody)
+                   && responseBody.IndexOf("Duplicate HIP link request", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         public void SendDataToGateway(object pATH_CONSENT_ON_NOTIFY, GatewayConsentRepresentation gatewayRevokedConsentRepresentation, string id)
