@@ -284,7 +284,7 @@ namespace In.ProjectEKA.HipService.Link
 
         public bool IsLinkedContext(List<string> careContexts, string context)
         {
-            return careContexts.Any(careContext => careContext.Equals(context));
+            return careContexts.Any(careContext => careContext.Equals(context, StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task RememberLinkedCareContexts(NewContextRequest newContextRequest, string linkReferenceNumber)

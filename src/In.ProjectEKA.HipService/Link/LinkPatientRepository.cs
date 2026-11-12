@@ -187,7 +187,7 @@ namespace In.ProjectEKA.HipService.Link
             try
             {
                 var linkedAccounts = await linkPatientContext.LinkedAccounts
-                    .Where(request => request.PatientReferenceNumber.Equals(patientReferenceNumber))
+                    .Where(request => request.PatientReferenceNumber.Equals(patientReferenceNumber, StringComparison.OrdinalIgnoreCase))
                     .ToListAsync()
                     .ConfigureAwait(false);
                 if (linkedAccounts.Count == 0)
