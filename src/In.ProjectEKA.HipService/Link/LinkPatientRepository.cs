@@ -186,8 +186,10 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
+                var patientReference = patientReferenceNumber?.ToLower();
                 var linkedAccounts = await linkPatientContext.LinkedAccounts
-                    .Where(request => request.PatientReferenceNumber.Equals(patientReferenceNumber, StringComparison.OrdinalIgnoreCase))
+                    .Where(request => request.PatientReferenceNumber != null
+                                      && request.PatientReferenceNumber.ToLower() == patientReference)
                     .ToListAsync()
                     .ConfigureAwait(false);
                 if (linkedAccounts.Count == 0)
