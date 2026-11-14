@@ -160,12 +160,14 @@ namespace In.ProjectEKA.HipService.UserAuth
             try
             {
                 AuthConfirm authRequest = null;
-                if (!string.IsNullOrEmpty(hipId))
+                if (!string.IsNullOrEmpty(healthId) && !string.IsNullOrEmpty(hipId))
                 {
+                    var healthIdKey = healthId.ToLowerInvariant();
+                    var hipIdKey = hipId.ToLowerInvariant();
                     authRequest = await authContext.AuthConfirm
                         .FirstOrDefaultAsync(request =>
-                            request.HealthId.Equals(healthId, StringComparison.OrdinalIgnoreCase) &&
-                            request.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase)).ConfigureAwait(false);
+                            request.HealthId.ToLower() == healthIdKey &&
+                            request.HipId.ToLower() == hipIdKey).ConfigureAwait(false);
                 // if (authRequest == null && !string.IsNullOrEmpty(hipId))
                 // {
                 //     authRequest = await authContext.AuthConfirm
@@ -189,19 +191,25 @@ namespace In.ProjectEKA.HipService.UserAuth
             try
             {
                 AuthConfirm authRequest = null;
-                if (!string.IsNullOrEmpty(hipId)) 
+                if (string.IsNullOrEmpty(healthId))
+                    return new Tuple<AuthConfirm, Exception>(null, null);
+
+                var healthIdKey = healthId.ToLowerInvariant();
+                if (!string.IsNullOrEmpty(hipId))
                 {
+                    var hipIdKey = hipId.ToLowerInvariant();
                     authRequest = await authContext.AuthConfirm
-                        .Where(request => request.HealthId.Equals(healthId, StringComparison.OrdinalIgnoreCase)
-                                        && !string.IsNullOrEmpty(request.HipId)
-                                        && request.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase))
+                        .Where(request => request.HealthId.ToLower() == healthIdKey
+                                        && request.HipId != null
+                                        && request.HipId != ""
+                                        && request.HipId.ToLower() == hipIdKey)
                         .FirstOrDefaultAsync()
                         .ConfigureAwait(false);
                 }
                 else
                 {
                     authRequest = await authContext.AuthConfirm
-                        .Where(request => request.HealthId.Equals(healthId, StringComparison.OrdinalIgnoreCase))
+                        .Where(request => request.HealthId.ToLower() == healthIdKey)
                         .FirstOrDefaultAsync()
                         .ConfigureAwait(false);
                 }
