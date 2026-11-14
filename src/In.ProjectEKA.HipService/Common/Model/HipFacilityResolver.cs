@@ -25,13 +25,13 @@ namespace In.ProjectEKA.HipService.Common.Model
             if (string.IsNullOrWhiteSpace(healthId) || string.IsNullOrWhiteSpace(hipId))
                 return false;
 
-            var current = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
+            var current = await userAuthRepository.GetAuthDetailsByHealthId(healthId, hipId).ConfigureAwait(false);
             var existing = current != null && current.Item2 == null ? current.Item1 : null;
-            if (existing != null && existing.HipId == hipId)
+            if (existing != null && existing.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase))
             {
                 var name = string.IsNullOrEmpty(hipName) ? existing.HipName : hipName;
                 var token = accessToken ?? existing.AccessToken;
-                if (name == existing.HipName && token == existing.AccessToken)
+                if (name.Equals(existing.HipName, StringComparison.OrdinalIgnoreCase) && token.Equals(existing.AccessToken, StringComparison.OrdinalIgnoreCase))
                     return true;
                 return userAuthRepository.Update(new AuthConfirm(healthId, hipId, token, name));
             }
@@ -39,12 +39,17 @@ namespace In.ProjectEKA.HipService.Common.Model
             if (existing != null && !replaceExisting)
                 return true;
 
-            if (existing != null)
-                await userAuthRepository.Delete(healthId, existing.HipId).ConfigureAwait(false);
+            // if (existing != null)
+            //     await userAuthRepository.Delete(healthId, existing.HipId).ConfigureAwait(false);
 
-            var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, accessToken, hipName))
-                .ConfigureAwait(false);
-            return added.HasValue;
+            if (existing == null)
+            {
+                var nameNew = NameForStoredHip(hipId, hipName);
+                var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, accessToken, nameNew))
+                    .ConfigureAwait(false);
+                return added.HasValue;
+            }
+            return false;
         }
 
         public async Task<HfrDetails> Resolve(string healthId, string visitUuid)

@@ -52,7 +52,7 @@ namespace In.ProjectEKA.HipService.Common.Model
                 if (string.IsNullOrEmpty(visitUuid))
                     return new HfrDetails(null, null);
 
-                var locationUuid = await GetLocationUuidForVisitAsync(visitUuid);
+                var locationUuid = await GetLocationUuidForVisitAsync(visitUuid).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(locationUuid))
                     return new HfrDetails(null, null);
 
@@ -61,7 +61,7 @@ namespace In.ProjectEKA.HipService.Common.Model
                 if (!string.IsNullOrEmpty(cachedHfrId) && !string.IsNullOrEmpty(cachedHfrName))
                     return new HfrDetails(cachedHfrId, cachedHfrName);
 
-                return await FetchAndCacheLocationDetailsAsync(locationUuid);
+                return await FetchAndCacheLocationDetailsAsync(locationUuid).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -236,30 +236,26 @@ namespace In.ProjectEKA.HipService.Common.Model
                     }
                 }
             }
-
             if (string.IsNullOrEmpty(hfrId) && string.IsNullOrEmpty(hfrName))
             {
-                CacheDefaultHfrDetails(locationUuid);
-                Log.Information($"FetchAndCacheLocationDetailsAsync: Location {locationUuid} has no HFR id or name. Cached defaults and returning null HFR id");
-                return new HfrDetails(null, null);
+                HfrDetails defaults = CacheDefaultHfrDetails(locationUuid);
+                Log.Information($"FetchAndCacheLocationDetailsAsync: Location {locationUuid} has no HFR id or name. Cached defaults.");
+                return defaults;
             }
-
             if (!string.IsNullOrEmpty(hfrId))
             {
                 SetHfrIdForLocation(locationUuid, hfrId);
                 Log.Information($"FetchAndCacheLocationDetailsAsync: Stored HFR ID {hfrId} for location UUID {locationUuid}");
             }
-
             if (!string.IsNullOrEmpty(hfrName))
             {
                 SetFacilityNameForLocation(locationUuid, hfrName);
                 Log.Information($"FetchAndCacheLocationDetailsAsync: Stored HFR name {hfrName} for location UUID {locationUuid}");
             }
-
             return new HfrDetails(hfrId, hfrName);
         }
 
-        private void CacheDefaultHfrDetails(string locationUuid)
+        private HfrDetails CacheDefaultHfrDetails(string locationUuid)
         {
             var defaultHfrId = GetDefaultHfrId();
             var defaultHfrName = GetDefaultFacilityName();
@@ -267,6 +263,7 @@ namespace In.ProjectEKA.HipService.Common.Model
                 SetHfrIdForLocation(locationUuid, defaultHfrId);
             if (!string.IsNullOrEmpty(defaultHfrName))
                 SetFacilityNameForLocation(locationUuid, defaultHfrName);
+            return new HfrDetails(defaultHfrId, defaultHfrName);
         }
     }
 }

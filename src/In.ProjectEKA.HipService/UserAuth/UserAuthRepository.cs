@@ -159,15 +159,20 @@ namespace In.ProjectEKA.HipService.UserAuth
         {
             try
             {
-                var authRequest = await authContext.AuthConfirm
-                    .FirstOrDefaultAsync(request =>
-                        request.HealthId.Equals(healthId) && request.HipId.Equals(hipId)).ConfigureAwait(false);
+                AuthConfirm authRequest = null;
+                if (!string.IsNullOrEmpty(hipId))
+                {
+                    authRequest = await authContext.AuthConfirm
+                        .FirstOrDefaultAsync(request =>
+                            request.HealthId.Equals(healthId, StringComparison.OrdinalIgnoreCase) &&
+                            request.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase)).ConfigureAwait(false);
                 // if (authRequest == null && !string.IsNullOrEmpty(hipId))
                 // {
                 //     authRequest = await authContext.AuthConfirm
                 //         .FirstOrDefaultAsync(request =>
                 //             request.HealthId.Equals(healthId) && request.HipId.Equals(string.Empty));
                 // }
+                }
                 if (authRequest != null)
                     authContext.Entry(authRequest).State = EntityState.Detached;
                 return new Tuple<string, Exception>(authRequest != null ? authRequest.AccessToken : null, null);
@@ -179,16 +184,27 @@ namespace In.ProjectEKA.HipService.UserAuth
             }
         }
 
-        public async Task<Tuple<AuthConfirm, Exception>> GetAuthDetailsByHealthId(string healthId)
+        public async Task<Tuple<AuthConfirm, Exception>> GetAuthDetailsByHealthId(string healthId, string hipId = null)
         {
             try
             {
-                var authRequest = await authContext.AuthConfirm
-                    .Where(request => request.HealthId == healthId
-                                      && request.HipId != null
-                                      && request.HipId != "")
-                    .FirstOrDefaultAsync()
-                    .ConfigureAwait(false);
+                AuthConfirm authRequest = null;
+                if (!string.IsNullOrEmpty(hipId)) 
+                {
+                    authRequest = await authContext.AuthConfirm
+                        .Where(request => request.HealthId.Equals(healthId, StringComparison.OrdinalIgnoreCase)
+                                        && !string.IsNullOrEmpty(request.HipId)
+                                        && request.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase))
+                        .FirstOrDefaultAsync()
+                        .ConfigureAwait(false);
+                }
+                else
+                {
+                    authRequest = await authContext.AuthConfirm
+                        .Where(request => request.HealthId.Equals(healthId, StringComparison.OrdinalIgnoreCase))
+                        .FirstOrDefaultAsync()
+                        .ConfigureAwait(false);
+                }
                 if (authRequest != null)
                     authContext.Entry(authRequest).State = EntityState.Detached;
                 return new Tuple<AuthConfirm, Exception>(authRequest, null);

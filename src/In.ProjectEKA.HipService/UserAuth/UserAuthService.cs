@@ -273,7 +273,6 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 return new Tuple<AuthConfirm, ErrorRepresentation>(null,
                     new ErrorRepresentation(tokenError));
-                   
             }
             var healthId = onAuthConfirmRequest.auth.patient != null ? onAuthConfirmRequest.auth.patient.id : null;
             if(healthId == null)
@@ -282,9 +281,12 @@ namespace In.ProjectEKA.HipService.UserAuth
             }
             var requestId = Guid.Parse(onAuthConfirmRequest.resp.RequestId);
             var hipId = bahmniConfiguration.GetDefaultHfrId();
+            var token = new JwtSecurityTokenHandler().ReadToken(accessToken) as JwtSecurityToken;
+            hipId = token?.Claims.First(c => c.Type == "hipId").Value;
             if (UserAuthMap.RequestIdToHipId.ContainsKey(requestId.ToString()))
             {
-                hipId = UserAuthMap.RequestIdToHipId[requestId.ToString()];
+                if (hipId==null)
+                    hipId = UserAuthMap.RequestIdToHipId[requestId.ToString()];
             }
             var authConfirmResponse = await SaveAuthConfirm(healthId, accessToken, hipId).ConfigureAwait(false);
             if (authConfirmResponse.Item2 != null)
@@ -309,9 +311,14 @@ namespace In.ProjectEKA.HipService.UserAuth
             }
             if (request.auth.status == AuthNotifyStatus.GRANTED)
             {
+                string hipId = null;
+                if (UserAuthMap.RequestIdToHipId.ContainsKey(request.requestId.ToString()))
+                {
+                    hipId = UserAuthMap.RequestIdToHipId[request.requestId.ToString()];
+                }
                 UserAuthMap.TransactionIdToPatientDetails[transactionId] = request.auth.patient;
                 var healthId = request.auth.patient.id;
-                await SaveAuthConfirm(healthId, request.auth.accessToken).ConfigureAwait(false);
+                await SaveAuthConfirm(healthId, request.auth.accessToken, hipId).ConfigureAwait(false);
             }
 
             return null;
@@ -340,11 +347,11 @@ namespace In.ProjectEKA.HipService.UserAuth
             }
             var token = new JwtSecurityTokenHandler().ReadToken(accessToken) as JwtSecurityToken;
             var hipId = token?.Claims.First(c => c.Type == "hipId").Value;
-
-            // if (UserAuthMap.RequestIdToHipId.ContainsKey(onGenerateTokenRequest.Response.RequestId))
-            // {
-            //     hipId = UserAuthMap.RequestIdToHipId[onGenerateTokenRequest.Response.RequestId];
-            // }
+            if (UserAuthMap.RequestIdToHipId.ContainsKey(onGenerateTokenRequest.Response.RequestId))
+            {
+                if (hipId == null)
+                    hipId = UserAuthMap.RequestIdToHipId[onGenerateTokenRequest.Response.RequestId];
+            }
             Tuple<AuthConfirm, ErrorRepresentation> authConfirmResponse = await updateAuthConfirmRepository(healthId, accessToken, hipId);
             if (authConfirmResponse.Item2 != null)
             {
@@ -402,9 +409,9 @@ namespace In.ProjectEKA.HipService.UserAuth
             if (string.IsNullOrWhiteSpace(healthId) || string.IsNullOrWhiteSpace(hipId))
                 return false;
 
-            var current = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
+            var current = await userAuthRepository.GetAuthDetailsByHealthId(healthId, hipId).ConfigureAwait(false);
             var existing = current != null && current.Item2 == null ? current.Item1 : null;
-            if (existing != null && existing.HipId == hipId)
+            if (existing != null && hipId!=null && existing.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase))
             {
                 var name = string.IsNullOrEmpty(hipName) ? existing.HipName : hipName;
                 var token = accessToken ?? existing.AccessToken;
@@ -416,12 +423,17 @@ namespace In.ProjectEKA.HipService.UserAuth
             if (existing != null && !replaceExisting)
                 return true;
 
-            if (existing != null)
-                await userAuthRepository.Delete(healthId, existing.HipId).ConfigureAwait(false);
+            // if (existing != null)
+            //     await userAuthRepository.Delete(healthId, existing.HipId).ConfigureAwait(false);
 
-            var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, accessToken, hipName))
-                .ConfigureAwait(false);
-            return added.HasValue;
+            if (existing == null)
+            {
+                var nameNew = NameForStoredHip(hipId, hipName);
+                var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, accessToken, nameNew))
+                    .ConfigureAwait(false);
+                return added.HasValue;
+            }
+            return false;
         }
 
         private async Task<string> LookupHipName(string healthId, string hipId)
@@ -444,20 +456,16 @@ namespace In.ProjectEKA.HipService.UserAuth
         private async Task<Tuple<AuthConfirm, ErrorRepresentation>> SaveAuthConfirm(string healthId, string accessToken, string hipId = null)
         {
             string hipName = "";
-            if (string.IsNullOrEmpty(hipId))
+            if (!string.IsNullOrWhiteSpace(healthId) && userAuthRepository != null)
             {
-                if (!string.IsNullOrWhiteSpace(healthId) && userAuthRepository != null)
+                var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId, hipId).ConfigureAwait(false);
+                var stored = authDetails != null && authDetails.Item2 == null ? authDetails.Item1 : null;
+                if (!string.IsNullOrEmpty(hipId) && string.Equals(hipId, stored?.HipId, StringComparison.OrdinalIgnoreCase))
                 {
-                    var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId).ConfigureAwait(false);
-                    var stored = authDetails != null && authDetails.Item2 == null ? authDetails.Item1 : null;
-                    if (!string.IsNullOrEmpty(stored?.HipId))
-                    {
-                        hipId = stored.HipId;
-                        hipName = NameForStoredHip(stored.HipId, stored.HipName);
-                    }
+                    hipName = NameForStoredHip(stored.HipId, stored.HipName);
+                    await RememberHipDetails(healthId, hipId, hipName, accessToken, true).ConfigureAwait(false);
                 }
             }
-            var saved = await RememberHipDetails(healthId, hipId, hipName, accessToken, true).ConfigureAwait(false);
             // if (!saved)
             // {
             //     return new Tuple<AuthConfirm, ErrorRepresentation>(null,

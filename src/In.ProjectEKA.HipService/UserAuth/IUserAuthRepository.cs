@@ -16,6 +16,6 @@ namespace In.ProjectEKA.HipService.UserAuth
         Task<string> GetHealthIdByPhoneNumber(string phoneNumber);
         Task Delete(string healthId, string hipId = null);
         Task DeleteDemographics(string healthId);
-        Task<Tuple<AuthConfirm, Exception>> GetAuthDetailsByHealthId(string healthId);
+        Task<Tuple<AuthConfirm, Exception>> GetAuthDetailsByHealthId(string healthId, string hipId = null);
     }
 }
