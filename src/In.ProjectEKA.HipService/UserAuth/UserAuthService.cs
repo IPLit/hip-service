@@ -415,7 +415,8 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 var name = string.IsNullOrEmpty(hipName) ? existing.HipName : hipName;
                 var token = accessToken ?? existing.AccessToken;
-                if (name == existing.HipName && token == existing.AccessToken)
+                if (name != null && existing.HipName != null && name.Equals(existing.HipName, StringComparison.OrdinalIgnoreCase) 
+                    && token != null && existing.AccessToken != null && token.Equals(existing.AccessToken, StringComparison.OrdinalIgnoreCase))
                     return true;
                 return userAuthRepository.Update(new AuthConfirm(healthId, hipId, token, name));
             }
@@ -460,7 +461,8 @@ namespace In.ProjectEKA.HipService.UserAuth
             {
                 var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId, hipId).ConfigureAwait(false);
                 var stored = authDetails != null && authDetails.Item2 == null ? authDetails.Item1 : null;
-                if (!string.IsNullOrEmpty(hipId) && string.Equals(hipId, stored?.HipId, StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrEmpty(hipId) && stored != null &&
+                    !string.IsNullOrEmpty(stored.HipId) && string.Equals(hipId, stored?.HipId, StringComparison.OrdinalIgnoreCase))
                 {
                     hipName = NameForStoredHip(stored.HipId, stored.HipName);
                     await RememberHipDetails(healthId, hipId, hipName, accessToken, true).ConfigureAwait(false);

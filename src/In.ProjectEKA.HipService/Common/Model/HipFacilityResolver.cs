@@ -31,7 +31,8 @@ namespace In.ProjectEKA.HipService.Common.Model
             {
                 var name = string.IsNullOrEmpty(hipName) ? existing.HipName : hipName;
                 var token = accessToken ?? existing.AccessToken;
-                if (name.Equals(existing.HipName, StringComparison.OrdinalIgnoreCase) && token.Equals(existing.AccessToken, StringComparison.OrdinalIgnoreCase))
+                if (name != null && existing.HipName != null && name.Equals(existing.HipName, StringComparison.OrdinalIgnoreCase) 
+                    && token != null && existing.AccessToken != null && token.Equals(existing.AccessToken, StringComparison.OrdinalIgnoreCase))
                     return true;
                 return userAuthRepository.Update(new AuthConfirm(healthId, hipId, token, name));
             }
