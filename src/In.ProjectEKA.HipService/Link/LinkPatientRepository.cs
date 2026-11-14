@@ -57,8 +57,9 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
+                var linkReferenceKey = linkReferenceNumber.ToLowerInvariant();
                 var linkRequest = await linkPatientContext.LinkEnquires.Include("CareContexts")
-                    .FirstAsync(request => request.LinkReferenceNumber == linkReferenceNumber)
+                    .FirstAsync(request => request.LinkReferenceNumber.ToLower() == linkReferenceKey)
                     .ConfigureAwait(false);
                 return new Tuple<LinkEnquires, Exception>(linkRequest, null);
             }
@@ -80,6 +81,7 @@ namespace In.ProjectEKA.HipService.Link
         )
         {
             var careContexts = careContextReferenceNumbers.ToList();
+            var linkReferenceKey = linkReferenceNumber.ToLowerInvariant();
             var linkedAccounts = new LinkedAccounts(patientReferenceNumber,
                 linkReferenceNumber,
                 consentManagerUserId,
@@ -89,7 +91,7 @@ namespace In.ProjectEKA.HipService.Link
             try
             {
                 var existing = await linkPatientContext.LinkedAccounts
-                    .FirstOrDefaultAsync(account => account.LinkReferenceNumber == linkReferenceNumber)
+                    .FirstOrDefaultAsync(account => account.LinkReferenceNumber.ToLower() == linkReferenceKey)
                     .ConfigureAwait(false);
                 if (existing != null)
                 {
@@ -110,7 +112,7 @@ namespace In.ProjectEKA.HipService.Link
                 if (added != null)
                     added.State = EntityState.Detached;
                 var stored = await linkPatientContext.LinkedAccounts
-                    .FirstOrDefaultAsync(account => account.LinkReferenceNumber == linkReferenceNumber)
+                    .FirstOrDefaultAsync(account => account.LinkReferenceNumber.ToLower() == linkReferenceKey)
                     .ConfigureAwait(false);
                 if (stored == null)
                 {
@@ -168,8 +170,9 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
+                var consentManagerUserIdKey = consentManagerUserId.ToLowerInvariant();
                 var linkRequest = await linkPatientContext.LinkedAccounts
-                    .Where(request => request.ConsentManagerUserId.Equals(consentManagerUserId))
+                    .Where(request => request.ConsentManagerUserId.ToLower() == consentManagerUserIdKey)
                     .ToListAsync()
                     .ConfigureAwait(false);
                 return new Tuple<IEnumerable<LinkedAccounts>, Exception>(linkRequest, null);
@@ -186,7 +189,7 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
-                var patientReference = patientReferenceNumber?.ToLower();
+                var patientReference = patientReferenceNumber?.ToLowerInvariant();
                 var linkedAccounts = await linkPatientContext.LinkedAccounts
                     .Where(request => request.PatientReferenceNumber != null
                                       && request.PatientReferenceNumber.ToLower() == patientReference)
@@ -212,9 +215,10 @@ namespace In.ProjectEKA.HipService.Link
 
         public async Task DeleteLinkedAccounts(string healthId)
         {
+            var healthIdKey = healthId.ToLowerInvariant();
             var linkedAccounts = linkPatientContext.LinkedAccounts
                 .Where(request =>
-                    request.ConsentManagerUserId == healthId);
+                    request.ConsentManagerUserId.ToLower() == healthIdKey);
             foreach (var linkedAccount in linkedAccounts)
             {
                 linkPatientContext.Remove(linkedAccount);
@@ -225,9 +229,10 @@ namespace In.ProjectEKA.HipService.Link
 
         public async Task DeleteLinkEnquires(string healthId)
         {
+            var healthIdKey = healthId.ToLowerInvariant();
             var linkEnquires = linkPatientContext.LinkEnquires.Include("CareContexts")
                 .Where(request =>
-                    request.ConsentManagerUserId == healthId);
+                    request.ConsentManagerUserId.ToLower() == healthIdKey);
             foreach (var linkEnquire in linkEnquires)
             {
                 linkPatientContext.Remove(linkEnquire);
@@ -242,8 +247,10 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
+                var patientReferenceKey = patientReferenceNumber.ToLowerInvariant();
                 var linkRequest = await linkPatientContext.LinkedAccounts
-                    .FirstOrDefaultAsync(request => request.PatientReferenceNumber.Equals(patientReferenceNumber));
+                    .FirstOrDefaultAsync(request =>
+                        request.PatientReferenceNumber.ToLower() == patientReferenceKey);
                 return new Tuple<string, Exception>(linkRequest.ConsentManagerUserId, null);
             }
             catch (Exception exception)
@@ -280,9 +287,10 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
+                var referenceKey = careContextRepresentation.ReferenceNumber.ToLowerInvariant();
                 var careContextMap = await linkPatientContext.CareContextMap
                     .FirstOrDefaultAsync(c =>
-                        c.CareContextName == careContextRepresentation.ReferenceNumber);
+                        c.CareContextName.ToLower() == referenceKey);
                 if (careContextMap == null)
                 {
                     var careContextMapNew =
@@ -306,8 +314,9 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
+                var requestIdKey = requestId.ToLowerInvariant();
                 var initiatedLinkRequest = await linkPatientContext.InitiatedLinkRequest
-                    .FirstOrDefaultAsync(request => request.RequestId == requestId)
+                    .FirstOrDefaultAsync(request => request.RequestId.ToLower() == requestIdKey)
                     .ConfigureAwait(false);
                 return initiatedLinkRequest == null
                     ? Option.None<InitiatedLinkRequest>()
@@ -324,8 +333,9 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
+                var linkReferenceKey = linkReferenceNumber.ToLowerInvariant();
                 var initiatedLinkRequest = await linkPatientContext.InitiatedLinkRequest
-                    .Where(request => request.LinkReferenceNumber.Equals(linkReferenceNumber))
+                    .Where(request => request.LinkReferenceNumber.ToLower() == linkReferenceKey)
                     .ToListAsync()
                     .ConfigureAwait(false);
                 return Option.Some(initiatedLinkRequest.AsEnumerable());
@@ -342,8 +352,10 @@ namespace In.ProjectEKA.HipService.Link
         {
             try
             {
+                var consentManagerIdKey = consentManagerId.ToLowerInvariant();
                 var linkRequest = await linkPatientContext.LinkedAccounts
-                    .FirstOrDefaultAsync(request => request.ConsentManagerUserId == consentManagerId);
+                    .FirstOrDefaultAsync(request =>
+                        request.ConsentManagerUserId.ToLower() == consentManagerIdKey);
                 return new Tuple<Guid, Exception>(linkRequest.PatientUuid, null);
             }
             catch (Exception exception)

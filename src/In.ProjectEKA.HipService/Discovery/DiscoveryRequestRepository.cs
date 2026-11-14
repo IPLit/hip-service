@@ -24,10 +24,12 @@ namespace In.ProjectEKA.HipService.Discovery
 
         public async Task Delete(string requestId, string consentManagerUserId)
         {
+            var requestIdKey = requestId.ToLowerInvariant();
+            var consentManagerUserIdKey = consentManagerUserId.ToLowerInvariant();
             var discoveryRequest = await discoveryContext.DiscoveryRequest
                 .FirstAsync(request =>
-                    request.TransactionId == requestId &&
-                    request.ConsentManagerUserId == consentManagerUserId);
+                    request.TransactionId.ToLower() == requestIdKey &&
+                    request.ConsentManagerUserId.ToLower() == consentManagerUserIdKey);
             discoveryContext.Remove(discoveryRequest);
             await discoveryContext.SaveChangesAsync();
         }
@@ -37,23 +39,28 @@ namespace In.ProjectEKA.HipService.Discovery
             string consentManagerUserId,
             string patientReferenceNumber)
         {
+            var requestIdKey = requestId.ToLowerInvariant();
+            var consentManagerUserIdKey = consentManagerUserId.ToLowerInvariant();
+            var patientReferenceKey = patientReferenceNumber.ToLowerInvariant();
             return discoveryContext.DiscoveryRequest
-                .AnyAsync(request => request.TransactionId == requestId
-                                     && request.ConsentManagerUserId == consentManagerUserId
-                                     && request.PatientReferenceNumber == patientReferenceNumber);
+                .AnyAsync(request => request.TransactionId.ToLower() == requestIdKey
+                                     && request.ConsentManagerUserId.ToLower() == consentManagerUserIdKey
+                                     && request.PatientReferenceNumber.ToLower() == patientReferenceKey);
         }
 
         public Task<bool> RequestExistsFor(string requestId)
         {
+            var requestIdKey = requestId.ToLowerInvariant();
             return discoveryContext.DiscoveryRequest
-                .AnyAsync(request => request.TransactionId == requestId);
+                .AnyAsync(request => request.TransactionId.ToLower() == requestIdKey);
         }
 
         public async Task DeleteDiscoveryRequest(string healthId)
         {
+            var healthIdKey = healthId.ToLowerInvariant();
             var discoveryRequests = discoveryContext.DiscoveryRequest
                 .Where(request =>
-                    request.ConsentManagerUserId == healthId);
+                    request.ConsentManagerUserId.ToLower() == healthIdKey);
             foreach (var discoveryRequest in discoveryRequests)
             {
                 discoveryContext.Remove(discoveryRequest);

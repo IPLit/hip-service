@@ -23,8 +23,9 @@ namespace In.ProjectEKA.HipService.DataFlow
 
         public async Task<Option<HealthInformation>> GetAsync(string informationId)
         {
+            var informationIdKey = informationId.ToLowerInvariant();
             var healthInformation = await dataFlowContext.HealthInformation
-                .FirstOrDefaultAsync(data => data.InformationId == informationId);
+                .FirstOrDefaultAsync(data => data.InformationId.ToLower() == informationIdKey);
             return healthInformation != null ? Option.Some(healthInformation) : Option.None<HealthInformation>();
         }
     }

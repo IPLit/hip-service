@@ -23,9 +23,11 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         public async Task<Option<AuthConfirm>> Get(string healthId, string hipId)
         {
+            var healthIdKey = healthId.ToLowerInvariant();
+            var hipIdKey = hipId.ToLowerInvariant();
             var authConfirm = await authContext.AuthConfirm
                 .FirstOrDefaultAsync(c =>
-                    c.HealthId == healthId && c.HipId == hipId).ConfigureAwait(false);
+                    c.HealthId.ToLower() == healthIdKey && c.HipId.ToLower() == hipIdKey).ConfigureAwait(false);
             // if (authConfirm == null && !string.IsNullOrEmpty(hipId))
             // {
             //     authConfirm = await authContext.AuthConfirm
@@ -39,10 +41,11 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         public async Task<Option<NdhmDemographics>> GetDemographics(string healthId)
         {
+            healthId = healthId.ToLowerInvariant();
             var ndhmDemographics = await ndhmDemographicsContext.NdhmDemographics
                 .FirstOrDefaultAsync(c =>
-                    c.HealthId == healthId).ConfigureAwait(false);
-            return Option.Some(ndhmDemographics);
+                    c.HealthId.ToLower() == healthId).ConfigureAwait(false);
+            return Option.Some<NdhmDemographics>(ndhmDemographics);
         }
 
         public async Task<string> GetHealthIdByPhoneNumber(string phoneNumber)
@@ -51,6 +54,7 @@ namespace In.ProjectEKA.HipService.UserAuth
             if (string.IsNullOrEmpty(normalized))
                 return null;
 
+            var normalizedKey = normalized.ToLowerInvariant();
             var candidates = new[]
             {
                 phoneNumber.Trim(),
@@ -58,17 +62,22 @@ namespace In.ProjectEKA.HipService.UserAuth
                 "91" + normalized,
                 "+91" + normalized,
                 "0" + normalized
-            }.Where(value => !string.IsNullOrEmpty(value)).Distinct().ToArray();
+            }.Where(value => !string.IsNullOrEmpty(value))
+                .Select(value => value.ToLowerInvariant())
+                .Distinct()
+                .ToArray();
 
             var matches = await ndhmDemographicsContext.NdhmDemographics
                 .Where(d => d.PhoneNumber != null &&
-                            (candidates.Contains(d.PhoneNumber) || d.PhoneNumber.EndsWith(normalized)))
+                            (candidates.Contains(d.PhoneNumber.ToLower()) ||
+                             d.PhoneNumber.ToLower().EndsWith(normalizedKey)))
                 .ToListAsync()
                 .ConfigureAwait(false);
             if (matches.Count == 0)
                 return null;
 
-            var exact = matches.FirstOrDefault(d => candidates.Contains(d.PhoneNumber));
+            var exact = matches.FirstOrDefault(d =>
+                d.PhoneNumber != null && candidates.Contains(d.PhoneNumber.ToLower()));
             return (exact ?? matches[0]).HealthId;
         }
 
@@ -92,14 +101,15 @@ namespace In.ProjectEKA.HipService.UserAuth
         {
             try
             {
+                var healthIdKey = ndhmDemographics.HealthId.ToLowerInvariant();
                 var result = await ndhmDemographicsContext.NdhmDemographics
                     .FirstOrDefaultAsync(c =>
-                        c.HealthId == ndhmDemographics.HealthId).ConfigureAwait(false);
+                        c.HealthId.ToLower() == healthIdKey).ConfigureAwait(false);
                 if (result != null) return Option.None<NdhmDemographics>();
                 await ndhmDemographicsContext.NdhmDemographics.AddAsync(ndhmDemographics).ConfigureAwait(false);
                 await ndhmDemographicsContext.SaveChangesAsync();
                 ndhmDemographicsContext.Entry(ndhmDemographics).State = EntityState.Detached;
-                return Option.Some(ndhmDemographics);
+                return Option.Some<NdhmDemographics>(ndhmDemographics);
 
             }
             catch (Exception e)
@@ -128,8 +138,12 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         private void DetachTracked(string healthId, string hipId)
         {
+            var healthIdKey = healthId?.ToLowerInvariant();
+            var hipIdKey = hipId?.ToLowerInvariant();
             var tracked = authContext.ChangeTracker.Entries<AuthConfirm>()
-                .Where(entry => entry.Entity.HealthId == healthId && entry.Entity.HipId == hipId)
+                .Where(entry =>
+                    (entry.Entity.HealthId == null ? null : entry.Entity.HealthId.ToLower()) == healthIdKey &&
+                    (entry.Entity.HipId == null ? null : entry.Entity.HipId.ToLower()) == hipIdKey)
                 .ToList();
             foreach (var entry in tracked)
                 entry.State = EntityState.Detached;
@@ -137,9 +151,13 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         public async Task Delete(string healthId, string hipId = null)
         {
-            var query = authContext.AuthConfirm.Where(request => request.HealthId == healthId);
+            var healthIdKey = healthId.ToLowerInvariant();
+            var query = authContext.AuthConfirm.Where(request => request.HealthId.ToLower() == healthIdKey);
             if (hipId != null)
-                query = query.Where(request => request.HipId == hipId);
+            {
+                var hipIdKey = hipId.ToLowerInvariant();
+                query = query.Where(request => request.HipId.ToLower() == hipIdKey);
+            }
             var deleteRequests = await query.ToListAsync();
             authContext.RemoveRange(deleteRequests);
             await authContext.SaveChangesAsync();
@@ -147,9 +165,10 @@ namespace In.ProjectEKA.HipService.UserAuth
 
         public async Task DeleteDemographics(string healthId)
         {
+            var healthIdKey = healthId.ToLowerInvariant();
             var deleteRequest = await ndhmDemographicsContext.NdhmDemographics
                 .FirstAsync(request =>
-                    request.HealthId == healthId);
+                    request.HealthId.ToLower() == healthIdKey);
             ndhmDemographicsContext.Remove(deleteRequest);
             await ndhmDemographicsContext.SaveChangesAsync();
         }

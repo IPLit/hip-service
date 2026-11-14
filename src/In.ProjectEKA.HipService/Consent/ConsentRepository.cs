@@ -25,8 +25,9 @@ namespace In.ProjectEKA.HipService.Consent
 
         public async Task UpdateAsync(string consentArtefactId, ConsentStatus status)
         {
+            var consentArtefactIdKey = consentArtefactId.ToLowerInvariant();
             var consentArtefact = await consentContext.ConsentArtefact
-                .FirstOrDefaultAsync(c => c.ConsentArtefactId == consentArtefactId);
+                .FirstOrDefaultAsync(c => c.ConsentArtefactId.ToLower() == consentArtefactIdKey);
             if (consentArtefact == null)
                 return;
             consentArtefact.Status = status;
@@ -35,14 +36,17 @@ namespace In.ProjectEKA.HipService.Consent
 
         public async Task<Consent> GetFor(string consentArtefactId)
         {
+            var consentArtefactIdKey = consentArtefactId.ToLowerInvariant();
             return await consentContext.ConsentArtefact
-                .FirstOrDefaultAsync(x => x.ConsentArtefactId == consentArtefactId);
+                .FirstOrDefaultAsync(x => x.ConsentArtefactId.ToLower() == consentArtefactIdKey);
         }
 
         public async Task DeleteConsentArtefact(string healthId)
         {
+            var healthIdKey = healthId.ToLowerInvariant();
             var consents = consentContext.ConsentArtefact.AsEnumerable()
-                .Where(b => b.ConsentArtefact.Patient.Id.Equals(healthId))
+                .Where(b => b.ConsentArtefact.Patient.Id != null &&
+                            b.ConsentArtefact.Patient.Id.ToLower() == healthIdKey)
                 .ToList();
             foreach (var consent in consents)
             {
