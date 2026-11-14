@@ -6,6 +6,12 @@
         <RootNamespace>In.ProjectEKA.HipServiceTest</RootNamespace>
         <LangVersion>8</LangVersion>
         <NoWarn>$(NoWarn);NU1701</NoWarn>
+        <!-- SDK 11 Debug builds inject a Blazor hot-reload JS module into Web SDK
+             projects. This test project then fails because that module has no static
+             web asset endpoint. Tests do not serve static web assets.
+             https://github.com/dotnet/sdk/issues/56656 -->
+        <EnableHotReloadInRuntimeConfigDevFile>false</EnableHotReloadInRuntimeConfigDevFile>
+        <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
     </PropertyGroup>
 
     <ItemGroup>

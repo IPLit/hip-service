@@ -6,6 +6,9 @@
         <LangVersion>latest</LangVersion>
         <NoWarn>$(NoWarn);CS1591</NoWarn>
         <GenerateRuntimeConfigurationFiles>True</GenerateRuntimeConfigurationFiles>
+        <!-- SDK 11 Debug builds inject a Blazor hot-reload JS module that has no
+             static-web-asset endpoint when another Web SDK project references this one. -->
+        <EnableHotReloadInRuntimeConfigDevFile>false</EnableHotReloadInRuntimeConfigDevFile>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(RunConfiguration)' == 'hip_service' ">
