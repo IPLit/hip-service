@@ -5,6 +5,7 @@
         <IsPackable>false</IsPackable>
         <RootNamespace>In.ProjectEKA.HipServiceTest</RootNamespace>
         <LangVersion>8</LangVersion>
+        <NoWarn>$(NoWarn);NU1701</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

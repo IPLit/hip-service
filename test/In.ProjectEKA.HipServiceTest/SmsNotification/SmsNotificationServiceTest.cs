@@ -90,7 +90,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             var userAuthRepository = new Mock<IUserAuthRepository>();
             userAuthRepository.Setup(repository => repository.GetHealthIdByPhoneNumber(phoneNo))
                 .ReturnsAsync(healthId);
-            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId, null))
+            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId, "IN0000000001"))
                 .ReturnsAsync(new Tuple<AuthConfirm, Exception>(null, null));
 
             var openMrsClient = new Mock<IOpenMrsClient>();
@@ -150,7 +150,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             UserAuthMap.HealthIdToLatestVisitUuid[healthId] = visitUuid;
 
             var userAuthRepository = new Mock<IUserAuthRepository>();
-            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId, null))
+            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId, "IN0000000001"))
                 .ReturnsAsync(new Tuple<AuthConfirm, Exception>(
                     new AuthConfirm(healthId, "IN-STORED", "token", "Stored Facility"), null));
 
@@ -191,7 +191,7 @@ namespace In.ProjectEKA.HipServiceTest.SmsNotification
             UserAuthMap.HealthIdToLatestVisitUuid[healthId] = "visit-without-facility";
 
             var userAuthRepository = new Mock<IUserAuthRepository>();
-            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId, null))
+            userAuthRepository.Setup(repository => repository.GetAuthDetailsByHealthId(healthId, "IN0000000001"))
                 .ReturnsAsync(new Tuple<AuthConfirm, Exception>(
                     new AuthConfirm(healthId, "IN-STORED", "token", "Stored Facility"), null));
             var bahmniConfiguration = new BahmniConfiguration(new Mock<IOpenMrsClient>().Object)
