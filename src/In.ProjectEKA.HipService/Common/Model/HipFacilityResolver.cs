@@ -22,35 +22,40 @@ namespace In.ProjectEKA.HipService.Common.Model
         private async Task<bool> RememberHipDetails(string healthId, string hipId, string hipName, string accessToken,
             bool replaceExisting)
         {
-            if (string.IsNullOrWhiteSpace(healthId) || string.IsNullOrWhiteSpace(hipId))
+            if (userAuthRepository == null || string.IsNullOrWhiteSpace(healthId) || string.IsNullOrWhiteSpace(hipId))
                 return false;
 
             var current = await userAuthRepository.GetAuthDetailsByHealthId(healthId, hipId).ConfigureAwait(false);
             var existing = current != null && current.Item2 == null ? current.Item1 : null;
-            if (existing != null && existing.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase))
+            var incomingToken = string.IsNullOrWhiteSpace(accessToken) ? null : accessToken;
+            if (existing != null && !string.IsNullOrEmpty(existing.HipId) &&
+                existing.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase))
             {
                 var name = string.IsNullOrEmpty(hipName) ? existing.HipName : hipName;
-                var token = accessToken ?? existing.AccessToken;
-                if (name != null && existing.HipName != null && name.Equals(existing.HipName, StringComparison.OrdinalIgnoreCase) 
-                    && token != null && existing.AccessToken != null && token.Equals(existing.AccessToken, StringComparison.OrdinalIgnoreCase))
+                var storedToken = string.IsNullOrWhiteSpace(existing.AccessToken) ? null : existing.AccessToken;
+                var token = incomingToken ?? storedToken;
+                var nameUnchanged = string.Equals(name, existing.HipName, StringComparison.OrdinalIgnoreCase);
+                var tokenUnchanged = string.Equals(token, storedToken, StringComparison.Ordinal);
+                if (nameUnchanged && tokenUnchanged)
                     return true;
-                return userAuthRepository.Update(new AuthConfirm(healthId, hipId, token, name));
+                // Keep a blank token on an existing facility row until a real link token arrives.
+                // Never replace a stored token with a blank one.
+                var tokenToStore = string.IsNullOrWhiteSpace(token) ? existing.AccessToken : token;
+                return userAuthRepository.Update(new AuthConfirm(healthId, hipId, tokenToStore, name));
             }
 
             if (existing != null && !replaceExisting)
                 return true;
 
-            // if (existing != null)
-            //     await userAuthRepository.Delete(healthId, existing.HipId).ConfigureAwait(false);
+            // No row yet. A visit-only lookup has no link token; do not insert an AuthConfirm
+            // with an empty AccessToken. The token callback inserts the row once a token exists.
+            if (incomingToken == null)
+                return false;
 
-            if (existing == null)
-            {
-                var nameNew = NameForStoredHip(hipId, hipName);
-                var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, accessToken, nameNew))
-                    .ConfigureAwait(false);
-                return added.HasValue;
-            }
-            return false;
+            var nameNew = NameForStoredHip(hipId, hipName);
+            var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, incomingToken, nameNew))
+                .ConfigureAwait(false);
+            return added.HasValue;
         }
 
         public async Task<HfrDetails> Resolve(string healthId, string visitUuid)

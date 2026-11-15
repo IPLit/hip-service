@@ -406,35 +406,36 @@ namespace In.ProjectEKA.HipService.UserAuth
         private async Task<bool> RememberHipDetails(string healthId, string hipId, string hipName, string accessToken,
             bool replaceExisting)
         {
-            if (string.IsNullOrWhiteSpace(healthId) || string.IsNullOrWhiteSpace(hipId))
+            if (userAuthRepository == null || string.IsNullOrWhiteSpace(healthId) || string.IsNullOrWhiteSpace(hipId))
                 return false;
 
             var current = await userAuthRepository.GetAuthDetailsByHealthId(healthId, hipId).ConfigureAwait(false);
             var existing = current != null && current.Item2 == null ? current.Item1 : null;
-            if (existing != null && hipId!=null && existing.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase))
+            var incomingToken = string.IsNullOrWhiteSpace(accessToken) ? null : accessToken;
+            if (existing != null && !string.IsNullOrEmpty(existing.HipId) &&
+                existing.HipId.Equals(hipId, StringComparison.OrdinalIgnoreCase))
             {
                 var name = string.IsNullOrEmpty(hipName) ? existing.HipName : hipName;
-                var token = accessToken ?? existing.AccessToken;
-                if (name != null && existing.HipName != null && name.Equals(existing.HipName, StringComparison.OrdinalIgnoreCase) 
-                    && token != null && existing.AccessToken != null && token.Equals(existing.AccessToken, StringComparison.OrdinalIgnoreCase))
+                var storedToken = string.IsNullOrWhiteSpace(existing.AccessToken) ? null : existing.AccessToken;
+                var token = incomingToken ?? storedToken;
+                var nameUnchanged = string.Equals(name, existing.HipName, StringComparison.OrdinalIgnoreCase);
+                var tokenUnchanged = string.Equals(token, storedToken, StringComparison.Ordinal);
+                if (nameUnchanged && tokenUnchanged)
                     return true;
-                return userAuthRepository.Update(new AuthConfirm(healthId, hipId, token, name));
+                var tokenToStore = string.IsNullOrWhiteSpace(token) ? existing.AccessToken : token;
+                return userAuthRepository.Update(new AuthConfirm(healthId, hipId, tokenToStore, name));
             }
 
             if (existing != null && !replaceExisting)
                 return true;
 
-            // if (existing != null)
-            //     await userAuthRepository.Delete(healthId, existing.HipId).ConfigureAwait(false);
+            if (incomingToken == null)
+                return false;
 
-            if (existing == null)
-            {
-                var nameNew = NameForStoredHip(hipId, hipName);
-                var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, accessToken, nameNew))
-                    .ConfigureAwait(false);
-                return added.HasValue;
-            }
-            return false;
+            var nameNew = NameForStoredHip(hipId, hipName);
+            var added = await userAuthRepository.Add(new AuthConfirm(healthId, hipId, incomingToken, nameNew))
+                .ConfigureAwait(false);
+            return added.HasValue;
         }
 
         private async Task<string> LookupHipName(string healthId, string hipId)
@@ -457,23 +458,21 @@ namespace In.ProjectEKA.HipService.UserAuth
         private async Task<Tuple<AuthConfirm, ErrorRepresentation>> SaveAuthConfirm(string healthId, string accessToken, string hipId = null)
         {
             string hipName = "";
-            if (!string.IsNullOrWhiteSpace(healthId) && userAuthRepository != null)
+            if (!string.IsNullOrWhiteSpace(healthId) && !string.IsNullOrWhiteSpace(accessToken) && userAuthRepository != null)
             {
+                if (string.IsNullOrWhiteSpace(hipId))
+                    hipId = bahmniConfiguration.GetDefaultHfrId();
+
                 var authDetails = await userAuthRepository.GetAuthDetailsByHealthId(healthId, hipId).ConfigureAwait(false);
                 var stored = authDetails != null && authDetails.Item2 == null ? authDetails.Item1 : null;
-                if (!string.IsNullOrEmpty(hipId) && stored != null &&
-                    !string.IsNullOrEmpty(stored.HipId) && string.Equals(hipId, stored?.HipId, StringComparison.OrdinalIgnoreCase))
-                {
+                if (stored != null)
                     hipName = NameForStoredHip(stored.HipId, stored.HipName);
-                    await RememberHipDetails(healthId, hipId, hipName, accessToken, true).ConfigureAwait(false);
-                }
+                else
+                    hipName = await LookupHipName(healthId, hipId).ConfigureAwait(false)
+                              ?? NameForStoredHip(hipId, null);
+
+                await RememberHipDetails(healthId, hipId, hipName, accessToken, true).ConfigureAwait(false);
             }
-            // if (!saved)
-            // {
-            //     return new Tuple<AuthConfirm, ErrorRepresentation>(null,
-            //         new ErrorRepresentation(new Error(ErrorCode.DuplicateAuthConfirmRequest,
-            //             "Auth confirm request already exists")));
-            // }
 
             return new Tuple<AuthConfirm, ErrorRepresentation>(
                 new AuthConfirm(healthId, hipId, accessToken, hipName), null);

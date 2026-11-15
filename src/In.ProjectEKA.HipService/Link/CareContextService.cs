@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using In.ProjectEKA.HipLibrary.Patient;
 using In.ProjectEKA.HipLibrary.Patient.Model;
 using In.ProjectEKA.HipService.Common;
 using In.ProjectEKA.HipService.Common.Model;
@@ -30,9 +31,10 @@ namespace In.ProjectEKA.HipService.Link
         private readonly IGatewayClient gatewayClient;
         private readonly GatewayConfiguration gatewayConfiguration;
         private readonly HipFacilityResolver hipFacilityResolver;
+        private readonly IPatientRepository patientRepository;
         public CareContextService(HttpClient httpClient, IUserAuthRepository userAuthRepository,
             BahmniConfiguration bahmniConfiguration, ILinkPatientRepository linkPatientRepository, LinkPatient linkPatient, IOptions<HipConfiguration> hipConfiguration, IGatewayClient gatewayClient, GatewayConfiguration gatewayConfiguration,
-            IUserAuthService userAuthService, HipFacilityResolver hipFacilityResolver)
+            IUserAuthService userAuthService, HipFacilityResolver hipFacilityResolver, IPatientRepository patientRepository)
         {
             this.httpClient = httpClient;
             this.userAuthRepository = userAuthRepository;
@@ -44,6 +46,7 @@ namespace In.ProjectEKA.HipService.Link
             this.gatewayConfiguration = gatewayConfiguration;
             this.userAuthService = userAuthService;
             this.hipFacilityResolver = hipFacilityResolver;
+            this.patientRepository = patientRepository;
         }
 
         private async Task<HfrDetails> ResolveHip(string healthId, string visitUuid)
@@ -108,7 +111,7 @@ namespace In.ProjectEKA.HipService.Link
                     return;
             }
             var (linkTokenFromDb,exception) = await userAuthRepository.GetAccessToken(healthId, hipId);
-            if (!string.IsNullOrEmpty(linkTokenFromDb))
+            if (!string.IsNullOrWhiteSpace(linkTokenFromDb))
             {
                  var error = userAuthService.CheckAccessToken(linkTokenFromDb);
                  if (error == null)
@@ -120,8 +123,18 @@ namespace In.ProjectEKA.HipService.Link
                  }
             }
             var requestId = Guid.NewGuid();
-            if (demographics == null)
+            if (demographics == null
+                || string.IsNullOrWhiteSpace(demographics.Gender)
+                || string.IsNullOrWhiteSpace(demographics.DateOfBirth))
+            {
+                Log.Error(
+                    "Cannot request a link token for healthId: {healthId} and hipId: {hipId}. Stored access token is empty and patient demographics are missing.",
+                    healthId, hipId);
                 return;
+            }
+            Log.Information(
+                "No usable link token stored for healthId: {healthId} and hipId: {hipId}. Requesting a new token.",
+                healthId, hipId);
             UserAuthMap.RequestIdToHipId[requestId.ToString()] = hipId;
             var generateTokenPayload = new GenerateLinkTokenRequest(demographics.HealthId, demographics.Name,
                 demographics.Gender, demographics.DateOfBirth.Split("-").First());
@@ -195,6 +208,8 @@ namespace In.ProjectEKA.HipService.Link
                 hipId = bahmniConfiguration.GetDefaultHfrId();
             try
             {
+                await EnsureDemographics(newContextRequest.HealthId, newContextRequest.PatientReferenceNumber,
+                    newContextRequest.PatientName).ConfigureAwait(false);
                 await SetAccessToken(newContextRequest.HealthId, hipId).ConfigureAwait(false);
                 var compositeKey = newContextRequest.HealthId + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
                 if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)
@@ -236,6 +251,8 @@ namespace In.ProjectEKA.HipService.Link
             var hipId = hfrDetails?.HfrId;
             if (string.IsNullOrEmpty(hipId))
                 hipId = bahmniConfiguration.GetDefaultHfrId();
+            await EnsureDemographics(abhaAddress, newContextRequest.PatientReferenceNumber,
+                newContextRequest.PatientName).ConfigureAwait(false);
             await SetAccessToken(abhaAddress, hipId).ConfigureAwait(false);
             var compositeKey = abhaAddress + COMPOSITE_AUTH_KEY_SEPARATOR + hipId;
             if (!UserAuthMap.HealthIdToAccessToken.TryGetValue(compositeKey, out var linkToken)
@@ -285,6 +302,46 @@ namespace In.ProjectEKA.HipService.Link
         public bool IsLinkedContext(List<string> careContexts, string context)
         {
             return careContexts.Any(careContext => careContext.Equals(context, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private async Task EnsureDemographics(string healthId, string patientReferenceNumber, string patientName)
+        {
+            if (string.IsNullOrWhiteSpace(healthId))
+                return;
+
+            var existing = (await userAuthRepository.GetDemographics(healthId).ConfigureAwait(false)).ValueOrDefault();
+            if (existing != null
+                && !string.IsNullOrWhiteSpace(existing.Gender)
+                && !string.IsNullOrWhiteSpace(existing.DateOfBirth))
+                return;
+
+            if (patientRepository == null || string.IsNullOrWhiteSpace(patientReferenceNumber))
+                return;
+
+            try
+            {
+                var patient = (await patientRepository.PatientWithAsync(patientReferenceNumber).ConfigureAwait(false))
+                    .ValueOrDefault();
+                if (patient?.Gender == null || patient.YearOfBirth == null)
+                {
+                    Log.Error(
+                        "Cannot build demographics for healthId {healthId} from patient {patientReferenceNumber}",
+                        healthId, patientReferenceNumber);
+                    return;
+                }
+
+                var name = !string.IsNullOrWhiteSpace(patient.Name) ? patient.Name : patientName;
+                await userAuthService.Dump(new NdhmDemographics(
+                    healthId,
+                    name,
+                    patient.Gender.ToString(),
+                    patient.YearOfBirth.ToString(),
+                    patient.PhoneNumber)).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                Log.Error("Failed to load demographics for healthId {healthId}. {error}", healthId, exception.Message);
+            }
         }
 
         private async Task RememberLinkedCareContexts(NewContextRequest newContextRequest, string linkReferenceNumber)
