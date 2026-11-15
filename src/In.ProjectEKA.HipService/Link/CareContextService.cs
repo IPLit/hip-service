@@ -222,7 +222,7 @@ namespace In.ProjectEKA.HipService.Link
 
         public async Task CallAddContext(NewContextRequest newContextRequest)
         {
-            var abhaAddress = newContextRequest.HealthId;
+            var abhaAddress = newContextRequest.HealthId.Trim();
             // Extract visit UUID from first care context (if available)
             var visitUuid = newContextRequest.CareContexts?.First() != null 
                 ? bahmniConfiguration.ExtractVisitUuidFromReference(newContextRequest.CareContexts.First().ReferenceNumber)
