@@ -108,7 +108,7 @@ namespace In.ProjectEKA.HipService.Link
                     return;
             }
             var (linkTokenFromDb,exception) = await userAuthRepository.GetAccessToken(healthId, hipId);
-            if (linkTokenFromDb != null)
+            if (!string.IsNullOrEmpty(linkTokenFromDb))
             {
                  var error = userAuthService.CheckAccessToken(linkTokenFromDb);
                  if (error == null)
