@@ -65,5 +65,37 @@ namespace In.ProjectEKA.HipServiceTest.Link
             patientValue.CareContexts.Count().Should().Be(2);
             patientValue.PhoneNumber.Should().Be("+91-9999999999");
         }
+
+        [Fact]
+        public async Task PatientR4WithAsync_returns_full_name_and_date_of_birth()
+        {
+            patientDal.Setup(e => e.LoadPatientAsyncWithIdentifier("ABC200022"))
+                .ReturnsAsync(new OpenMrsPatient
+                {
+                    Id = "patient-uuid",
+                    Gender = OpenMrsGender.Male,
+                    BirthDate = "1990-05-15",
+                    Name = new List<OpenMrsPatientName>
+                    {
+                        new OpenMrsPatientName
+                        {
+                            Family = "Man",
+                            GivenElement = new List<Hl7.Fhir.Model.FhirString>
+                            {
+                                new Hl7.Fhir.Model.FhirString("Super"),
+                                new Hl7.Fhir.Model.FhirString("Kumar")
+                            }
+                        }
+                    }
+                });
+            var repo = new OpenMrsPatientRepository(patientDal.Object, careContextRepository.Object, phoneNumberRepository.Object);
+
+            var patient = (await repo.PatientR4WithAsync("ABC200022")).ValueOr((PatientR4Demographics)null);
+
+            patient.Name.Should().Be("Super Kumar Man");
+            patient.DateOfBirth.Should().Be("1990-05-15");
+            patient.Gender.Should().Be(Gender.M);
+            patient.PhoneNumber.Should().Be("+91-9999999999");
+        }
     }
 }

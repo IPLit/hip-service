@@ -76,5 +76,45 @@ namespace In.ProjectEKA.HipService.OpenMrs
                 (identifier.Type.Text.Equals("ABHA Number") || identifier.Type.Text.Equals("ABHA Address"))
             );
         }
+
+        public async Task<Option<PatientR4Demographics>> PatientR4WithAsync(string patientIdentifier)
+        {
+            var fhirPatient = await _patientDal.LoadPatientAsyncWithIdentifier(patientIdentifier);
+            if (fhirPatient == null)
+                return Option.None<PatientR4Demographics>();
+
+            var phoneNumber = string.IsNullOrEmpty(fhirPatient.Id)
+                ? null
+                : await _phoneNumberRepository.GetPhoneNumber(fhirPatient.Id).ConfigureAwait(false);
+            var gender = fhirPatient.Gender.HasValue
+                ? (Gender)(int)fhirPatient.Gender.Value
+                : (Gender?)null;
+
+            return Option.Some(new PatientR4Demographics(
+                FullName(fhirPatient),
+                gender,
+                fhirPatient.BirthDate,
+                phoneNumber));
+        }
+
+        private static string FullName(Hl7.Fhir.Model.Patient fhirPatient)
+        {
+            var humanName = fhirPatient.Name?.FirstOrDefault();
+            if (humanName == null)
+                return null;
+
+            var givenParts = humanName.GivenElement?
+                .Select(part => part?.Value)
+                .Where(part => !string.IsNullOrWhiteSpace(part))
+                .ToList();
+            var givenName = givenParts != null && givenParts.Count > 0 ? givenParts[0] : null;
+            var middleName = givenParts != null && givenParts.Count > 1
+                ? string.Join(" ", givenParts.Skip(1))
+                : null;
+            var familyName = string.IsNullOrWhiteSpace(humanName.Family) ? null : humanName.Family.Trim();
+            var fullName = string.Join(" ", new[] { givenName, middleName, familyName }
+                .Where(part => !string.IsNullOrWhiteSpace(part)));
+            return string.IsNullOrWhiteSpace(fullName) ? null : fullName;
+        }
     }
 }

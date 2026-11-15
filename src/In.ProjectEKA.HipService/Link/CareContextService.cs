@@ -320,9 +320,9 @@ namespace In.ProjectEKA.HipService.Link
 
             try
             {
-                var patient = (await patientRepository.PatientWithAsync(patientReferenceNumber).ConfigureAwait(false))
+                var patient = (await patientRepository.PatientR4WithAsync(patientReferenceNumber).ConfigureAwait(false))
                     .ValueOrDefault();
-                if (patient?.Gender == null || patient.YearOfBirth == null)
+                if (patient?.Gender == null || string.IsNullOrWhiteSpace(patient.DateOfBirth))
                 {
                     Log.Error(
                         "Cannot build demographics for healthId {healthId} from patient {patientReferenceNumber}",
@@ -330,12 +330,12 @@ namespace In.ProjectEKA.HipService.Link
                     return;
                 }
 
-                var name = patientName ?? (!string.IsNullOrWhiteSpace(patient.Name) ? patient.Name : patientName);
+                var name = !string.IsNullOrWhiteSpace(patient.Name) ? patient.Name : patientName;
                 await userAuthService.Dump(new NdhmDemographics(
                     healthId,
                     name,
                     patient.Gender.ToString(),
-                    patient.YearOfBirth.ToString(),
+                    patient.DateOfBirth,
                     UserAuthMap.NormalizePhoneNumber(patient.PhoneNumber))).ConfigureAwait(false);
             }
             catch (Exception exception)
