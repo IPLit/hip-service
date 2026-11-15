@@ -330,13 +330,13 @@ namespace In.ProjectEKA.HipService.Link
                     return;
                 }
 
-                var name = !string.IsNullOrWhiteSpace(patient.Name) ? patient.Name : patientName;
+                var name = patientName ?? (!string.IsNullOrWhiteSpace(patient.Name) ? patient.Name : patientName);
                 await userAuthService.Dump(new NdhmDemographics(
                     healthId,
                     name,
                     patient.Gender.ToString(),
                     patient.YearOfBirth.ToString(),
-                    patient.PhoneNumber)).ConfigureAwait(false);
+                    UserAuthMap.NormalizePhoneNumber(patient.PhoneNumber))).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
