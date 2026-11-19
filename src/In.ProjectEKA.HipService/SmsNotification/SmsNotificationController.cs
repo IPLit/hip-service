@@ -63,14 +63,8 @@ namespace In.ProjectEKA.HipService.SmsNotification
                     "Request for sms Notify to gateway: {@GatewayResponse}",
                     gatewaySmsNotifyRequestRepresentation.dump(gatewaySmsNotifyRequestRepresentation));
                 
-                var sent = await gatewayClient.TrySendDataToGateway(PATH_SMS_NOTIFY, gatewaySmsNotifyRequestRepresentation,
+                await gatewayClient.TrySendDataToGateway(PATH_SMS_NOTIFY, gatewaySmsNotifyRequestRepresentation,
                     cmSuffix, correlationId);
-                if (!sent.Succeeded)
-                {
-                    return StatusCode(StatusCodes.Status504GatewayTimeout,
-                        new ErrorRepresentation(new Error(ErrorCode.GatewayTimedOut,
-                            "Failed to obtain gateway access token")));
-                }
                 return Accepted();
             }
             catch (Exception exception)
