@@ -69,17 +69,10 @@ namespace In.ProjectEKA.HipService.Link
             var careContextReferenceNumbers = addContextsRequest.CareContexts
                 .Select(context => context.ReferenceNumber)
                 .ToArray();
-            var linkConfirmationRepresentations = careContexts
-                .Where(cc => cc.HiTypes != null && cc.HiTypes.Any())
-                .SelectMany(cc => cc.HiTypes.Select(hiType => new { HiType = hiType, CareContext = cc }))
-                .GroupBy(x => x.HiType)
-                .Select(group => new LinkConfirmationRepresentation(addContextsRequest.PatientReferenceNumber,
-                    addContextsRequest.PatientName,
-                    group.Select(x => new CareContextRepresentation(x.CareContext.ReferenceNumber, x.CareContext.Display))
-                        .ToList(),
-                    group.Key.ToString(),
-                    group.Count()))
-                .ToList();
+            var linkConfirmationRepresentations = BuildPatientLinks(
+                addContextsRequest.PatientReferenceNumber,
+                addContextsRequest.PatientName,
+                careContexts);
             var (_, exception1) = await linkPatientRepository.SaveRequestWith(
                     linkReferenceNumber,
                     cmSuffix,
@@ -176,7 +169,7 @@ namespace In.ProjectEKA.HipService.Link
             var id = notifyContextRequest.HealthId;
             var patientReference = notifyContextRequest.PatientReferenceNumber;
             var careContextReference = context.ReferenceNumber;
-            var hiTypes = context.HiTypes.Select(hiType => hiType.ToString()).ToList();
+            var hiTypes = HiTypesOf(context).Select(hiType => hiType.ToString()).ToList();
             // Extract visit UUID from care context reference (format: "patientId:visitUuid")
             var visitUuid = bahmniConfiguration.ExtractVisitUuidFromReference(careContextReference);
             var hfrDetails = await ResolveHip(id, visitUuid).ConfigureAwait(false);
@@ -297,6 +290,35 @@ namespace In.ProjectEKA.HipService.Link
             {
                 Log.Error("Error happened for add-care context request", exception);
             }
+        }
+
+        public static List<LinkConfirmationRepresentation> BuildPatientLinks(
+            string patientReferenceNumber,
+            string patientName,
+            IEnumerable<CareContextRepresentation> careContexts)
+        {
+            return (careContexts ?? Enumerable.Empty<CareContextRepresentation>())
+                .SelectMany(careContext => HiTypesOf(careContext)
+                    .Select(hiType => new { HiType = hiType, CareContext = careContext }))
+                .GroupBy(item => item.HiType)
+                .Select(group => new LinkConfirmationRepresentation(
+                    patientReferenceNumber,
+                    patientName,
+                    group.Select(item => new CareContextRepresentation(
+                            item.CareContext.ReferenceNumber,
+                            item.CareContext.Display))
+                        .ToList(),
+                    group.Key.ToString(),
+                    group.Count()))
+                .ToList();
+        }
+
+        private static IEnumerable<HiType> HiTypesOf(CareContextRepresentation careContext)
+        {
+            if (careContext?.HiTypes != null && careContext.HiTypes.Any())
+                return careContext.HiTypes;
+
+            return new[] { HiType.OPConsultation };
         }
 
         public bool IsLinkedContext(List<string> careContexts, string context)
