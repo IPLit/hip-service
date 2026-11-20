@@ -55,7 +55,10 @@ namespace In.ProjectEKA.HipService.Gateway
             {
                 cached = ReadValidToken();
                 if (cached != null)
+                {
+                    Log.Information("Session accessToken is valid and not expired!");
                     return cached;
+                }
 
                 var created = await fetch().ConfigureAwait(false);
                 if (created == null || string.IsNullOrEmpty(created.AuthorizationValue))
