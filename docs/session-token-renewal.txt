@@ -54,3 +54,13 @@ One follow-up worth doing in the same change: if a gateway call returns 401, cle
 Existing tests that mock `/sessions` on every call will need the store to start empty, which it does, so the first call still hits `/sessions`. A second call in the same test should not.
 
 I have not changed any code. Next round we can add `GatewaySessionTokenStore` and wire it into `Authenticate` if this is the approach you want.
+
+
+Gateway calls now reuse one in-memory ABDM session token and renew it 2 minutes before `expiresIn`.
+
+`Authenticate` asks `GatewaySessionTokenStore` first. When the cached token is still outside that window, it returns the same `Bearer` token and does not call `/sessions`. When the token is missing or inside the window, one sessions call runs. Any gateway call that arrives during that refresh waits, then uses the new token and continues.
+
+The buffer is `Gateway:sessionTokenRenewalBufferMinutes` in `appsettings.json`, set to `2`. Change that value to adjust it later. It is not wired as a Docker or Helm environment variable. If `expiresIn` is shorter than the buffer, the store renews at half the token lifetime so it does not request a new session on every call.
+
+The store is a singleton, shared by both the singleton `GatewayClient` and the scoped `IGatewayClient`. A failed sessions call is not cached, so the next gateway call tries again.
+
