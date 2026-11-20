@@ -3,7 +3,7 @@ name: CI action
 on:
   push:
     branches:
-      - master
+      - trialsv3-hfrid-token
       - trialsv3-hfrid
       - trialsv3
     tags:
