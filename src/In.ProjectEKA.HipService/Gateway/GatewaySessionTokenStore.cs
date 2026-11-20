@@ -3,6 +3,7 @@ namespace In.ProjectEKA.HipService.Gateway
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using In.ProjectEKA.HipService.Logger;
 
     public sealed class GatewaySessionToken
     {
