@@ -51,7 +51,7 @@ namespace In.ProjectEKA.HipService.Gateway
                     return Option.None<string>();
 
                 var token = await tokenStore
-                    .GetOrCreateAsync(() => RequestNewSessionAsync(correlationId))
+                    .GetOrCreateAsync(async () => await RequestNewSessionAsync(correlationId).ConfigureAwait(false))
                     .ConfigureAwait(false);
                 return string.IsNullOrEmpty(token) ? Option.None<string>() : Option.Some(token);
             }
