@@ -1,0 +1,56 @@
+Yes. Keep one gateway session token in process memory and reuse it until shortly before `expiresIn`. Do not use ASP.NET Session for this.
+
+ASP.NET Session is a per-browser cookie store. The ABDM sessions token is a server credential (`client_credentials`) shared by every gateway call in this process, including background data-push, which has no user session. A session variable would be the wrong lifetime and would still create a new token per user.
+
+## What happens today
+
+`Authenticate` always POSTs `/sessions` and returns `Bearer {accessToken}`. It never reads `expiresIn`.
+
+That method is called on every gateway post:
+
+- `PostTo` (used by `SendDataToGateway` / `TrySendDataToGateway`)
+- `CallABHAService`
+- `DataFlowClient` when pushing health information
+
+So every outbound call pays for a new sessions request.
+
+There is a second lifetime issue in `Startup`. The concrete `GatewayClient` is a singleton, and `IGatewayClient` is scoped, so a new client is created per request. A field on `GatewayClient` would not be shared by both registrations. The cache has to be its own singleton.
+
+## Recommended approach
+
+Add one small singleton, for example `GatewaySessionTokenStore`, and call it from `Authenticate`. Callers stay as they are: they still `await Authenticate(...)`, then send the gateway request.
+
+The store holds:
+
+- the formatted token (`Bearer {accessToken}`)
+- `expiresAtUtc`, computed as `UtcNow + expiresIn` seconds from the sessions response
+- a `SemaphoreSlim(1, 1)` so only one sessions call runs at a time
+
+`Authenticate` becomes:
+
+1. Ask the store for a valid token.
+2. If the cached token is still more than 2 minutes from `expiresAtUtc`, return it. No sessions call.
+3. If it is missing or inside that 2-minute window, take the lock.
+4. Check again after the lock. Another request may have just refreshed it.
+5. If it is still due, POST `/sessions`, read `accessToken`, `tokenType`, and `expiresIn`, store `expiresAtUtc`, and return `Bearer {accessToken}`.
+6. Release the lock. Every request that was waiting then uses that same new token and sends its gateway call.
+
+That is the “renew, then send the waiting call” behavior. Callers do not poll or sleep. They await `Authenticate`, and `Authenticate` awaits the single in-flight refresh.
+
+Use a 2-minute early refresh only when `expiresIn` is longer than that. If ABDM ever returns a shorter lifetime, refresh at half of `expiresIn` so the token is not discarded immediately.
+
+Keep the sessions HTTP call inside `GatewayClient` (it already has `HttpClient` and `GatewayConfiguration`). The new file only owns cache, expiry, and the single-flight lock. `Authenticate` passes a delegate that performs the sessions POST.
+
+Register the store with `AddSingleton`. Inject it into both the singleton `GatewayClient` and the scoped `IGatewayClient`.
+
+## What this does not need
+
+- ASP.NET Session, `IMemoryCache` alone, or a static variable. A dedicated singleton is easier to test and is shared by both DI registrations. `IMemoryCache` without a lock still lets many requests hit `/sessions` together at expiry.
+- A refresh token. This grant is `client_credentials`. When the access token is near expiry, call `/sessions` again.
+- A shared cache across servers. Each HIP process can hold its own token. That is correct for this grant.
+
+One follow-up worth doing in the same change: if a gateway call returns 401, clear the cached token and call `Authenticate` once more before failing. That covers clock skew or a token ABDM revoked early. The 2-minute buffer already covers normal expiry.
+
+Existing tests that mock `/sessions` on every call will need the store to start empty, which it does, so the first call still hits `/sessions`. A second call in the same test should not.
+
+I have not changed any code. Next round we can add `GatewaySessionTokenStore` and wire it into `Authenticate` if this is the approach you want.

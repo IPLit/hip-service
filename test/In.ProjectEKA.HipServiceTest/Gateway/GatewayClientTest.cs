@@ -256,6 +256,66 @@ namespace In.ProjectEKA.HipServiceTest.Gateway
         }
 
         [Fact]
+        public async Task ShouldReuseGatewaySessionTokenUntilRenewalBuffer()
+        {
+            var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            var httpClient = new HttpClient(handlerMock.Object);
+            const string rootUrl = "http://someUrl";
+            var expectedUri = new Uri($"{rootUrl}/{PATH_SESSIONS}");
+            var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var clock = now;
+            var store = new GatewaySessionTokenStore(TimeSpan.FromMinutes(2), () => clock);
+            var configuration = new GatewayConfiguration
+            {
+                Url = rootUrl,
+                ClientId = TestBuilder.RandomString(),
+                ClientSecret = TestBuilder.RandomString()
+            };
+            var response = JsonConvert.SerializeObject(new
+            {
+                tokenType = "bearer",
+                accessToken = "token",
+                expiresIn = 1200
+            });
+            handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsInOrder(
+                    () => Task.FromResult(new HttpResponseMessage
+                    {
+                        StatusCode = HttpStatusCode.OK,
+                        Content = new StringContent(response, Encoding.UTF8, MediaTypeNames.Application.Json)
+                    }),
+                    () => Task.FromResult(new HttpResponseMessage
+                    {
+                        StatusCode = HttpStatusCode.OK,
+                        Content = new StringContent(response, Encoding.UTF8, MediaTypeNames.Application.Json)
+                    }));
+
+            var client = new GatewayClient(httpClient, configuration, store);
+            var correlationId = Uuid.Generate().ToString();
+
+            var first = await client.Authenticate(correlationId);
+            clock = now.AddMinutes(17);
+            var second = await client.Authenticate(correlationId);
+            clock = now.AddMinutes(18);
+            var third = await client.Authenticate(correlationId);
+
+            first.HasValue.Should().BeTrue();
+            second.HasValue.Should().BeTrue();
+            third.HasValue.Should().BeTrue();
+            handlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Exactly(2),
+                ItExpr.Is<HttpRequestMessage>(message => message.Method == HttpMethod.Post
+                                                         && message.RequestUri == expectedUri),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        [Fact]
         private async void ShouldNotReturnTokenWhenAnyExceptionHappened()
         {
             var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);

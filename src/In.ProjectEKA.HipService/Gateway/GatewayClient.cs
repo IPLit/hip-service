@@ -26,14 +26,43 @@ namespace In.ProjectEKA.HipService.Gateway
     {
         private readonly GatewayConfiguration configuration;
         private readonly HttpClient httpClient;
+        private readonly GatewaySessionTokenStore tokenStore;
 
         public GatewayClient(HttpClient httpClient, GatewayConfiguration gatewayConfiguration)
+            : this(httpClient, gatewayConfiguration, null)
+        {
+        }
+
+        public GatewayClient(
+            HttpClient httpClient,
+            GatewayConfiguration gatewayConfiguration,
+            GatewaySessionTokenStore tokenStore)
         {
             this.httpClient = httpClient;
             configuration = gatewayConfiguration;
+            this.tokenStore = tokenStore ?? GatewaySessionTokenStore.FromConfiguration(gatewayConfiguration);
         }
 
         public virtual async Task<Option<string>> Authenticate(String correlationId)
+        {
+            try
+            {
+                if (configuration == null)
+                    return Option.None<string>();
+
+                var token = await tokenStore
+                    .GetOrCreateAsync(() => RequestNewSessionAsync(correlationId))
+                    .ConfigureAwait(false);
+                return string.IsNullOrEmpty(token) ? Option.None<string>() : Option.Some(token);
+            }
+            catch (Exception exception)
+            {
+                Log.Error(exception, exception.StackTrace);
+                return Option.None<string>();
+            }
+        }
+
+        private async Task<GatewaySessionToken> RequestNewSessionAsync(string correlationId)
         {
             try
             {
@@ -69,18 +98,21 @@ namespace In.ProjectEKA.HipService.Gateway
                     Log.Error(
                         "Failure in getting the token with status code {StatusCode}. Body: {Body}",
                         responseMessage.StatusCode, response);
-                    return Option.None<string>();
+                    return null;
                 }
 
-                var definition = new {accessToken = "", tokenType = ""};
+                var definition = new {accessToken = "", tokenType = "", expiresIn = 0};
                 var result = JsonConvert.DeserializeAnonymousType(response, definition);
                 var tokenType = char.ToUpper(result.tokenType[0]) + result.tokenType.Substring(1);
-                return Option.Some($"{tokenType} {result.accessToken}");
+                Log.Information(
+                    "Obtained gateway session token. ExpiresInSeconds: {ExpiresInSeconds}",
+                    result.expiresIn);
+                return new GatewaySessionToken($"{tokenType} {result.accessToken}", result.expiresIn);
             }
             catch (Exception exception)
             {
                 Log.Error(exception, exception.StackTrace);
-                return Option.None<string>();
+                return null;
             }
         }
 

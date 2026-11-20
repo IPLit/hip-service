@@ -162,8 +162,12 @@ namespace In.ProjectEKA.HipService
                     return bahmniConfiguration;
                 }) // for HFR ID and facility name visit location wise
                 .AddSingleton(Configuration.GetSection("Cors").Get<CorsConfiguration>())
-                .AddSingleton(new GatewayClient(HttpClient,
-                    Configuration.GetSection("Gateway").Get<GatewayConfiguration>()))
+                .AddSingleton(sp => GatewaySessionTokenStore.FromConfiguration(
+                    sp.GetRequiredService<GatewayConfiguration>()))
+                .AddSingleton(sp => new GatewayClient(
+                    HttpClient,
+                    sp.GetRequiredService<GatewayConfiguration>(),
+                    sp.GetRequiredService<GatewaySessionTokenStore>()))
                 .AddScoped<IGatewayClient, GatewayClient>()
                 .AddSingleton(Configuration.GetSection("OpenMrs").Get<OpenMrsConfiguration>())
                 .AddSingleton(new OpenMrsClient(HttpClient,
